@@ -1,0 +1,15 @@
+tasks:
+- ceph:
+    conf:
+      client:
+        fuse_use_invalidate_cb: true
+- ceph-fuse:
+- pexec:
+    sudo: true
+    client.0:
+      - for i in $(seq 1 1048576); do
+      -   echo foo >> bar
+      - done
+    client.1:
+      - sleep 4
+      - tail -f bar > /dev/null

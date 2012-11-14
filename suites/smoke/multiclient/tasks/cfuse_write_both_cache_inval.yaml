@@ -1,0 +1,15 @@
+tasks:
+- ceph:
+    conf:
+      client:
+        fuse_use_invalidate_cb: true
+- ceph-fuse:
+- pexec:
+    sudo: true
+    client.0:
+      - cd /tmp/cephtest/mnt.0
+      - dd if=/dev/zero of=./foo count=30 bs=10485760
+    client.1:
+      - cd /tmp/cephtest/mnt.1
+      - sleep 4
+      - dd if=/dev/zero of=./foo count=4 bs=10485760
