@@ -1,0 +1,6 @@
+overrides:
+  ceph:
+    valgrind:
+      mon: [--tool=helgrind]
+      osd: [--tool=helgrind]
+      mds: [--tool=helgrind]
