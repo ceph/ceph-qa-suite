@@ -8,7 +8,17 @@ tasks:
         debug ms: 1
         debug mds: 20
 - ceph-fuse:
-- workunit:
+- pexec:
+    sudo: true
     clients:
-      all:
-        - suites/pjd.sh
+      - cd /tmp/cephtest/mnt.*
+      - wget http://teuthology.front.sepia.ceph.com/qa/pjd-fstest-20090130-RC-open24.tgz
+      - tar zxvf pjd*.tgz
+      - cd pjd*
+      - make
+      - cd ..
+      - mkdir tmp
+      - cd tmp
+      - prove -r -v --exec 'bash -x' ../pjd*/tests
+      - cd ..
+      - rm -r tmp pjd*
