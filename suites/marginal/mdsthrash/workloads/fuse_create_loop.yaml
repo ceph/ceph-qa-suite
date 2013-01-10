@@ -1,0 +1,10 @@
+tasks:
+- ceph:
+- ceph-fuse:
+- pexec:
+    client.0:
+      - for i in $(seq 1 100000); do
+      -   echo "creating file$i..."
+      -   touch /tmp/cephtest/mnt.0/file$i
+      -   echo "file$i created"
+      - done

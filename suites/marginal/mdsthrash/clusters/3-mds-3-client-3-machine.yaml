@@ -1,0 +1,4 @@
+roles:
+- [mon.a, mon.c, osd.0, osd.1, osd.2, mon.b, mds.a, client.0]
+- [mds.b, client.1]
+- [mds.c, client.2]
