@@ -12,9 +12,6 @@ tasks:
      extras: yes
 - ssh_keys:
 - ceph-deploy:
-     branch:
-        dev: master
-- ceph-fuse:
 - workunit:
      clients:
         client.0:

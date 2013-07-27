@@ -10,10 +10,8 @@ tasks:
      extras: yes
 - ssh_keys:
 - ceph-deploy:
-     branch:
-        dev: master
 - ceph-fuse:
 - workunit:
      clients:
         client.0:
-           - cls/test_cls_rbd.sh
+           - suites/fsstress.sh

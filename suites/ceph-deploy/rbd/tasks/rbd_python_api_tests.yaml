@@ -5,18 +5,13 @@ roles:
   - osd.1
 - - mon.b
   - osd.2
-  - osd.3
 - - client.0
 tasks:
 - install:
      extras: yes
 - ssh_keys:
 - ceph-deploy:
-     branch:
-        dev: master
-- ceph-fuse: 
 - workunit:
      clients:
-        all:
-           - rados/load-gen-big.sh
-
+        client.0:
+           - rbd/test_librbd_python.sh
