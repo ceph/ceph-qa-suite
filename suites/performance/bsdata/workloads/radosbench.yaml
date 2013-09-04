@@ -1,0 +1,6 @@
+tasks:
+- chef: null
+- install: null
+- radosbench:
+    clients: [client.0]
+    time: 300
