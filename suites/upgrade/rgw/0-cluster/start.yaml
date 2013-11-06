@@ -17,4 +17,5 @@ tasks:
       client:
         client mount timeout: 600
         rgw init timeout: 600
+    fs: xfs
 - rgw: [client.0]

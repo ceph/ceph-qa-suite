@@ -19,6 +19,7 @@ tasks:
       client:
         debug ms: 1
         debug client: 20
+    fs: xfs
 - install.upgrade:
      all:
         branch: emperor

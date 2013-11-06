@@ -12,6 +12,7 @@ tasks:
 - install:
      branch: cuttlefish
 - ceph:
+     fs: xfs
 - install.upgrade:
      all:
         branch: dumpling

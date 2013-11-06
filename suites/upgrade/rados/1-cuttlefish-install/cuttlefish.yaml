@@ -2,3 +2,4 @@ tasks:
 - install:
     branch: cuttlefish
 - ceph:
+    fs: xfs
