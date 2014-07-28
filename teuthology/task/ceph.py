@@ -144,52 +144,6 @@ def ceph_log(ctx, config):
     finally:
         pass
 
-@contextlib.contextmanager
-def ship_utilities(ctx, config):
-    assert config is None
-    FILES = ['daemon-helper', 'adjust-ulimits', 'chdir-coredump',
-             'valgrind.supp', 'kcon_most']
-    testdir = teuthology.get_testdir(ctx)
-    for filename in FILES:
-        log.info('Shipping %r...', filename)
-        src = os.path.join(os.path.dirname(__file__), filename)
-        dst = os.path.join(testdir, filename)
-        with file(src, 'rb') as f:
-            for rem in ctx.cluster.remotes.iterkeys():
-                teuthology.write_file(
-                    remote=rem,
-                    path=dst,
-                    data=f,
-                    )
-                f.seek(0)
-                rem.run(
-                    args=[
-                        'chmod',
-                        'a=rx',
-                        '--',
-                        dst,
-                        ],
-                    )
-
-    try:
-        yield
-    finally:
-        log.info('Removing shipped files: %s...', ' '.join(FILES))
-        filenames = (
-            os.path.join(testdir, filename)
-            for filename in FILES
-            )
-        run.wait(
-            ctx.cluster.run(
-                args=[
-                    'rm',
-                    '-rf',
-                    '--',
-                    ] + list(filenames),
-                wait=False,
-                ),
-            )
-
 def assign_devs(roles, devs):
     return dict(zip(roles, devs))
 
@@ -591,7 +545,7 @@ def cluster(ctx, config):
                         mkfs = ['mkfs.%s' % fs] + mkfs_options
                         log.info('%s on %s on %s' % (mkfs, dev, remote))
                     remote.run(args= ['yes', run.Raw('|')] + ['sudo'] + mkfs + [dev])
-                        
+
                 log.info('mount %s on %s -o %s' % (dev, remote,
                                                    ','.join(mount_options)))
                 remote.run(
@@ -1147,7 +1101,6 @@ def task(ctx, config):
 
     with contextutil.nested(
         lambda: ceph_log(ctx=ctx, config=None),
-        lambda: ship_utilities(ctx=ctx, config=None),
         lambda: valgrind_post(ctx=ctx, config=config),
         lambda: cluster(ctx=ctx, config=dict(
                 conf=config.get('conf', {}),
