@@ -53,7 +53,7 @@ def task(ctx, config):
         proc = remote.run(
             args=[
                 "/bin/sh", "-c",
-                " ".join(['{tdir}/adjust-ulimits',
+                " ".join(['adjust-ulimits',
                           'ceph-coverage',
                           '{tdir}/archive/coverage',
                           'omapbench',
@@ -65,7 +65,7 @@ def task(ctx, config):
                           '--valsize', str(config.get('valsize',1000)),
                           '--inc', str(config.get('increment',10)),
                           '--omaptype', str(config.get('omaptype','uniform'))
-                          ]).format(tdir=testdir),
+                          ]),
                 ],
             logger=log.getChild('omapbench.{id}'.format(id=id_)),
             stdin=run.PIPE,

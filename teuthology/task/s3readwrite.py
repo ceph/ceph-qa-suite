@@ -72,7 +72,7 @@ def create_users(ctx, config):
     users = {'s3': 'foo'}
     cached_client_user_names = dict()
     for client in config['clients']:
-        cached_client_user_names[client] = dict()  
+        cached_client_user_names[client] = dict()
         s3tests_conf = config['s3tests_conf'][client]
         s3tests_conf.setdefault('readwrite', {})
         s3tests_conf['readwrite'].setdefault('bucket', 'rwtest-' + client + '-{random}-')
@@ -86,13 +86,13 @@ def create_users(ctx, config):
         rwconf['files'].setdefault('stddev', 500)
         for section, user in users.iteritems():
             _config_user(s3tests_conf, section, '{user}.{client}'.format(user=user, client=client))
-            log.debug('creating user {user} on {client}'.format(user=s3tests_conf[section]['user_id'], 
+            log.debug('creating user {user} on {client}'.format(user=s3tests_conf[section]['user_id'],
                                                                 client=client))
 
-            # stash the 'delete_user' flag along with user name for easier cleanup 
+            # stash the 'delete_user' flag along with user name for easier cleanup
             delete_this_user = True
             if 'delete_user' in s3tests_conf['s3']:
-                delete_this_user = s3tests_conf['s3']['delete_user'] 
+                delete_this_user = s3tests_conf['s3']['delete_user']
                 log.debug('delete_user set to {flag} for {client}'.format(flag=delete_this_user,client=client))
             cached_client_user_names[client][section+user] = (s3tests_conf[section]['user_id'], delete_this_user)
 
@@ -103,7 +103,7 @@ def create_users(ctx, config):
             else:
                 ctx.cluster.only(client).run(
                     args=[
-                        '{tdir}/adjust-ulimits'.format(tdir=testdir),
+                        'adjust-ulimits',
                         'ceph-coverage',
                         '{tdir}/archive/coverage'.format(tdir=testdir),
                         'radosgw-admin',
@@ -126,7 +126,7 @@ def create_users(ctx, config):
                 if delete_this_user:
                     ctx.cluster.only(client).run(
                         args=[
-                            '{tdir}/adjust-ulimits'.format(tdir=testdir),
+                            'adjust-ulimits',
                             'ceph-coverage',
                             '{tdir}/archive/coverage'.format(tdir=testdir),
                             'radosgw-admin',

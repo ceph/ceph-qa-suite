@@ -3,7 +3,7 @@ import logging
 
 from teuthology import misc as teuthology
 from teuthology import contextutil
-from ..orchestra import run 
+from ..orchestra import run
 
 log = logging.getLogger(__name__)
 blktrace = '/usr/sbin/blktrace'
@@ -41,7 +41,7 @@ def execute(ctx, config):
                         'cd',
                         log_dir,
                         run.Raw(';'),
-                        '{tdir}/daemon-helper'.format(tdir=testdir),
+                        'daemon-helper',
                         daemon_signal,
                         'sudo',
                         blktrace,
@@ -50,7 +50,7 @@ def execute(ctx, config):
                         '-d',
                         dev,
                         ],
-                    wait=False,   
+                    wait=False,
                     stdin=run.PIPE,
                     )
                 procs.append(proc)

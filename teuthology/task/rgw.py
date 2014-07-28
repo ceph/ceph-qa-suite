@@ -145,10 +145,10 @@ def start_rgw(ctx, config):
         log.info('client {client} is id {id}'.format(client=client, id=id_))
         run_cmd=[
             'sudo',
-            '{tdir}/adjust-ulimits'.format(tdir=testdir),
+            'adjust-ulimits',
             'ceph-coverage',
             '{tdir}/archive/coverage'.format(tdir=testdir),
-            '{tdir}/daemon-helper'.format(tdir=testdir),
+            'daemon-helper',
             'term',
             ]
         run_cmd_tail=[
@@ -223,8 +223,8 @@ def start_apache(ctx, config):
             apache_name = '/usr/sbin/httpd.worker'
         proc = remote.run(
             args=[
-                '{tdir}/adjust-ulimits'.format(tdir=testdir),
-                '{tdir}/daemon-helper'.format(tdir=testdir),
+                'adjust-ulimits',
+                'daemon-helper',
                 'kill',
                 apache_name,
                 '-X',
@@ -331,7 +331,7 @@ def fill_in_endpoints(region_info, role_zones, role_endpoints):
         region, zone, zone_info, _ = role_zones[role]
         host, port = role_endpoints[role]
         endpoint = 'http://{host}:{port}/'.format(host=host, port=port)
-        # check if the region specified under client actually exists 
+        # check if the region specified under client actually exists
         # in region_info (it should, if properly configured).
         # If not, throw a reasonable error
         if region not in region_info:
@@ -537,7 +537,7 @@ def task(ctx, config):
                 rgw region: bar
                 rgw zone: bar-secondary
                 rgw region root pool: .rgw.rroot.bar
-                rgw zone root pool: .rgw.zroot.bar-secondary 
+                rgw zone root pool: .rgw.zroot.bar-secondary
         - rgw:
             regions:
               foo:

@@ -45,13 +45,13 @@ def task(ctx, config):
             proc = remote.run(
                 args=[
                     "/bin/sh", "-c",
-                    " ".join(['{tdir}/adjust-ulimits',
+                    " ".join(['adjust-ulimits',
                               'ceph-coverage',
                               '{tdir}/archive/coverage',
                               'rados',
                               '--name', role,
                               'mkpool', str(config.get('pool', 'data'))
-                              ]).format(tdir=testdir),
+                              ]),
                     ],
                 logger=log.getChild('radosbench.{id}'.format(id=id_)),
                 stdin=run.PIPE,
@@ -62,14 +62,14 @@ def task(ctx, config):
         proc = remote.run(
             args=[
                 "/bin/sh", "-c",
-                " ".join(['{tdir}/adjust-ulimits',
+                " ".join(['adjust-ulimits',
                           'ceph-coverage',
                           '{tdir}/archive/coverage',
                           'rados',
                           '--name', role,
-                          '-p' , str(config.get('pool', 'data')),
+                          '-p', str(config.get('pool', 'data')),
                           'bench', str(config.get('time', 360)), 'write',
-                          ]).format(tdir=testdir),
+                          ]),
                 ],
             logger=log.getChild('radosbench.{id}'.format(id=id_)),
             stdin=run.PIPE,
@@ -87,13 +87,13 @@ def task(ctx, config):
             proc = remote.run(
                 args=[
                     "/bin/sh", "-c",
-                    " ".join(['{tdir}/adjust-ulimits',
+                    " ".join(['adjust-ulimits',
                               'ceph-coverage',
                               '{tdir}/archive/coverage',
                               'rados',
                               '--name', role,
                               'rmpool', str(config.get('pool', 'data'))
-                              ]).format(tdir=testdir),
+                              ]),
                     ],
                 logger=log.getChild('radosbench.{id}'.format(id=id_)),
                 stdin=run.PIPE,

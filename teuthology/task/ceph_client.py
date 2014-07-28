@@ -15,7 +15,7 @@ def create_keyring(ctx):
             client_keyring = '/etc/ceph/ceph.client.{id}.keyring'.format(id=id_)
             remote.run(
                 args=[
-                    '{tdir}/adjust-ulimits'.format(tdir=testdir),
+                    'adjust-ulimits',
                     'ceph-coverage',
                     coverage_dir,
                     'sudo',

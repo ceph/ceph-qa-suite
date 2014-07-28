@@ -39,7 +39,7 @@ def run_radosgw_agent(ctx, config):
         remote.run(
             args=[
                 'cd', testdir, run.Raw('&&'),
-                'git', 'clone', 
+                'git', 'clone',
                 '-b', branch,
                 'https://github.com/ceph/radosgw-agent.git',
                 'radosgw-agent.{client}'.format(client=client),
@@ -74,7 +74,7 @@ def run_radosgw_agent(ctx, config):
         port = cconf.get('port', 8000)
         daemon_name = '{host}.{port}.syncdaemon'.format(host=remote.name, port=port)
         in_args=[
-		        '{tdir}/daemon-helper'.format(tdir=testdir), 'kill',
+		        'daemon-helper', 'kill',
 		        '{tdir}/radosgw-agent.{client}/radosgw-agent'.format(tdir=testdir,
 		                                                             client=client),
 		        '-v',
@@ -96,7 +96,7 @@ def run_radosgw_agent(ctx, config):
         # the test server and full/incremental flags are mutually exclusive
         if sync_scope is None:
             in_args.append('--test-server-host')
-            in_args.append('0.0.0.0') 
+            in_args.append('0.0.0.0')
             in_args.append('--test-server-port')
             in_args.append(str(port))
             log.debug('Starting a sync test server on {client}'.format(client=client))
@@ -124,15 +124,15 @@ def task(ctx, config):
     to 0.0.0.0. Port defaults to 8000. This must be run on clients
     that have the correct zone root pools and rgw zone set in
     ceph.conf, or the task cannot read the region information from the
-    cluster. 
+    cluster.
 
     By default, this task will start an HTTP server that will trigger full
-    or incremental syncs based on requests made to it. 
+    or incremental syncs based on requests made to it.
     Alternatively, a single full sync can be triggered by
     specifying 'sync-scope: full' or a loop of incremental syncs can be triggered
     by specifying 'sync-scope: incremental' (the loop will sleep
     '--incremental-sync-delay' seconds between each sync, default is 20 seconds).
-    
+
     An example::
 
       tasks:

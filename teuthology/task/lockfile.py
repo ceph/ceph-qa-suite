@@ -34,7 +34,7 @@ def task(ctx, config):
       {client: client.1, lockfile: testfile, holdtime: 5},
       {client: client.2, lockfile: testfile, holdtime: 5, maxwait: 1, expectfail: True}]
 
-      
+
     In the past this test would have failed; there was a bug where waitlocks weren't
     cleaned up if the process failed. More involved scenarios are also possible.
     """
@@ -42,7 +42,7 @@ def task(ctx, config):
     try:
         assert isinstance(config, list), \
             "task lockfile got invalid config"
-	
+
         log.info("building executable on each host")
         buildprocs = list()
         # build the locker executable on each client
@@ -66,7 +66,7 @@ def task(ctx, config):
                 badconfig = True
             if badconfig:
                 raise KeyError("bad config {op_}".format(op_=op))
-        
+
         testdir = teuthology.get_testdir(ctx)
         clients = set(clients)
         files = set(files)
@@ -76,7 +76,7 @@ def task(ctx, config):
             log.info("got a client remote")
             (_, _, client_id) = client.partition('.')
             filepath = os.path.join(testdir, 'mnt.{id}'.format(id=client_id), op["lockfile"])
-            
+
             proc = client_remote.run(
                 args=[
                     'mkdir', '-p', '{tdir}/archive/lockfile'.format(tdir=testdir),
@@ -94,14 +94,14 @@ def task(ctx, config):
                     ],
                 logger=log.getChild('lockfile_client.{id}'.format(id=client_id)),
                 wait=False
-                )	
+                )
             log.info('building sclockandhold on client{id}'.format(id=client_id))
             buildprocs.append(proc)
-            
+
         # wait for builds to finish
         run.wait(buildprocs)
         log.info('finished building sclockandhold on all clients')
-            
+
         # create the files to run these locks on
         client = clients.pop()
         clients.add(client)
@@ -146,7 +146,7 @@ def task(ctx, config):
             lock_procs.append((greenlet, op))
             time.sleep(0.1) # to provide proper ordering
         #for op in config
-        
+
         for (greenlet, op) in lock_procs:
             log.debug('checking lock for op {op_}'.format(op_=op))
             result = greenlet.get()
@@ -192,10 +192,10 @@ def lock_one(op, ctx):
     try:
         proc = client_remote.run(
             args=[
-                '{tdir}/adjust-ulimits'.format(tdir=testdir),
+                'adjust-ulimits',
                 'ceph-coverage',
                 '{tdir}/archive/coverage'.format(tdir=testdir),
-                '{tdir}/daemon-helper'.format(tdir=testdir),
+                'daemon-helper',
                 'kill',
                 '{tdir}/lockfile/sclockandhold'.format(tdir=testdir),
                 filepath,

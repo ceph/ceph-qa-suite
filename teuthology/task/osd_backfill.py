@@ -11,7 +11,7 @@ def rados_start(ctx, remote, cmd):
     log.info("rados %s" % ' '.join(cmd))
     testdir = teuthology.get_testdir(ctx)
     pre = [
-        '{tdir}/adjust-ulimits'.format(tdir=testdir),
+        'adjust-ulimits',
         'ceph-coverage',
         '{tdir}/archive/coverage'.format(tdir=testdir),
         'rados',
@@ -33,10 +33,10 @@ def task(ctx, config):
         'thrashosds task only accepts a dict for configuration'
     first_mon = teuthology.get_first_mon(ctx, config)
     (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
-    
+
     num_osds = teuthology.num_instances_of_type(ctx.cluster, 'osd')
     log.info('num_osds is %s' % num_osds)
-    assert num_osds == 3        
+    assert num_osds == 3
 
     manager = ceph_manager.CephManager(
         mon,
