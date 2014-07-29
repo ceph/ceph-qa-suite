@@ -4,14 +4,14 @@ import contextlib
 from teuthology import misc as teuthology
 from teuthology import contextutil
 from teuthology.orchestra import run
-from tasks.ceph import CephState
+from tasks.ceph import DaemonGroup
 
 log = logging.getLogger(__name__)
 
 @contextlib.contextmanager
 def run_rest_api_daemon(ctx, api_clients):
     if not hasattr(ctx, 'daemons'):
-        ctx.daemons = CephState()
+        ctx.daemons = DaemonGroup()
     remotes = ctx.cluster.only(teuthology.is_type('client')).remotes
     testdir = teuthology.get_testdir(ctx)
     coverage_dir = '{tdir}/archive/coverage'.format(tdir=testdir)

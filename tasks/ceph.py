@@ -10,95 +10,9 @@ from teuthology import misc as teuthology
 from teuthology import contextutil
 from teuthology.orchestra import run
 import ceph_client as cclient
+from teuthology.orchestra.daemon import DaemonGroup
 
 log = logging.getLogger(__name__)
-
-class DaemonState(object):
-    def __init__(self, remote, role, id_, *command_args, **command_kwargs):
-        self.remote = remote
-        self.command_args = command_args
-        self.command_kwargs = command_kwargs
-        self.role = role
-        self.id_ = id_
-        self.log = command_kwargs.get('logger', log)
-        self.proc = None
-
-    def stop(self):
-        """
-        Note: this can raise a run.CommandFailedError,
-        run.CommandCrashedError, or run.ConnectionLostError.
-        """
-        if not self.running():
-            self.log.error('tried to stop a non-running daemon')
-            return
-        self.proc.stdin.close()
-        self.log.debug('waiting for process to exit')
-        run.wait([self.proc])
-        self.proc = None
-        self.log.info('Stopped')
-
-    def restart(self, *args, **kwargs):
-        self.log.info('Restarting')
-        if self.proc is not None:
-            self.log.debug('stopping old one...')
-            self.stop()
-        cmd_args = list(self.command_args)
-        cmd_args.extend(args)
-        cmd_kwargs = self.command_kwargs
-        cmd_kwargs.update(kwargs)
-        self.proc = self.remote.run(*cmd_args, **cmd_kwargs)
-        self.log.info('Started')
-
-    def restart_with_args(self, extra_args):
-        self.log.info('Restarting')
-        if self.proc is not None:
-            self.log.debug('stopping old one...')
-            self.stop()
-        cmd_args = list(self.command_args)
-        # we only want to make a temporary mod of the args list
-        # so we shallow copy the dict, and deepcopy the args list
-        cmd_kwargs = self.command_kwargs.copy()
-        from copy import deepcopy
-        cmd_kwargs['args'] = deepcopy(self.command_kwargs['args'])
-        cmd_kwargs['args'].extend(extra_args)
-        self.proc = self.remote.run(*cmd_args, **cmd_kwargs)
-        self.log.info('Started')
-
-    def signal(self, sig):
-        self.proc.stdin.write(struct.pack('!b', sig))
-        self.log.info('Sent signal %d', sig)
-
-    def running(self):
-        return self.proc is not None
-
-    def reset(self):
-        self.proc = None
-
-    def wait_for_exit(self):
-        if self.proc:
-            run.wait([self.proc])
-            self.proc = None
-
-class CephState(object):
-    def __init__(self):
-        self.daemons = {}
-
-    def add_daemon(self, remote, role, id_, *args, **kwargs):
-        if role not in self.daemons:
-            self.daemons[role] = {}
-        if id_ in self.daemons[role]:
-            self.daemons[role][id_].stop()
-            self.daemons[role][id_] = None
-        self.daemons[role][id_] = DaemonState(remote, role, id_, *args, **kwargs)
-        self.daemons[role][id_].restart()
-
-    def get_daemon(self, role, id_):
-        if role not in self.daemons:
-            return None
-        return self.daemons[role].get(str(id_), None)
-
-    def iter_daemons_of_role(self, role):
-        return self.daemons.get(role, {}).values()
 
 
 @contextlib.contextmanager
@@ -1085,7 +999,7 @@ def task(ctx, config):
     overrides = ctx.config.get('overrides', {})
     teuthology.deep_merge(config, overrides.get('ceph', {}))
 
-    ctx.daemons = CephState()
+    ctx.daemons = DaemonGroup()
 
     testdir = teuthology.get_testdir(ctx)
     if config.get('coverage'):
