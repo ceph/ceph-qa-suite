@@ -2,6 +2,7 @@ tasks:
 - install:
 - ceph:
 - thrashosds:
+    thrash_primary_affinity: false
     chance_down: 1.0
     powercycle: true
     timeout: 600

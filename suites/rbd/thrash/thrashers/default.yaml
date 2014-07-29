@@ -5,4 +5,5 @@ tasks:
     - wrongly marked me down
     - objects unfound and apparently lost
 - thrashosds:
+    thrash_primary_affinity: false
     timeout: 1200

@@ -6,6 +6,7 @@ overrides:
     - log bound mismatch
 tasks:
 - thrashosds:
+    thrash_primary_affinity: false
     timeout: 1200
     chance_pgnum_grow: 1
     chance_pgpnum_fix: 1
