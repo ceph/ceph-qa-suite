@@ -706,21 +706,6 @@ def reconnect(ctx, timeout, remotes=None):
         log.debug('waited {elapsed}'.format(elapsed=str(time.time() - starttime)))
         time.sleep(1)
 
-def write_secret_file(ctx, remote, role, keyring, filename):
-    testdir = get_testdir(ctx)
-    remote.run(
-        args=[
-            '{tdir}/adjust-ulimits'.format(tdir=testdir),
-            'ceph-coverage',
-            '{tdir}/archive/coverage'.format(tdir=testdir),
-            'ceph-authtool',
-            '--name={role}'.format(role=role),
-            '--print-key',
-            keyring,
-            run.Raw('>'),
-            filename,
-            ],
-        )
 
 def get_clients(ctx, roles):
     for role in roles:
