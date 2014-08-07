@@ -1,8 +1,8 @@
 upgrade-sequence:
    sequential:
-   - install.upgrade:
-      all:
-         branch: dumpling
+#   - install.upgrade:
+#      all:
+#         branch: dumpling
    - ceph.restart: [mds.a]
    - sleep:
        duration: 60
