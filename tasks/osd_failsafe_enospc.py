@@ -73,7 +73,7 @@ def task(ctx, config):
 
     time.sleep(sleep_time)
     proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
-    proc.exitstatus.get()
+    proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')
 
@@ -100,7 +100,7 @@ def task(ctx, config):
 
     time.sleep(sleep_time)
     proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
-    proc.exitstatus.get()
+    proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')
 
@@ -139,7 +139,7 @@ def task(ctx, config):
 
     time.sleep(sleep_time)
     proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
-    proc.exitstatus.get()
+    proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')
 
@@ -169,7 +169,7 @@ def task(ctx, config):
 
     time.sleep(sleep_time)
     proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
-    proc.exitstatus.get()
+    proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')
 
@@ -197,7 +197,7 @@ def task(ctx, config):
 
     time.sleep(sleep_time)
     proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
-    proc.exitstatus.get()
+    proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')
 
