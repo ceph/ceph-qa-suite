@@ -1,7 +1,7 @@
 import logging
 
-from ..orchestra import run
-from .. import misc
+from teuthology.orchestra import run
+from teuthology import misc
 
 log = logging.getLogger(__name__)
 

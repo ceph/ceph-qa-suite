@@ -9,8 +9,8 @@ import yaml
 
 from teuthology import misc as teuthology
 from teuthology import contextutil
-from ..orchestra import run
-from ..orchestra.connection import split_user
+from teuthology.orchestra import run
+from teuthology.orchestra.connection import split_user
 
 log = logging.getLogger(__name__)
 

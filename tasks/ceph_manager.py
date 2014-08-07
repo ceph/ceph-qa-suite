@@ -6,7 +6,7 @@ import gevent
 import json
 import threading
 from teuthology import misc as teuthology
-from teuthology.task import ceph as ceph_task
+from . import ceph as ceph_task
 
 class Thrasher:
     def __init__(self, manager, config, logger=None):

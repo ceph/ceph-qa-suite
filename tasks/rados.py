@@ -4,7 +4,7 @@ import gevent
 from ceph_manager import CephManager
 from teuthology import misc as teuthology
 
-from ..orchestra import run
+from teuthology.orchestra import run
 
 log = logging.getLogger(__name__)
 

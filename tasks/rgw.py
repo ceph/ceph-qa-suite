@@ -5,11 +5,11 @@ import os
 
 from cStringIO import StringIO
 
-from ..orchestra import run
+from teuthology.orchestra import run
 from teuthology import misc as teuthology
 from teuthology import contextutil
-from teuthology.task_util.rgw import rgwadmin
-from teuthology.task_util.rados import rados
+from util.rgw import rgwadmin
+from util.rados import rados
 
 log = logging.getLogger(__name__)
 
