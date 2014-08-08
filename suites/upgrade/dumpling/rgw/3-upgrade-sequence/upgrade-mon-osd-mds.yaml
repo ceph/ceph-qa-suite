@@ -24,6 +24,7 @@ upgrade-sequence:
    - ceph.restart: [osd.2]
    - sleep:
        duration: 30
+   - ceph.restart: [rgw.client.0]
    - ceph.restart: [osd.3]
    - sleep:
        duration: 30
@@ -33,4 +34,3 @@ upgrade-sequence:
    - ceph.restart: [osd.5]
    - sleep:
        duration: 30
-   - ceph.restart: [rgw.client.0]
