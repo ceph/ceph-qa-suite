@@ -487,11 +487,10 @@ def cluster(ctx, config):
         for id_ in teuthology.roles_of_type(roles_for_host, 'osd'):
             remote.run(
                 args=[
-                    'MALLOC_CHECK_=3',
+                    'sudo',
                     'adjust-ulimits',
                     'ceph-coverage',
                     coverage_dir,
-                    'sudo',
                     'ceph-osd',
                     '--mkfs',
                     '--mkkey',
@@ -572,10 +571,10 @@ def cluster(ctx, config):
                 )
             remote.run(
                 args=[
+                    'sudo',
                     'adjust-ulimits',
                     'ceph-coverage',
                     coverage_dir,
-                    'sudo',
                     'ceph-mon',
                     '--mkfs',
                     '-i', id_,
@@ -791,6 +790,7 @@ def run_daemon(ctx, config, type_):
         (mon0_remote,) = ctx.cluster.only(firstmon).remotes.keys()
 
         mon0_remote.run(args=[
+            'sudo',
             'adjust-ulimits',
             'ceph-coverage',
             coverage_dir,
