@@ -750,10 +750,10 @@ def run_daemon(ctx, config, type_):
                 num_active += 1
 
             run_cmd = [
-                'adjust-ulimits',
                 'ceph-coverage',
                 coverage_dir,
                 'sudo',
+                'adjust-ulimits',
                 'daemon-helper',
                 daemon_signal,
                 ]
