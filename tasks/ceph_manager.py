@@ -903,7 +903,7 @@ class CephManager:
         time.sleep(2)
         self.ctx.daemons.get_daemon('osd', osd).stop()
 
-    def revive_osd(self, osd, timeout=75):
+    def revive_osd(self, osd, timeout=300):
         if self.config.get('powercycle'):
             (remote,) = self.ctx.cluster.only('osd.{o}'.format(o=osd)).remotes.iterkeys()
             self.log('kill_osd on osd.{o} doing powercycle of {s}'.format(o=osd, s=remote.name))
