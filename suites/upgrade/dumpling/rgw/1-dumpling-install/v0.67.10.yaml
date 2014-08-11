@@ -1,0 +1,10 @@
+tasks:
+- install:
+    tag: v0.67.10
+- ceph:
+- install.upgrade:
+    all:
+      branch: dumpling
+- parallel:
+   - workload
+   - upgrade-sequence
