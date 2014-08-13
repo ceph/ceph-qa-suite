@@ -3,7 +3,6 @@ overrides:
     log-whitelist:
     - scrub
     fs: xfs
-- rgw: [client.0]
 roles:
 - - mon.a
   - mds.a
