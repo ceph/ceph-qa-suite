@@ -5,6 +5,7 @@ tasks:
 - install.upgrade:
     all:
       branch: dumpling
+- rgw: [client.0]
 - parallel:
    - workload
    - upgrade-sequence
