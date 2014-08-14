@@ -67,9 +67,12 @@ def ship_config(ctx, config, role_endpoints):
     testdir = teuthology.get_testdir(ctx)
     log.info('Shipping apache config and rgw.fcgi...')
     src = os.path.join(os.path.dirname(__file__), 'apache.conf.template')
-    for client in config.iterkeys():
+    for client, conf in config.iteritems():
+        if not conf:
+            conf = {}
         (remote,) = ctx.cluster.only(client).remotes.keys()
         system_type = teuthology.get_system_type(remote)
+        idle_timeout = conf.get('idle_timeout', ctx.rgw.default_idle_timeout)
         if system_type == 'deb':
             mod_path = '/usr/lib/apache2/modules'
             print_continue = 'on'
@@ -538,6 +541,7 @@ def task(ctx, config):
                 rgw region root pool: .rgw.rroot.bar
                 rgw zone root pool: .rgw.zroot.bar-secondary
         - rgw:
+            default_idle_timeout: 30
             regions:
               foo:
                 api name: api_name # default: region name
@@ -580,6 +584,13 @@ def task(ctx, config):
         del config['regions']
 
     role_endpoints = assign_ports(ctx, config)
+
+    ctx.rgw = argparse.Namespace()
+
+    ctx.rgw.default_idle_timeout = 30
+    if 'idle_timeout' in config:
+        ctx.rgw.default_idle_timeout = int(config['idle_timeout'])
+        del config['idle_timeout']
 
     with contextutil.nested(
         lambda: create_dirs(ctx=ctx, config=config),
