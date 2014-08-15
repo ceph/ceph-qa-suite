@@ -10,6 +10,7 @@ from teuthology import misc as teuthology
 from teuthology import contextutil
 from util.rgw import rgwadmin
 from util.rados import rados
+import argparse
 
 log = logging.getLogger(__name__)
 
@@ -88,6 +89,7 @@ def ship_config(ctx, config, role_endpoints):
                 host=host,
                 port=port,
                 client=client,
+                idle_timeout=idle_timeout
                 )
             teuthology.write_file(
                 remote=remote,
