@@ -588,9 +588,9 @@ def task(ctx, config):
     ctx.rgw = argparse.Namespace()
 
     ctx.rgw.default_idle_timeout = 30
-    if 'idle_timeout' in config:
-        ctx.rgw.default_idle_timeout = int(config['idle_timeout'])
-        del config['idle_timeout']
+    if 'default_idle_timeout' in config:
+        ctx.rgw.default_idle_timeout = int(config['default_idle_timeout'])
+        del config['default_idle_timeout']
 
     with contextutil.nested(
         lambda: create_dirs(ctx=ctx, config=config),
