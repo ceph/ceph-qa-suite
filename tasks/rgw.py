@@ -237,7 +237,7 @@ def start_apache(ctx, config):
         if system_type == 'deb':
             apache_name = 'apache2'
         else:
-            apache_name = '/usr/sbin/httpd.worker'
+            apache_name = '/usr/sbin/httpd'
         proc = remote.run(
             args=[
                 'adjust-ulimits',
