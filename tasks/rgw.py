@@ -80,8 +80,8 @@ def ship_config(ctx, config, role_endpoints):
             user = 'www-data'
             group = 'www-data'
             apache24_modconfig = '''
-  IncludeOptional /etc/apache2/mods-enabled/mpm_event.conf
-  IncludeOptional /etc/apache2/mods-enabled/mpm_event.load'''
+  IncludeOptional /etc/apache2/mods-available/mpm_event.conf
+  IncludeOptional /etc/apache2/mods-available/mpm_event.load'''
         else:
             mod_path = '/usr/lib64/httpd/modules'
             print_continue = 'off'
