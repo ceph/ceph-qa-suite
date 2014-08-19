@@ -602,7 +602,7 @@ def task(ctx, config):
 
     ctx.rgw = argparse.Namespace()
 
-    ctx.rgw.default_idle_timeout = 30
+    ctx.rgw.default_idle_timeout = 1200
     if 'default_idle_timeout' in config:
         ctx.rgw.default_idle_timeout = int(config['default_idle_timeout'])
         del config['default_idle_timeout']
