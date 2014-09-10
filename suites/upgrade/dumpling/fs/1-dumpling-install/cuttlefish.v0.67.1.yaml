@@ -1,0 +1,14 @@
+tasks:
+- install:
+    branch: cuttlefish
+- ceph:
+- install.upgrade:
+    all:
+      tag: v0.67.1
+- ceph.restart:
+- install.upgrade:
+    all:
+      branch: dumpling
+- parallel:
+   - workload
+   - upgrade-sequence
