@@ -741,7 +741,7 @@ def cluster(ctx, config):
                             )
                         break
 
-        if config.get('dump pglogs', False):
+        if config.get('dump_pglogs', False):
             for remote, roles_for_host in osds.remotes.iteritems():
                 for id_ in teuthology.roles_of_type(roles_for_host, 'osd'):
                     fpath = os.path.join(
