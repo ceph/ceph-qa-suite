@@ -741,6 +741,39 @@ def cluster(ctx, config):
                             )
                         break
 
+        if config.get('dump pglogs'):
+            for remote, roles_for_host in osds.remotes.iteritems():
+                for id_ in teuthology.roles_of_type(roles_for_host, 'osd'):
+                    fpath = os.path.join(
+                        '/var/lib/ceph/osd', 'ceph-{id}'.format(id=id_))
+                    jpath = os.path.join(fpath, 'journal')
+                    r = remote.run(
+                        args=[
+                            'ceph_objectstore_tool',
+                            '--journal-path', jpath,
+                            '--data-path', fpath,
+                            '--op', 'list-pgs',
+                        ],
+                        stdout=StringIO(),
+                        logger=log.getChild('ceph_objectstore_tool'),
+                    )
+                    pgs = r.stdout.getvalue().split('\n')
+                    for pg in pgs:
+                        remote.run(
+                            args=[
+                                'ceph_objectstore_tool',
+                                '--journal-path', jpath,
+                                '--data-path', fpath,
+                                '--pgid', pg,
+                                '--op', 'log',
+                                run.Raw('>'),
+                                "/home/ubuntu/cephtest/archive/{pg}.log".format(
+                                    pg=pg),
+                            ],
+                            stdout=StringIO(),
+                            logger=log.getChild('ceph_objectstore_tool'),
+                        )
+
         for remote, dirs in devs_to_clean.iteritems():
             for dir_ in dirs:
                 log.info('Unmounting %s on %s' % (dir_, remote))
