@@ -746,7 +746,7 @@ def cluster(ctx, config):
             log.info('dumping pg logs')
             for remote, roles_for_host in osds.remotes.iteritems():
                 for id_ in teuthology.roles_of_type(roles_for_host, 'osd'):
-                    log.info('dumping pg logs osd {id}'.format(id=_id))
+                    log.info('dumping pg logs osd {id}'.format(id=id_))
                     fpath = os.path.join(
                         '/var/lib/ceph/osd', 'ceph-{id}'.format(id=id_))
                     jpath = os.path.join(fpath, 'journal')
@@ -763,7 +763,7 @@ def cluster(ctx, config):
                     pgs = r.stdout.getvalue().split('\n')
                     for pg in pgs:
                         log.info('dumping {pg} logs osd {id}'.format(
-                            id=_id, pg=pg))
+                            id=id_, pg=pg))
                         remote.run(
                             args=[
                                 'ceph_objectstore_tool',
