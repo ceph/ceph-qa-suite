@@ -1291,6 +1291,7 @@ def task(ctx, config):
                 mount_options=config.get('mount_options',None),
                 block_journal=config.get('block_journal', None),
                 tmpfs_journal=config.get('tmpfs_journal', None),
+                dump_pglogs=config.get('dump_pglogs', None),
                 log_whitelist=config.get('log-whitelist', []),
                 cpu_profile=set(config.get('cpu_profile', [])),
                 )),
