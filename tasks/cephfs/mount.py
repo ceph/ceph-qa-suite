@@ -5,7 +5,7 @@ import time
 from textwrap import dedent
 import os
 from teuthology.orchestra import run
-from teuthology.orchestra.run import CommandFailedError
+from teuthology.orchestra.run import CommandFailedError, ConnectionLostError
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class CephFSMount(object):
     def umount(self):
         raise NotImplementedError()
 
-    def umount_wait(self):
+    def umount_wait(self, force=False):
         raise NotImplementedError()
 
     def kill_cleanup(self):
@@ -211,5 +211,8 @@ class CephFSMount(object):
                 p.stdin.close()
                 try:
                     p.wait()
-                except CommandFailedError:
+                except (CommandFailedError, ConnectionLostError):
                     pass
+
+    def get_global_id(self):
+        raise NotImplementedError()
