@@ -1,0 +1,9 @@
+tasks:
+- ceph-fuse:
+    client.0:
+        mounted: true
+- workunit:
+    clients:
+      client.0:
+        - suites/dbench.sh
+

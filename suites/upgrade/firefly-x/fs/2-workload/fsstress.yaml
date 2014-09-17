@@ -1,0 +1,9 @@
+tasks:
+- ceph-fuse:
+- workunit:
+      clients:
+         all:
+           - suites/fsstress.sh
+- ceph-fuse:
+    client.0:
+        mounted: false
