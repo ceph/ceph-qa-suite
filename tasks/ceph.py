@@ -752,6 +752,7 @@ def cluster(ctx, config):
                     jpath = os.path.join(fpath, 'journal')
                     r = remote.run(
                         args=[
+                            'sudo',
                             'ceph_objectstore_tool',
                             '--journal-path', jpath,
                             '--data-path', fpath,
@@ -761,19 +762,28 @@ def cluster(ctx, config):
                         logger=log.getChild('ceph_objectstore_tool'),
                     )
                     pgs = r.stdout.getvalue().split('\n')
-                    for pg in pgs:
+                    r = remote.run(
+                        args=[
+                            'mkdir', 
+                            "/home/ubuntu/cephtest/archive/osd-{osd}_log_dumps".format(
+                                osd=id_)
+                        ],
+                        logger=log.getChild('ceph_objectstore_tool'),
+                    )
+                    for pg in pgs[:-1]:
                         log.info('dumping {pg} logs osd {id}'.format(
                             id=id_, pg=pg))
                         remote.run(
                             args=[
+                                'sudo',
                                 'ceph_objectstore_tool',
                                 '--journal-path', jpath,
                                 '--data-path', fpath,
                                 '--pgid', pg,
                                 '--op', 'log',
                                 run.Raw('>'),
-                                "/home/ubuntu/cephtest/archive/{pg}.log".format(
-                                    pg=pg),
+                                "/home/ubuntu/cephtest/archive/osd-{osd}_log_dumps/pg{pg}_log.json".format(
+                                    osd=id_, pg=pg),
                             ],
                             stdout=StringIO(),
                             logger=log.getChild('ceph_objectstore_tool'),
