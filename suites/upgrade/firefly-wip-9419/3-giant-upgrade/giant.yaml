@@ -6,7 +6,4 @@ tasks:
    - print: "**** done install.upgrade"
    - ceph.restart:
    - print: "**** done restart"
-   - parallel:
-     - workload2
-     - upgrade-sequence
-   - print: "**** done parallel 2"
+   - workload2
