@@ -982,6 +982,9 @@ def run_daemon(ctx, config, type_):
         for id_ in teuthology.roles_of_type(roles_for_host, type_):
             name = '%s.%s' % (type_, id_)
 
+            strace_file = '{tdir}/archive/{name}.strace.gz'.format(
+                tdir=testdir,
+                name=name)
             run_cmd = [
                 'sudo',
                 'adjust-ulimits',
@@ -989,6 +992,8 @@ def run_daemon(ctx, config, type_):
                 coverage_dir,
                 'daemon-helper',
                 daemon_signal,
+                'strace', '-f', '-D',
+                '-o', '!gzip>>{f}'.format(f=strace_file)
                 ]
             run_cmd_tail = [
                 'ceph-%s' % (type_),
