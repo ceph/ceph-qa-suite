@@ -1,0 +1,12 @@
+tasks:
+   - install.upgrade:
+       client.0:
+         branch: 
+# client.1 will be upgraded as well as it's on the same host as client.0
+   - print: "**** done install.upgrade"
+   - ceph.restart:
+   - print: "**** done restart"
+   - parallel:
+     - workload2
+     - upgrade-sequence
+   - print: "**** done parallel 2"
