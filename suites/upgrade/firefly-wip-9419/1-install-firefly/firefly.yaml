@@ -4,6 +4,6 @@ tasks:
 - print: "**** done firefly install"
 - ceph:
    fs: xfs
-- parallel:
+- sequential:
    - workload
-- print: "**** done parallel"
+- print: "**** done sequential"
