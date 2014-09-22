@@ -1,0 +1,9 @@
+tasks:
+- install:
+   branch: dumpling
+- print: "**** done firefly dumpling"
+- ceph:
+   fs: xfs
+- sequential:
+   - workload
+- print: "**** done sequential"
