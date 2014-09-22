@@ -6,15 +6,15 @@ tasks:
    - print: "**** done install.upgrade"
    - ceph.restart:
    - print: "**** done restart"
-- sequential:
-   - workload
-- print: "**** done workload"
-- install.upgrade:
-    mon.a:
-    mon.b:
+   - sequential:
+      - workload
+   - print: "**** done workload"
+   - install.upgrade:
+       mon.a:
+       mon.b:
 #- ceph.restart: [mon.a, mon.b, mon.c, imds.a, osd.0, osd.1, osd.2, osd.3]
-- ceph.restart: [osd.0, osd.1, osd.2]
-- print: "**** done restart"
-- sequential:
-   - workload2
-- print: "**** done workload2"
+   - ceph.restart: [osd.0, osd.1, osd.2]
+   - print: "**** done restart"
+   - sequential:
+      - workload2
+   - print: "**** done workload2"

@@ -6,4 +6,3 @@ tasks:
    fs: xfs
 - sequential:
    - workload
-- print: "**** done sequential"

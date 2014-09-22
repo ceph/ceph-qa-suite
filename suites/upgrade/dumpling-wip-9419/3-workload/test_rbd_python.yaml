@@ -1,5 +1,4 @@
 workload:
-  sequential:
   - workunit:
       branch: giant
       clients:
