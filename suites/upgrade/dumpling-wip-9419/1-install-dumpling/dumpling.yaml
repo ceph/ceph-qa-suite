@@ -4,5 +4,3 @@ tasks:
 - print: "**** done firefly dumpling"
 - ceph:
    fs: xfs
-#- sequential:
-#   - workload
