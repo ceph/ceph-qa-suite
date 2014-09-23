@@ -1,6 +1,6 @@
 tasks:
 - install:
    branch: dumpling
-- print: "**** done firefly dumpling"
+- print: "**** done dumpling"
 - ceph:
    fs: xfs
