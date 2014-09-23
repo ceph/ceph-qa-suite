@@ -5,9 +5,9 @@ tasks:
    - print: "**** done install.upgrade"
    - ceph.restart:
    - print: "**** done restart"
-   - sequential:
-      - workload
-   - print: "**** done workload"
+#   - sequential:
+#      - workload
+#   - print: "**** done workload"
    - install.upgrade:
        mon.a:
        mon.b:
