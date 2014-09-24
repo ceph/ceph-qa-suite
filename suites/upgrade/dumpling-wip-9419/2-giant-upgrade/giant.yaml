@@ -3,7 +3,7 @@ tasks:
        client.0:
    # client.1 will be upgraded as well as it's on the same host as client.0
    - print: "**** done install.upgrade on clinet.0 and client.1"
-   - ceph.restart:
+   #- ceph.restart:
    - print: "**** done restart"
    - install.upgrade:
        mon.a:
@@ -12,9 +12,9 @@ tasks:
    #    osd.1:
    #    osd.2:
    #- ceph.restart: [mon.a, mon.b, mon.c, mds.a, osd.0, osd.1, osd.2, osd.3]
+   - print: "**** done install.upgrade on mon.a and mon.b same host as ods.0, osd.1, osd.2"
    - ceph.restart: 
        daemons: [osd.0, osd.1, osd.2]
-   #    wait-for-healthy: false
    - print: "**** done restart"
    - sequential:
       - workload
