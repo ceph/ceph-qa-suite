@@ -12,7 +12,8 @@ tasks:
        osd.1:
        osd.2:
    #- ceph.restart: [mon.a, mon.b, mon.c, mds.a, osd.0, osd.1, osd.2, osd.3]
-   - ceph.restart: [osd.0, osd.1, osd.2]
+   - ceph.restart: 
+       daemons: [osd.0, osd.1, osd.2]
        wait-for-healthy: false
    - print: "**** done restart"
    - sequential:
