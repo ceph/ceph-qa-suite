@@ -2,7 +2,12 @@ tasks:
 - mon_thrash:
     revive_delay: 20
     thrash_delay: 1
+- install.upgrade:
+    client.0:
+      branch: dumpling
+- ceph.restart: [rgw.client.0]
+- sleep:
+    duration: 60
 - swift:
     client.0:
       rgw_server: client.0
-

@@ -1,8 +1,5 @@
 upgrade-sequence:
    sequential:
-#   - install.upgrade:
-#      all:
-#         branch: dumpling
    - ceph.restart: [osd.0]
    - sleep:
        duration: 30
@@ -10,9 +7,6 @@ upgrade-sequence:
    - sleep:
        duration: 30
    - ceph.restart: [osd.2]
-   - sleep:
-       duration: 30
-   - ceph.restart: [rgw.client.0]
    - sleep:
        duration: 30
    - ceph.restart: [osd.3]

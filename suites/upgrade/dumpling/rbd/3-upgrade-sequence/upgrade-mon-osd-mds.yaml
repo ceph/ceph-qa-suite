@@ -1,8 +1,5 @@
 upgrade-sequence:
    sequential:
-#   - install.upgrade:
-#      all:
-#         branch: dumpling
    - ceph.restart: [mon.a]
    - sleep:
        duration: 60
@@ -10,9 +7,6 @@ upgrade-sequence:
    - sleep:
        duration: 60
    - ceph.restart: [mon.c]
-   - sleep:
-       duration: 60
-   - ceph.restart: [mds.a]
    - sleep:
        duration: 60
    - ceph.restart: [osd.0]
@@ -31,3 +25,6 @@ upgrade-sequence:
    - sleep:
        duration: 30
    - ceph.restart: [osd.5]
+   - sleep:
+       duration: 60
+   - ceph.restart: [mds.a]

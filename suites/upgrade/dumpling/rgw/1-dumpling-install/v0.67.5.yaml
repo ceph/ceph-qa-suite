@@ -3,7 +3,9 @@ tasks:
     tag: v0.67.5
 - ceph:
 - install.upgrade:
-    all:
+    mon.a:
+      branch: dumpling
+    mon.b:
       branch: dumpling
 - rgw: [client.0]
 - parallel:
