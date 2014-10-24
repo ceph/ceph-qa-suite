@@ -1,0 +1,4 @@
+- calamari_setup:
+    version: v0.80.6
+    start-browser: False
+#   Possibly add ICE-setup parameters here later
