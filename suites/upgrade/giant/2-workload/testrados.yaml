@@ -1,4 +1,5 @@
 workload:
+  sequential:
   rados:
     clients: [client.0]
     ops: 2000
