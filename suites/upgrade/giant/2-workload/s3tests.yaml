@@ -6,4 +6,4 @@ workload:
       client.0:
         force-branch: firefly-original
         rgw_server: client.0
-  - print: "**** done s3tests"
+  - print: "**** done s3tests on client.0"

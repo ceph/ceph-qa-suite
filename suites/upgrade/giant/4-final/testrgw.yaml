@@ -4,4 +4,4 @@ tasks:
   - s3tests:
       client.1:
          rgw_server: client.1
-  - print: "**** done s3tests"
+  - print: "**** done s3tests on client.1"
