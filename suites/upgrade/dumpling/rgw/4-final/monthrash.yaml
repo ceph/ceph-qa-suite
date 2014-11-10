@@ -1,7 +1,8 @@
 tasks:
-- mon_thrash:
-    revive_delay: 20
-    thrash_delay: 1
+#removed to fix #9899
+#- mon_thrash:
+#    revive_delay: 20
+#    thrash_delay: 1
 - install.upgrade:
     client.0:
       branch: dumpling
