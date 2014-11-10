@@ -1,9 +1,11 @@
 upgrade-sequence:
    sequential:
    - install.upgrade:
-      all:
+      mon.a:
          branch: giant
-   - print: "**** done install.upgrade giant"
+      mon.b:
+         branch: giant
+   - print: "**** done install.upgrade mon.a and mon.b giant"
    - ceph.restart: [osd.0]
    - sleep:
        duration: 30
