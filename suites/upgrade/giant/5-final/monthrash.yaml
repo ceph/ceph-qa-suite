@@ -3,7 +3,7 @@ tasks:
     revive_delay: 20
     thrash_delay: 1
 - print: "**** done mon_thrash"
-- ceph-fuse:
+- ceph-fuse: [client.0]
 - print: "**** done ceph-fuse"
 - workunit:
     clients:
