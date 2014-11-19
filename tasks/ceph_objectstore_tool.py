@@ -290,6 +290,8 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
+            if not pgs.has_key(osdid):
+                continue
             log.info("process osd.{id} on {remote}".format(id=osdid, remote=remote))
             for pg in pgs[osdid]:
                 cmd = (prefix + "--op list --pgid {pg}").format(id=osdid, pg=pg)
@@ -403,6 +405,8 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
                 if string.find(role, "osd.") != 0:
                     continue
                 osdid = int(role.split('.')[1])
+                if not pgs.has_key(osdid):
+                    continue
 
                 for pg, JSON in db[basename]["pg2json"].iteritems():
                     if pg in pgs[osdid]:
@@ -467,6 +471,8 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
+            if not pgs.has_key(osdid):
+                continue
 
             for pg in pgs[osdid]:
                 cmd = (prefix + "--op info --pgid {pg}").format(id=osdid, pg=pg).split()
@@ -487,6 +493,8 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
+            if not pgs.has_key(osdid):
+                continue
 
             for pg in pgs[osdid]:
                 cmd = (prefix + "--op log --pgid {pg}").format(id=osdid, pg=pg).split()
@@ -511,6 +519,8 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
+            if not pgs.has_key(osdid):
+                continue
 
             for pg in pgs[osdid]:
                 fpath = os.path.join(DATADIR, "osd{id}.{pg}".format(id=osdid, pg=pg))
@@ -531,6 +541,8 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
+            if not pgs.has_key(osdid):
+                continue
 
             for pg in pgs[osdid]:
                 cmd = (prefix + "--op remove --pgid {pg}").format(pg=pg, id=osdid)
@@ -551,6 +563,8 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
                 if string.find(role, "osd.") != 0:
                     continue
                 osdid = int(role.split('.')[1])
+                if not pgs.has_key(osdid):
+                    continue
 
                 for pg in pgs[osdid]:
                     fpath = os.path.join(DATADIR, "osd{id}.{pg}".format(id=osdid, pg=pg))
