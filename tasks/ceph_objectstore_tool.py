@@ -14,7 +14,7 @@ from teuthology.orchestra import run
 import sys
 import tempfile
 import json
-from util.rados import (rados, create_replicated_pool)
+from util.rados import (rados, create_replicated_pool, create_ec_pool)
 # from util.rados import (rados, create_ec_pool,
 #                               create_replicated_pool,
 #                               create_cache_pool)
@@ -157,8 +157,6 @@ def task(ctx, config):
     # assert len(clients) > 0,
     #    'ceph_objectstore_tool task needs at least 1 client'
 
-    # EC_POOL = "ec_pool"
-    # EC_NAME = "ECobject"
     #ERRORS = 0
     #DATADIR = os.path.join(TEUTHDIR, "data")
     # Put a test dir below the data dir
@@ -210,6 +208,11 @@ def task(ctx, config):
     create_replicated_pool(cli_remote, REP_POOL, PGNUM)
     ERRORS += test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME)
 
+    EC_POOL = "ec_pool"
+    EC_NAME = "ECobject"
+    create_ec_pool(cli_remote, EC_POOL, 'default', PGNUM)
+    ERRORS += test_objectstore(ctx, config, cli_remote, EC_POOL, EC_NAME)
+
     if ERRORS == 0:
         log.info("TEST PASSED")
     else:
@@ -253,16 +256,19 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
     ERRORS += cod_setup(log, ctx, cli_remote, NUM_OBJECTS, DATADIR, REP_NAME, DATALINECOUNT, REP_POOL, db)
 
     pgs = {}
-    jsontext = manager.raw_cluster_cmd('pg', 'dump_json')
-    pgdump = json.loads(jsontext)
-    PGS = [str(p["pgid"]) for p in pgdump["pg_stats"] if p["pgid"].find(str(REPID) + ".") == 0]
-    for stats in pgdump["pg_stats"]:
-        if stats["pgid"] in PGS:
+    for stats in manager.get_pg_stats():
+        if stats["pgid"].find(str(REPID) + ".") != 0:
+            continue
+        if pool_dump["type"] == ceph_manager.CephManager.REPLICATED_POOL:
             for osd in stats["acting"]:
-                if not pgs.has_key(osd):
-                    pgs[osd] = []
-                pgs[osd].append(stats["pgid"])
-
+                pgs.setdefault(osd, []).append(stats["pgid"])
+        elif pool_dump["type"] == ceph_manager.CephManager.ERASURE_CODED_POOL:
+            shard = 0
+            for osd in stats["acting"]:
+                pgs.setdefault(osd, []).append("{pgid}s{shard}".format(pgid=stats["pgid"], shard=shard))
+                shard += 1
+        else:
+            raise Exception("{pool} has an unexpected type {type}".format(pool=REP_POOL, type=pool_dump["type"]))
 
     log.info(pgs)
     log.info(db)
