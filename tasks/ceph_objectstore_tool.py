@@ -290,7 +290,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
-            if not pgs.has_key(osdid):
+            if osdid not in pgs:
                 continue
             log.info("process osd.{id} on {remote}".format(id=osdid, remote=remote))
             for pg in pgs[osdid]:
@@ -335,7 +335,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
                     if string.find(role, "osd.") != 0:
                         continue
                     osdid = int(role.split('.')[1])
-                    if not pgs.has_key(osdid):
+                    if osdid not in pgs:
                         continue
 
                     for pg, JSON in db[basename]["pg2json"].iteritems():
@@ -405,7 +405,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
                 if string.find(role, "osd.") != 0:
                     continue
                 osdid = int(role.split('.')[1])
-                if not pgs.has_key(osdid):
+                if osdid not in pgs:
                     continue
 
                 for pg, JSON in db[basename]["pg2json"].iteritems():
@@ -471,7 +471,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
-            if not pgs.has_key(osdid):
+            if osdid not in pgs:
                 continue
 
             for pg in pgs[osdid]:
@@ -493,7 +493,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
-            if not pgs.has_key(osdid):
+            if osdid not in pgs:
                 continue
 
             for pg in pgs[osdid]:
@@ -519,7 +519,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
-            if not pgs.has_key(osdid):
+            if osdid not in pgs:
                 continue
 
             for pg in pgs[osdid]:
@@ -541,7 +541,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
             if string.find(role, "osd.") != 0:
                 continue
             osdid = int(role.split('.')[1])
-            if not pgs.has_key(osdid):
+            if osdid not in pgs:
                 continue
 
             for pg in pgs[osdid]:
@@ -563,7 +563,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
                 if string.find(role, "osd.") != 0:
                     continue
                 osdid = int(role.split('.')[1])
-                if not pgs.has_key(osdid):
+                if osdid not in pgs:
                     continue
 
                 for pg in pgs[osdid]:
