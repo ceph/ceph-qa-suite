@@ -27,10 +27,6 @@ FSPATH = "/var/lib/ceph/osd/ceph-{id}"
 JPATH = "/var/lib/ceph/osd/ceph-{id}/journal"
 
 
-def get_pool_id(ctx, name):
-    return ctx.manager.raw_cluster_cmd('osd', 'pool', 'stats', name).split()[3]
-
-
 def cod_setup_local_data(log, ctx, NUM_OBJECTS, DATADIR, BASE_NAME, DATALINECOUNT):
     objects = range(1, NUM_OBJECTS + 1)
     for i in objects:
