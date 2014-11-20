@@ -59,7 +59,7 @@ def cod_setup_remote_data(log, ctx, remote, NUM_OBJECTS, DATADIR, BASE_NAME, DAT
 
 
 # def rados(ctx, remote, cmd, wait=True, check_status=False):
-def cod_setup(log, ctx, remote, NUM_OBJECTS, DATADIR, BASE_NAME, DATALINECOUNT, POOL, db):
+def cod_setup(log, ctx, remote, NUM_OBJECTS, DATADIR, BASE_NAME, DATALINECOUNT, POOL, db, ec):
     ERRORS = 0
     log.info("Creating {objs} objects in pool".format(objs=NUM_OBJECTS))
 
@@ -90,6 +90,10 @@ def cod_setup(log, ctx, remote, NUM_OBJECTS, DATADIR, BASE_NAME, DATALINECOUNT, 
                 log.error("setxattr failed with {ret}".format(ret=ret))
                 ERRORS += 1
             db[NAME]["xattr"][mykey] = myval
+
+        # Erasure coded pools don't support omap
+        if ec:
+            continue
 
         # Create omap header in all objects but REPobject1
         if i != 1:
@@ -205,7 +209,7 @@ def task(ctx, config):
     EC_POOL = "ec_pool"
     EC_NAME = "ECobject"
     create_ec_pool(cli_remote, EC_POOL, 'default', PGNUM)
-    ERRORS += test_objectstore(ctx, config, cli_remote, EC_POOL, EC_NAME)
+    ERRORS += test_objectstore(ctx, config, cli_remote, EC_POOL, EC_NAME, ec = True)
 
     if ERRORS == 0:
         log.info("TEST PASSED")
@@ -220,7 +224,7 @@ def task(ctx, config):
         log.info('Ending ceph_objectstore_tool')
 
 
-def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
+def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
     manager = ctx.manager
 
     osds = ctx.cluster.only(teuthology.is_type('osd'))
@@ -249,7 +253,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
     for remote in allremote:
         cod_setup_remote_data(log, ctx, remote, NUM_OBJECTS, DATADIR, REP_NAME, DATALINECOUNT)
 
-    ERRORS += cod_setup(log, ctx, cli_remote, NUM_OBJECTS, DATADIR, REP_NAME, DATALINECOUNT, REP_POOL, db)
+    ERRORS += cod_setup(log, ctx, cli_remote, NUM_OBJECTS, DATADIR, REP_NAME, DATALINECOUNT, REP_POOL, db, ec)
 
     pgs = {}
     for stats in manager.get_pg_stats():
