@@ -595,7 +595,7 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME):
 
             ret = proc.wait()
             if ret != 0:
-               log.errors("After import, rados get failed with {ret}".format(ret=r[0].exitstatus))
+               log.error("After import, rados get failed with {ret}".format(ret=r[0].exitstatus))
                ERRORS += 1
                continue
 
