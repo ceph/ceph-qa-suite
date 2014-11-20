@@ -2,7 +2,6 @@
 ceph_objectstore_tool - Simple test of ceph_objectstore_tool utility
 """
 from cStringIO import StringIO
-from subprocess import call
 import contextlib
 import logging
 import ceph_manager
@@ -31,7 +30,7 @@ def cod_setup_local_data(log, ctx, NUM_OBJECTS, DATADIR, BASE_NAME, DATALINECOUN
     objects = range(1, NUM_OBJECTS + 1)
     for i in objects:
         NAME = BASE_NAME + "{num}".format(num=i)
-        LOCALNAME=os.path.join(DATADIR, NAME)
+        LOCALNAME = os.path.join(DATADIR, NAME)
 
         dataline = range(DATALINECOUNT)
         fd = open(LOCALNAME, "w")
@@ -72,6 +71,7 @@ def cod_setup(log, ctx, remote, NUM_OBJECTS, DATADIR, BASE_NAME, DATALINECOUNT, 
         # proc = remote.run(args=['rados', '-p', POOL, 'put', NAME, DDNAME])
         ret = proc.wait()
         if ret != 0:
+            # Flake8: F821 undefined name 'r'
             log.critical("Rados put failed with status {ret}".format(ret=r[0].exitstatus))
             sys.exit(1)
 
@@ -149,6 +149,8 @@ def task(ctx, config):
         config = {}
     assert isinstance(config, dict), \
         'ceph_objectstore_tool task only accepts a dict for configuration'
+    # Flake8: E265 block comment should start with '# '
+    # We should probably remove these lines anyway
     #TEUTHDIR = teuthology.get_testdir(ctx)
 
     # clients = config['clients']
@@ -209,7 +211,7 @@ def task(ctx, config):
     EC_POOL = "ec_pool"
     EC_NAME = "ECobject"
     create_ec_pool(cli_remote, EC_POOL, 'default', PGNUM)
-    ERRORS += test_objectstore(ctx, config, cli_remote, EC_POOL, EC_NAME, ec = True)
+    ERRORS += test_objectstore(ctx, config, cli_remote, EC_POOL, EC_NAME, ec=True)
 
     if ERRORS == 0:
         log.info("TEST PASSED")
@@ -224,7 +226,7 @@ def task(ctx, config):
         log.info('Ending ceph_objectstore_tool')
 
 
-def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
+def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec=False):
     manager = ctx.manager
 
     osds = ctx.cluster.only(teuthology.is_type('osd'))
@@ -599,9 +601,10 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec = False):
 
             ret = proc.wait()
             if ret != 0:
-               log.error("After import, rados get failed with {ret}".format(ret=r[0].exitstatus))
-               ERRORS += 1
-               continue
+                # Flake8: F821 undefined name 'r'
+                log.error("After import, rados get failed with {ret}".format(ret=r[0].exitstatus))
+                ERRORS += 1
+                continue
 
             cmd = "diff -q {gettest} {ref}".format(gettest=TESTNAME, ref=REFNAME)
             proc = cli_remote.run(args=cmd, check_status=False)
