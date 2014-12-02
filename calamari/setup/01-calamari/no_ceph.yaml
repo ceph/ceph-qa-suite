@@ -1,0 +1,8 @@
+tasks:
+- chef:
+- ssh_keys:
+- calamari_setup:
+    version: v0.80.6
+    start-browser: False
+#   Possibly add ICE-setup parameters here later
+- calamari_nosetests:

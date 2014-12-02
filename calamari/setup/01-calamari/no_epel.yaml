@@ -1,0 +1,11 @@
+tasks:
+- chef:
+- install:
+- ceph:
+- ssh_keys:
+- calamari_setup:
+    version: v0.80.6
+    start-browser: False
+    no-epel: True
+#   Possibly add ICE-setup parameters here later
+- calamari_nosetests:
