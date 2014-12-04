@@ -5,3 +5,4 @@ workload:
         clients:
           client.4:
             - rbd/test_librbd_python.sh
+    - print: "**** done rbd/test_librbd_python.sh 2-workload"
