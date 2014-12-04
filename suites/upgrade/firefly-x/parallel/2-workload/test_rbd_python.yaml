@@ -3,5 +3,5 @@ workload:
     - workunit:
         branch: firefly
         clients:
-          client.0:
+          client.4:
             - rbd/test_librbd_python.sh

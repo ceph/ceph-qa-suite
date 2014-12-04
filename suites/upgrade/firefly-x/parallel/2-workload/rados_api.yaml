@@ -3,6 +3,6 @@ workload:
     - workunit:
         branch: firefly
         clients:
-          client.0:
+          client.1:
             - cls
 

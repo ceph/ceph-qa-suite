@@ -3,5 +3,5 @@ workload:
     - workunit:
         branch: firefly
         clients:
-          client.0:
+          client.2:
             - rados/load-gen-big.sh
