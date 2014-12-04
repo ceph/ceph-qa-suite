@@ -1,5 +1,5 @@
 workload:
-  sequential:
+  parallel:
     - rados:
        clients: [client.0]
        ops: 4000
