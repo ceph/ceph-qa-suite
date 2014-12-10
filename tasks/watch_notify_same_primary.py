@@ -100,9 +100,9 @@ def task(ctx, config):
             got1 = False
             got2 = False
             for l in lines:
-                if l.contains('notify1'):
+                if 'notify1' in l:
                     got1 = True
-                if l.contains('notify2'):
+                if 'notify2' in l:
                     got2 = True
             log.info(lines)
             assert got1 and got2
