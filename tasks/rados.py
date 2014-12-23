@@ -97,6 +97,7 @@ def task(ctx, config):
         'adjust-ulimits',
         'ceph-coverage',
         '{tdir}/archive/coverage'.format(tdir=testdir),
+        'valgrind',
         'ceph_test_rados']
     if config.get('ec_pool', False):
         args.extend(['--ec-pool'])
