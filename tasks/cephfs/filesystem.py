@@ -3,11 +3,14 @@ from StringIO import StringIO
 import json
 import logging
 import time
-from tasks.ceph import write_conf
+import datetime
 
+from teuthology.exceptions import CommandFailedError
+from teuthology.orchestra import run
 from teuthology import misc
 from teuthology.nuke import clear_firewall
 from teuthology.parallel import parallel
+from tasks.ceph_manager import write_conf
 from tasks import ceph_manager
 
 
@@ -15,6 +18,14 @@ log = logging.getLogger(__name__)
 
 
 DAEMON_WAIT_TIMEOUT = 120
+
+
+class ObjectNotFound(Exception):
+    def __init__(self, object_name):
+        self._object_name = object_name
+
+    def __str__(self):
+        return "Object not found: '{0}'".format(self._object_name)
 
 
 class Filesystem(object):
@@ -34,13 +45,68 @@ class Filesystem(object):
             raise RuntimeError("This task requires at least one MDS")
 
         first_mon = misc.get_first_mon(ctx, config)
-        (mon_remote,) = ctx.cluster.only(first_mon).remotes.iterkeys()
-        self.mon_manager = ceph_manager.CephManager(mon_remote, ctx=ctx, logger=log.getChild('ceph_manager'))
+        (self.mon_remote,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+        self.mon_manager = ceph_manager.CephManager(self.mon_remote, ctx=ctx, logger=log.getChild('ceph_manager'))
         self.mds_daemons = dict([(mds_id, self._ctx.daemons.get_daemon('mds', mds_id)) for mds_id in self.mds_ids])
 
         client_list = list(misc.all_roles_of_type(self._ctx.cluster, 'client'))
         self.client_id = client_list[0]
         self.client_remote = list(misc.get_clients(ctx=ctx, roles=["client.{0}".format(self.client_id)]))[0][1]
+
+    def create(self):
+        pg_warn_min_per_osd = int(self.get_config('mon_pg_warn_min_per_osd'))
+        osd_count = len(list(misc.all_roles_of_type(self._ctx.cluster, 'osd')))
+        pgs_per_fs_pool = pg_warn_min_per_osd * osd_count
+
+        self.mon_remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'create', 'metadata', pgs_per_fs_pool.__str__()])
+        self.mon_remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'create', 'data', pgs_per_fs_pool.__str__()])
+        self.mon_remote.run(args=['sudo', 'ceph', 'fs', 'new', 'default', 'metadata', 'data'])
+
+    def delete(self):
+        self.mon_remote.run(args=['sudo', 'ceph', 'fs', 'rm', 'default', '--yes-i-really-mean-it'])
+        self.mon_remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'delete',
+                                  'metadata', 'metadata', '--yes-i-really-really-mean-it'])
+        self.mon_remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'delete',
+                                  'data', 'data', '--yes-i-really-really-mean-it'])
+
+    def _df(self):
+        return json.loads(self.mon_manager.raw_cluster_cmd("df", "--format=json-pretty"))
+
+    def _fs_ls(self):
+        fs_list = json.loads(self.mon_manager.raw_cluster_cmd("fs", "ls", "--format=json-pretty"))
+        assert len(fs_list) == 1  # we don't handle multiple filesystems yet
+        return fs_list[0]
+
+    def get_data_pool_name(self):
+        """
+        Return the name of the data pool if there is only one, else raise exception -- call
+        this in tests where there will only be one data pool.
+        """
+        names = self.get_data_pool_names()
+        if len(names) > 1:
+            raise RuntimeError("Multiple data pools found")
+        else:
+            return names[0]
+
+    def get_data_pool_names(self):
+        return self._fs_ls()['data_pools']
+
+    def get_metadata_pool_name(self):
+        return self._fs_ls()['metadata_pool']
+
+    def get_pool_df(self, pool_name):
+        """
+        Return a dict like:
+        {u'bytes_used': 0, u'max_avail': 83848701, u'objects': 0, u'kb_used': 0}
+        """
+        for pool_df in self._df()['pools']:
+            if pool_df['name'] == pool_name:
+                return pool_df['stats']
+
+        raise RuntimeError("Pool name '{0}' not found".format(pool_name))
+
+    def get_usage(self):
+        return self._df()['stats']['total_used_bytes']
 
     def get_mds_hostnames(self):
         result = set()
@@ -50,8 +116,15 @@ class Filesystem(object):
 
         return list(result)
 
-    def get_config(self, key):
-        return self.mds_asok(['config', 'get', key])[key]
+    def get_config(self, key, service_type=None):
+        """
+        Get config from mon by default, or a specific service if caller asks for it
+        """
+        if service_type is None:
+            service_type = 'mon'
+
+        service_id = sorted(misc.all_roles_of_type(self._ctx.cluster, service_type))[0]
+        return self.json_asok(['config', 'get', key], service_type, service_id)[key]
 
     def set_ceph_conf(self, subsys, key, value):
         if subsys not in self._ctx.ceph.conf:
@@ -200,16 +273,20 @@ class Filesystem(object):
 
         return version
 
-    def mds_asok(self, command, mds_id=None):
-        if mds_id is None:
-            mds_id = self.get_lone_mds_id()
-        proc = self.mon_manager.admin_socket('mds', mds_id, command)
+    def json_asok(self, command, service_type, service_id):
+        proc = self.mon_manager.admin_socket(service_type, service_id, command)
         response_data = proc.stdout.getvalue()
-        log.info("mds_asok output: {0}".format(response_data))
+        log.info("_json_asok output: {0}".format(response_data))
         if response_data.strip():
             return json.loads(response_data)
         else:
             return None
+
+    def mds_asok(self, command, mds_id=None):
+        if mds_id is None:
+            mds_id = self.get_lone_mds_id()
+
+        return self.json_asok(command, 'mds', mds_id)
 
     def set_clients_block(self, blocked, mds_id=None):
         """
@@ -231,6 +308,10 @@ class Filesystem(object):
 
     def clear_firewall(self):
         clear_firewall(self._ctx)
+
+    def is_full(self):
+        flags = json.loads(self.mon_manager.raw_cluster_cmd("osd", "dump", "--format=json-pretty"))['flags']
+        return 'full' in flags
 
     def wait_for_state(self, goal_state, reject=None, timeout=None, mds_id=None):
         """
@@ -265,3 +346,87 @@ class Filesystem(object):
             else:
                 time.sleep(1)
                 elapsed += 1
+
+    def read_backtrace(self, ino_no):
+        """
+        Read the backtrace from the data pool, return a dict in the format
+        given by inode_backtrace_t::dump, which is something like:
+
+        ::
+
+            rados -p cephfs_data getxattr 10000000002.00000000 parent > out.bin
+            ceph-dencoder type inode_backtrace_t import out.bin decode dump_json
+
+            { "ino": 1099511627778,
+              "ancestors": [
+                    { "dirino": 1,
+                      "dname": "blah",
+                      "version": 11}],
+              "pool": 1,
+              "old_pools": []}
+
+        """
+        mds_id = self.mds_ids[0]
+        remote = self.mds_daemons[mds_id].remote
+
+        obj_name = "{0:x}.00000000".format(ino_no)
+
+        temp_file = "/tmp/{0}_{1}".format(obj_name, datetime.datetime.now().isoformat())
+
+        args = [
+            "rados", "-p", self.get_data_pool_name(), "getxattr", obj_name, "parent",
+            run.Raw(">"), temp_file
+        ]
+        try:
+            remote.run(
+                args=args,
+                stdout=StringIO())
+        except CommandFailedError as e:
+            log.error(e.__str__())
+            raise ObjectNotFound(obj_name)
+
+        p = remote.run(
+            args=["ceph-dencoder", "type", "inode_backtrace_t", "import", temp_file, "decode", "dump_json"],
+            stdout=StringIO()
+        )
+
+        return json.loads(p.stdout.getvalue().strip())
+
+    def list_dirfrag(self, dir_ino):
+        """
+        Read the named object and return the list of omap keys
+
+        :return a list of 0 or more strings
+        """
+
+        dirfrag_obj_name = "{0:x}.00000000".format(dir_ino)
+
+        # Doesn't matter which MDS we use to run rados commands, they all
+        # have access to the pools
+        mds_id = self.mds_ids[0]
+        remote = self.mds_daemons[mds_id].remote
+
+        # NB we could alternatively use librados pybindings for this, but it's a one-liner
+        # using the `rados` CLI
+        args = ["rados", "-p", self.get_metadata_pool_name(), "listomapkeys", dirfrag_obj_name]
+        try:
+            p = remote.run(
+                args=args,
+                stdout=StringIO())
+        except CommandFailedError as e:
+            log.error(e.__str__())
+            raise ObjectNotFound(dirfrag_obj_name)
+
+        key_list_str = p.stdout.getvalue().strip()
+        return key_list_str.split("\n") if key_list_str else []
+
+    def journal_tool(self, args):
+        """
+        Invoke cephfs-journal-tool with the passed arguments, and return its stdout
+        """
+        mds_id = self.mds_ids[0]
+        remote = self.mds_daemons[mds_id].remote
+
+        return remote.run(
+            args=['cephfs-journal-tool'] + args,
+            stdout=StringIO()).stdout.getvalue().strip()

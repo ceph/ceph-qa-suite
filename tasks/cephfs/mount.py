@@ -5,8 +5,9 @@ import datetime
 import time
 from textwrap import dedent
 import os
+from StringIO import StringIO
 from teuthology.orchestra import run
-from teuthology.orchestra.run import CommandFailedError
+from teuthology.orchestra.run import CommandFailedError, ConnectionLostError
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class CephFSMount(object):
     def umount(self):
         raise NotImplementedError()
 
-    def umount_wait(self):
+    def umount_wait(self, force=False):
         raise NotImplementedError()
 
     def kill_cleanup(self):
@@ -101,11 +102,30 @@ class CephFSMount(object):
     def _run_python(self, pyscript):
         return self.client_remote.run(args=[
             'sudo', 'adjust-ulimits', 'daemon-helper', 'kill', 'python', '-c', pyscript
-        ], wait=False, stdin=run.PIPE)
+        ], wait=False, stdin=run.PIPE, stdout=StringIO())
+
+    def run_python(self, pyscript):
+        p = self._run_python(pyscript)
+        p.wait()
 
     def run_shell(self, args):
         args = ["cd", self.mountpoint, run.Raw('&&')] + args
         return self.client_remote.run(args=args, stdout=StringIO())
+
+    def open_no_data(self, basename):
+        """
+        A pure metadata operation
+        """
+        assert(self.is_mounted())
+
+        path = os.path.join(self.mountpoint, basename)
+
+        p = self._run_python(dedent(
+            """
+            f = open("{path}", 'w')
+            """.format(path=path)
+        ))
+        p.wait()
 
     def open_background(self, basename="background_file"):
         """
@@ -211,7 +231,7 @@ class CephFSMount(object):
             'sudo', 'python', '-c', pyscript
         ])
 
-    def write_background(self, basename="background_file"):
+    def write_background(self, basename="background_file", loop=False):
         """
         Open a file for writing, complete as soon as you can
         :param basename:
@@ -222,16 +242,36 @@ class CephFSMount(object):
         path = os.path.join(self.mountpoint, basename)
 
         pyscript = dedent("""
+            import os
             import time
 
-            f = open("{path}", 'w')
-            f.write('content')
-            f.close()
-            """).format(path=path)
+            fd = os.open("{path}", os.O_RDWR | os.O_CREAT, 0644)
+            try:
+                while True:
+                    os.write(fd, 'content')
+                    time.sleep(1)
+                    if not {loop}:
+                        break
+            except IOError, e:
+                pass
+            os.close(fd)
+            """).format(path=path, loop=str(loop))
 
         rproc = self._run_python(pyscript)
         self.background_procs.append(rproc)
         return rproc
+
+    def write_n_mb(self, filename, n_mb, seek=0):
+        """
+        Write the requested number of megabytes to a file
+        """
+        assert(self.is_mounted())
+
+        self.run_shell(["dd", "if=/dev/urandom", "of={0}".format(filename),
+                        "bs=1M",
+                        "count={0}".format(n_mb),
+                        "seek={0}".format(seek)
+        ])
 
     def open_n_background(self, fs_path, count):
         """
@@ -275,5 +315,24 @@ class CephFSMount(object):
                 p.stdin.close()
                 try:
                     p.wait()
-                except CommandFailedError:
+                except (CommandFailedError, ConnectionLostError):
                     pass
+
+    def get_global_id(self):
+        raise NotImplementedError()
+
+    def get_osd_epoch(self):
+        raise NotImplementedError()
+
+    def path_to_ino(self, fs_path):
+        abs_path = os.path.join(self.mountpoint, fs_path)
+
+        pyscript = dedent("""
+            import os
+            import stat
+
+            print os.stat("{path}").st_ino
+            """).format(path=abs_path)
+        proc = self._run_python(pyscript)
+        proc.wait()
+        return int(proc.stdout.getvalue().strip())

@@ -1,6 +1,5 @@
 tasks:
-- kclient:
 - workunit:
     clients:
       all:
-        - suites/ffsb.sh
+        - rbd/huge-tickets.sh
