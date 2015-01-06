@@ -9,12 +9,14 @@ tasks:
       - wget http://ceph.com/qa/fsx-mpi.c
       - mpicc fsx-mpi.c -o fsx-mpi
       - rm fsx-mpi.c
+      - mkdir $TESTDIR/mnt.0
       - ln -s $TESTDIR/mnt.* $TESTDIR/gmnt
 - ssh_keys:
 - mpi:
-    exec: $TESTDIR/fsx-mpi 1MB -N 50000 -p 10000 -l 1048576
+    exec: sudo $TESTDIR/fsx-mpi -o 1MB -N 50000 -p 10000 -l 1048576 $TESTDIR/gmnt/test
     workdir: $TESTDIR/gmnt
 - pexec:
     all:
+      - rm -rf $TESTDIR/mnt.0
       - rm $TESTDIR/gmnt
       - rm $TESTDIR/fsx-mpi
