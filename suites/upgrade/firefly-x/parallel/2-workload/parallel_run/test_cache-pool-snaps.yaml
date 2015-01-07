@@ -3,7 +3,7 @@ overrides:
     log-whitelist:
       - must scrub before tier agent can activate
 workload:
-  parallel:
+  sequential:
   - exec:
       client.0:
         - ceph osd pool create base 4
