@@ -695,6 +695,9 @@ def cluster(ctx, config):
         ctx.summary['success'] = False
         raise
     finally:
+        if ctx.config.get('teardown') is False:
+            log.info("Skipping teardown")
+            return
         (mon0_remote,) = ctx.cluster.only(firstmon).remotes.keys()
 
         log.info('Checking cluster log for badness...')
@@ -973,6 +976,9 @@ def run_daemon(ctx, config, type_):
     try:
         yield
     finally:
+        if ctx.config.get('teardown') is False:
+            log.info("Skipping teardown")
+            return
         teuthology.stop_daemons_of_type(ctx, type_)
 
 def healthy(ctx, config):
@@ -1048,7 +1054,7 @@ def created_pool(ctx, config):
         if new_pool not in ctx.manager.pools:
             ctx.manager.pools[new_pool] = ctx.manager.get_pool_property(
                                           new_pool, 'pg_num')
- 
+
 
 @contextlib.contextmanager
 def restart(ctx, config):
@@ -1273,5 +1279,8 @@ def task(ctx, config):
             )
             yield
         finally:
+            if ctx.config.get('teardown') is False:
+                log.info("Skipping teardown")
+                return
             if config.get('wait-for-scrub', True):
                 osd_scrub_pgs(ctx, config)
