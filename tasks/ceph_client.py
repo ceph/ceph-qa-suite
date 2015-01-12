@@ -123,4 +123,5 @@ def task(ctx, config):
     try:
         yield
     finally:
-        pass
+        # Remove the mon from the cluster so it doesn't get destroyed
+        del ctx.cluster.remotes[mon0_remote]
