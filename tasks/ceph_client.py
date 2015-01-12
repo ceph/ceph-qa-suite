@@ -119,3 +119,8 @@ def task(ctx, config):
                 data=conf_data,
                 perms='0644'
             )
+
+    try:
+        yield
+    finally:
+        pass
