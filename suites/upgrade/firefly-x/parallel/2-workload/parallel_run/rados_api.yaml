@@ -5,4 +5,4 @@ workload:
         clients:
           client.1:
             - cls
-    - print: "**** done cls 2-workload"
+    - print: "**** done cls 2-workload parallel"

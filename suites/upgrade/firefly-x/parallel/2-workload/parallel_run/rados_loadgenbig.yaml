@@ -5,4 +5,4 @@ workload:
         clients:
           client.2:
             - rados/load-gen-big.sh
-    - print: "**** done rados/load-gen-big.sh 2-workload"
+    - print: "**** done rados/load-gen-big.sh 2-workload parallel"
