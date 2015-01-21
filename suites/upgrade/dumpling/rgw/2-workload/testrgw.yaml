@@ -2,6 +2,5 @@ workload:
   sequential:
   - s3tests:
       client.0:
-         force-branch: dumpling
          rgw_server: client.0
 
