@@ -22,7 +22,14 @@ def download(ctx, config):
     for (client, cconf) in config.items():
         branch = cconf.get('force-branch', None)
         if not branch:
-            branch = cconf.get('branch', 'master')
+            ceph_branch = ctx.config.get('branch')
+            suite_branch = ctx.config.get('suite_branch', ceph_branch)
+            branch = cconf.get('branch', suite_branch)
+        if not branch:
+            raise ValueError(
+                "Could not determine what branch to use for s3tests!")
+        else:
+            log.info("Using branch '%s' for s3tests", branch)
         sha1 = cconf.get('sha1')
         ctx.cluster.only(client).run(
             args=[
