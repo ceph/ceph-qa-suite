@@ -58,6 +58,7 @@ def task(ctx, config):
               m: 1
               ruleset-failure-domain: osd
             pool_snaps: true
+            balance_reads: true
             runs: 10
         - interactive:
 
@@ -102,6 +103,8 @@ def task(ctx, config):
         args.extend(['--ec-pool'])
     if config.get('pool_snaps', False):
         args.extend(['--pool-snaps'])
+    if config.get('balance_reads', False):
+        args.extend(['--balance_reads'])
     args.extend([
         '--op', 'read', str(op_weights.get('read', 100)),
         '--op', 'write', str(op_weights.get('write', 100)),
