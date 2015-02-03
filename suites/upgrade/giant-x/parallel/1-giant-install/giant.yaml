@@ -1,6 +1,6 @@
 tasks:
 - install:
-    branch: giant
+    tag: v0.92
 - print: "**** done installing giant"
 - ceph:
     fs: xfs
