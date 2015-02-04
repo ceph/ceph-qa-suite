@@ -201,6 +201,7 @@ def run_tests(ctx, config):
 
         ctx.cluster.only(client).run(
             args=args,
+            label="s3 tests against rgw"
             )
     yield
 
