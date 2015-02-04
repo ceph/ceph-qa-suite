@@ -8,7 +8,7 @@ overrides:
     fs: xfs
     conf:
       osd:
-        osd map max advance: 1000
+        osd map max advance: 10
 roles:
 - - mon.a
   - mds.a
