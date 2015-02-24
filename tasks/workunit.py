@@ -281,6 +281,7 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None):
                     run.Raw('TESTDIR="{tdir}"'.format(tdir=testdir)),
                     run.Raw('CEPH_ID="{id}"'.format(id=id_)),
                     run.Raw('PYTHONPATH="$PYTHONPATH:{tdir}/binary/usr/local/lib/python2.7/dist-packages:{tdir}/binary/usr/local/lib/python2.6/dist-packages"'.format(tdir=testdir)),
+                    run.Raw('PATH=$PATH:/usr/sbin')
                     ]
                 if env is not None:
                     for var, val in env.iteritems():
