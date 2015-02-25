@@ -29,7 +29,6 @@ ServerName {host}
   </IfModule>
   User {user}
   Group {group}
-  {apache24_modconfig}
 </IfVersion>
 
 ServerRoot {testdir}/apache
