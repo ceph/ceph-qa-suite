@@ -4,7 +4,6 @@
 #   grep '^ *# TESTCASE' | sed 's/^ *# TESTCASE //'
 #
 
-import contextlib
 import json
 import logging
 import time
@@ -18,7 +17,6 @@ import boto.s3.acl
 import util.rgw as rgw_utils
 
 from teuthology import misc as teuthology
-from teuthology import contextutil
 from util.rgw import rgwadmin
 
 log = logging.getLogger(__name__)
@@ -128,7 +126,7 @@ def task(ctx, config):
             assert out['keys'][0]['access_key'] == access_key
             assert out['keys'][0]['secret_key'] == secret_key
             assert not out['suspended']
-    
+
         # compare the metadata between different regions, make sure it matches
         for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
             source_client = c_config['src']
@@ -138,7 +136,7 @@ def task(ctx, config):
             assert not err1
             assert not err2
             assert out1 == out2
-    
+
         # suspend a user on the master, then check the status on the destination
         for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
             source_client = c_config['src']
@@ -148,7 +146,7 @@ def task(ctx, config):
             (err, out) = rgwadmin(ctx, dest_client, ['user', 'info', '--uid', user1])
             assert not err
             assert out['suspended']
-    
+
         # delete a user on the master, then check that it's gone on the destination
         for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
             source_client = c_config['src']
@@ -158,7 +156,7 @@ def task(ctx, config):
             rgw_utils.radosgw_agent_sync_all(ctx)
             (err, out) = rgwadmin(ctx, dest_client, ['user', 'info', '--uid', user1])
             assert out is None
-    
+
             # then recreate it so later tests pass
             (err, out) = rgwadmin(ctx, client, [
                 'user', 'create',
@@ -339,7 +337,7 @@ def task(ctx, config):
     bucket2.delete()
     bucket3.delete()
     bucket4.delete()
-   
+
     # TESTCASE 'bucket-stats3','bucket','stats','new empty bucket','succeeds, empty list'
     (err, out) = rgwadmin(ctx, client, [
             'bucket', 'stats', '--bucket', bucket_name])
@@ -451,7 +449,7 @@ def task(ctx, config):
         assert len(log) > 0
 
         assert log['bucket'].find(bucket_name) == 0
-        assert log['bucket'] != bucket_name or log['bucket_id'] == bucket_id 
+        assert log['bucket'] != bucket_name or log['bucket_id'] == bucket_id
         assert log['bucket_owner'] == user1 or log['bucket'] == bucket_name + '5'
         for entry in log['log_entries']:
             assert entry['bucket'] == log['bucket']
@@ -569,7 +567,6 @@ def task(ctx, config):
     assert err
 
     # delete should fail because ``key`` still exists
-    fails = False
     try:
         bucket.delete()
     except boto.exception.S3ResponseError as e:
@@ -647,7 +644,7 @@ def task(ctx, config):
     assert err
 
     # TESTCASE 'zone-info', 'zone', 'get', 'get zone info', 'succeeds, has default placement rule'
-    # 
+    #
 
     (err, out) = rgwadmin(ctx, client, ['zone', 'get'])
     orig_placement_pools = len(out['placement_pools'])
