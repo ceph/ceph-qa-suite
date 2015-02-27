@@ -2,7 +2,6 @@ import contextlib
 import logging
 
 from teuthology.orchestra import run
-from teuthology import misc as teuthology
 
 log = logging.getLogger(__name__)
 
