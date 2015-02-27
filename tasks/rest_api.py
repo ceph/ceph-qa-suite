@@ -14,7 +14,6 @@ def run_rest_api_daemon(ctx, api_clients):
         ctx.daemons = DaemonGroup()
     remotes = ctx.cluster.only(teuthology.is_type('client')).remotes
     testdir = teuthology.get_testdir(ctx)
-    coverage_dir = '{tdir}/archive/coverage'.format(tdir=testdir)
     for rems, roles in remotes.iteritems():
         for whole_id_ in roles:
             if whole_id_ in api_clients:
