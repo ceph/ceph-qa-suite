@@ -8,6 +8,7 @@ from cStringIO import StringIO
 from teuthology.orchestra import run
 from teuthology import misc as teuthology
 from teuthology import contextutil
+from teuthology.exceptions import CommandFailedError
 from util.rgw import rgwadmin
 from util.rados import rados
 import argparse
@@ -447,7 +448,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints):
         role_zones[client] = (region, zone, zone_info, user_info)
 
     region_info = dict([(region, extract_region_info(region, r_config))
-                        for region, r_config in regions.iteritems()])
+                        for region, r_config in regions.iteritems()])  # noqa
 
     fill_in_endpoints(region_info, role_zones, role_endpoints)
 
