@@ -3,7 +3,6 @@ import logging
 import proc_thrasher
 
 from teuthology.orchestra import run
-from teuthology import misc as teuthology
 
 log = logging.getLogger(__name__)
 
@@ -31,8 +30,6 @@ def task(ctx, config):
     testwatch = {}
 
     remotes = []
-
-    testdir = teuthology.get_testdir(ctx)
 
     for role in config.get('clients', ['client.0']):
         assert isinstance(role, basestring)

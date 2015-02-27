@@ -2,7 +2,6 @@ import contextlib
 import logging
 
 from teuthology.orchestra import run
-from teuthology import misc as teuthology
 
 log = logging.getLogger(__name__)
 
@@ -42,7 +41,6 @@ def task(ctx, config):
     assert isinstance(config, dict), \
         "please list clients to run on"
     omapbench = {}
-    testdir = teuthology.get_testdir(ctx)
     print(str(config.get('increment',-1)))
     for role in config.get('clients', ['client.0']):
         assert isinstance(role, basestring)
