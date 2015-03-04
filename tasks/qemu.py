@@ -180,7 +180,7 @@ def _setup_nfs_mount(remote, client, mount_dir):
     if remote.os.package_type == "deb":
         remote.run(args=['sudo', 'service', 'nfs-kernel-server', 'restart'])
     else:
-        remote.run(args=['sudo', 'systemctl', 'nfs', 'restart'])
+        remote.run(args=['sudo', 'systemctl', 'restart', 'nfs'])
 
 
 def _teardown_nfs_mount(remote, client):
@@ -197,7 +197,7 @@ def _teardown_nfs_mount(remote, client):
         ])
     else:
         remote.run(args=[
-            'sudo', 'systemctl', 'nfs', 'stop'
+            'sudo', 'systemctl', 'stop', 'nfs'
         ])
     log.info("Unmounting exported directory...")
     remote.run(args=[
@@ -218,7 +218,7 @@ def _teardown_nfs_mount(remote, client):
         ])
     else:
         remote.run(args=[
-            'sudo', 'systemctl', 'nfs', 'start'
+            'sudo', 'systemctl', 'start', 'nfs'
         ])
 
 
