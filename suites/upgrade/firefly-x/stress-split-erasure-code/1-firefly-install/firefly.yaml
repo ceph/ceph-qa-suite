@@ -1,5 +1,5 @@
 tasks:
 - install:
-    branch: firefly
+    branch: firefly-backports
 - ceph:
     fs: xfs
