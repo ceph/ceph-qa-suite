@@ -558,7 +558,19 @@ def cluster(ctx, config):
                         stdout=StringIO(),
                         )
 
-                remote.run(args= ['yes', run.Raw('|')] + ['sudo'] + mkfs + [dev])
+                try:
+                    remote.run(
+                        args=['yes', run.Raw('|')] + ['sudo'] + mkfs + [dev]
+                    )
+                except run.CommandFailedError:
+                    # try again without -f which is not supported on
+                    # older versions of btfs-tools.
+                    log.exception("Trying again without -f...")
+                    mkfs.pop(0)
+                    remote.run(
+                        args=['yes', run.Raw('|')] + ['sudo'] + mkfs + [dev]
+                    )
+
 
                 log.info('mount %s on %s -o %s' % (dev, remote,
                                                    ','.join(mount_options)))
