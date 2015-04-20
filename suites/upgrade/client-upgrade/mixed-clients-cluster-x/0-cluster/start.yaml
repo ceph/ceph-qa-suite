@@ -1,0 +1,16 @@
+roles:
+- - mon.a
+  - mds.a
+  - osd.0
+  - osd.1
+  - client.0
+- - mon.b
+  - mon.c
+  - osd.2
+  - osd.3
+  - client.1
+- - client.2
+overrides:
+  ceph:
+    log-whitelist:
+    - failed to encode map

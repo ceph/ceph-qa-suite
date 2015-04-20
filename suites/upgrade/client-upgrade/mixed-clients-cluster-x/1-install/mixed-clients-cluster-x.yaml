@@ -1,0 +1,13 @@
+tasks:
+- install:
+   branch: firefly 
+- install.upgrade:
+   branch: hammer
+    osd.0: 
+- ceph.restart:
+    daemons: [mon.a, mds.a, osd.0, osd.1]
+- install.upgrade:
+    osd.2:
+- ceph.restart:
+    daemons: [mon.b, mon.c,osd.2, osd.3]     
+- ceph:

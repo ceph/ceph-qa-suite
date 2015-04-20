@@ -1,0 +1,25 @@
+workload:
+  parallel:
+    - workunit:
+        branch: firefly
+        clients:
+          client.2:
+            - rbd/import_export.sh
+        env:
+           RBD_CREATE_ARGS: --new-format
+    - print: "**** done rbd/import_export.sh 2-workloads on filrefly client"
+    - workunit:
+        branch: hammer
+        clients:
+          client.0:
+            - rbd/import_export.sh
+        env:
+           RBD_CREATE_ARGS: --new-format
+    - print: "**** done rbd/import_export.sh 2-workloads on hammer client"
+    - workunit:
+        clients:
+          client.1:
+            - rbd/import_export.sh
+        env:
+           RBD_CREATE_ARGS: --new-format
+    - print: "**** done rbd/import_export.sh 2-workloads on -x client"
