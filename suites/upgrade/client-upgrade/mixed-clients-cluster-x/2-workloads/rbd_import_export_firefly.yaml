@@ -1,0 +1,10 @@
+workload:
+  sequential:
+    - workunit:
+        branch: firefly
+        clients:
+          client.2:
+            - rbd/import_export.sh
+        env:
+           RBD_CREATE_ARGS: --new-format
+    - print: "**** done rbd/import_export.sh 2-workloads on filrefly client"

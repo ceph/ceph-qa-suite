@@ -1,13 +1,20 @@
 tasks:
 - install:
-   branch: firefly 
-- install.upgrade:
-   branch: hammer
-    osd.0: 
-- ceph.restart:
-    daemons: [mon.a, mds.a, osd.0, osd.1]
-- install.upgrade:
-    osd.2:
-- ceph.restart:
-    daemons: [mon.b, mon.c,osd.2, osd.3]     
+    branch: firefly 
+- print: "**** done install firefly"
 - ceph:
+- print: "**** done ceph task"
+- install.upgrade:
+    mon.a:
+      branch: hammer
+- print: "**** done install.upgrade hammer"
+- ceph.restart: [mon.a, mds.a, osd.0, osd.1]
+- print: "**** done daemons: [mon.a, mds.a, osd.0, osd.1]"
+- install.upgrade:
+    mon.b:
+- print: "**** done install.upgrade osd.2 to -x"
+- ceph.restart: [mon.b, mon.c, osd.2, osd.3]
+- print: "**** done daemons: [mon.b, mon.c,osd.2, osd.3]"   
+- sequential:
+   - workload
+- print: "**** done workload"
