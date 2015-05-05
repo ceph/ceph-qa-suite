@@ -9,3 +9,4 @@ tasks:
 - install:
 - ceph:
 - divergent_priors:
+- divergent_priors2:
