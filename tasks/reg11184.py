@@ -113,10 +113,6 @@ def task(ctx, config):
     log.info('writing non-divergent object ' + objname)
     rados(ctx, mon, ['-p', 'foo', 'put', objname, dummyfile2])
 
-    # Split pgs for pool foo
-    ctx.manager.raw_cluster_cmd('osd', 'pool', 'set', 'foo', 'pg_num', '2')
-    time.sleep(5)
-
     ctx.manager.wait_for_recovery()
 
     # ensure no recovery of up osds first
@@ -146,6 +142,10 @@ def task(ctx, config):
     log.info("killing divergent %d", divergent)
     ctx.manager.kill_osd(divergent)
 
+    # Split pgs for pool foo
+    ctx.manager.raw_cluster_cmd('osd', 'pool', 'set', 'foo', 'pg_num', '2')
+    time.sleep(5)
+
     # Export a pg
     (exp_remote,) = ctx.\
         cluster.only('osd.{o}'.format(o=divergent)).remotes.iterkeys()
@@ -164,126 +164,70 @@ def task(ctx, config):
                           check_status=False, stdout=StringIO())
     assert proc.exitstatus == 0
 
-    assert False
-#
-## ifndef FIX
-#
-#    # ensure no recovery
-#    # log.info('delay recovery')
-#    # for i in non_divergent:
-#    #    ctx.manager.set_config(i, osd_recovery_delay_start=100000)
-#
-#    # Kill one of non-divergent OSDs
-#    log.info('killing osd.%d' % non_divergent[0])
-#    ctx.manager.kill_osd(non_divergent[0])
-#    ctx.manager.mark_down_osd(non_divergent[0])
-#    # ctx.manager.mark_out_osd(non_divergent[0])
-#
-#    (imp_remote,) = ctx.\
-#        cluster.only('osd.{o}'.format(o=non_divergent[0])).remotes.iterkeys()
-#
-#    # See if we need to copy the exp file
-#    # if exp_remote != imp_remote:
-#    #
-#
-#    # Remove the same pg that was exported
-#    cmd = ((prefix + "--op remove --pgid 1.0").format(id=non_divergent[0]))
-#    proc = imp_remote.run(args=cmd, wait=True,
-## else /* FIX */
-#    cmd = ((prefix + "--op remove --pgid 1.0").
-#           format(id=divergent, file=expfile))
-#    proc = exp_remote.run(args=cmd, wait=True,
-## endif /* FIX */
-#                          check_status=False, stdout=StringIO())
-#    assert proc.exitstatus == 0
-#
-## ifndef FIX
-#    # Import the pg
-#    cmd = ((prefix + "--op import --file {file}").format(id=non_divergent[0], file=expfile))
-#    proc = imp_remote.run(args=cmd, wait=True,
-## else /* FIX */
-#    cmd = ((prefix + "--op import --file {file}").
-#           format(id=divergent, file=expfile))
-#    proc = exp_remote.run(args=cmd, wait=True,
-## endif /* FIX */
-#                          check_status=False, stdout=StringIO())
-#    assert proc.exitstatus == 0
-#
-## ifndef FIX
-#    # bring in our divergent friend and other node
-#    log.info("revive divergent %d", divergent)
-#    ctx.manager.revive_osd(divergent)
-#    ctx.manager.mark_in_osd(divergent)
-#    log.info("revive %d", non_divergent[0])
-#    ctx.manager.revive_osd(non_divergent[0])
-#    ctx.manager.mark_in_osd(non_divergent[0])
-#
-#    while len(ctx.manager.get_osd_status()['up']) < 3:
-#        time.sleep(10)
-#
-#    log.info('delay recovery divergent')
-#    ctx.manager.set_config(divergent, osd_recovery_delay_start=100000)
-#    log.info('mark divergent in')
-#    ctx.manager.mark_in_osd(divergent)
-#
-#    log.info('wait for peering')
-#    rados(ctx, mon, ['-p', 'foo', 'put', 'foo', dummyfile])
-#
-#    log.info("killing divergent %d", divergent)
-#    ctx.manager.kill_osd(divergent)
-## endif /* ! FIX */
-#    log.info("reviving divergent %d", divergent)
-#    ctx.manager.revive_osd(divergent)
-#
-#    log.info('allowing recovery')
-#    # Set osd_recovery_delay_start back to 0 and kick the queue
-## ifndef FIX
-#    for i in non_divergent:
-#        ctx.manager.raw_cluster_cmd('tell', 'osd.%d' % i, 'debug', 'kick_recovery_wq', ' 0')
-#
-#    log.info('reading existing_0')
-#    exit_status = rados(ctx, mon,
-#                        ['-p', 'foo', 'get', 'existing_0',
-#                         '-o', '/tmp/existing'])
-#    assert exit_status is 0
-## else /* FIX */
-#    for i in osds:
-#        ctx.manager.raw_cluster_cmd('tell', 'osd.%d' % i, 'debug',
-#                                    'kick_recovery_wq', ' 0')
-## endif /* FIX */
-#
-## ifndef FIX
-#    # Remove expfile on exp_remote
-#    cmd = "rm -f {file}".format(file=expfile)
-#    proc = exp_remote.run(args=cmd, wait=True,
-#                          check_status=False, stdout=StringIO())
-#    assert proc.exitstatus == 0
-#    if imp_remote != exp_remote:
-#        proc = imp_remote.run(args=cmd, wait=True,
-#                              check_status=False, stdout=StringIO())
-#    assert proc.exitstatus == 0
-## else /* FIX */
-#    log.info('reading divergent objects')
-#    for i in range(DIVERGENT_WRITE + DIVERGENT_REMOVE):
-#        exit_status = rados(ctx, mon, ['-p', 'foo', 'get', 'existing_%d' % i,
-#                            '-o', '/tmp/existing'])
-#        assert exit_status is 0
-## endif /* FIX */
-#
-## ifndef FIX
-#    cmd = 'grep "divergent_priors:" /var/log/ceph/ceph-osd.*.log | grep -v "divergent_priors: 0"'
-#    proc = exp_remote.run(args=cmd, wait=True, check_status=False)
-## else /* FIX */
-#    (remote,) = ctx.\
-#        cluster.only('osd.{o}'.format(o=divergent)).remotes.iterkeys()
-#    msg = "dirty_divergent_priors: true, divergent_priors: %d" \
-#          % (DIVERGENT_WRITE + DIVERGENT_REMOVE)
-#    cmd = 'grep "{msg}" /var/log/ceph/ceph-osd.{osd}.log'\
-#          .format(msg=msg, osd=divergent)
-#    proc = remote.run(args=cmd, wait=True, check_status=False)
-## endif /* FIX */
-#    assert proc.exitstatus == 0
-#
-#    cmd = 'rm {file}'.format(file=expfile)
-#    remote.run(args=cmd, wait=True)
-#    log.info("success")
+    # Kill one of non-divergent OSDs
+    log.info('killing osd.%d' % non_divergent[0])
+    ctx.manager.kill_osd(non_divergent[0])
+    ctx.manager.mark_down_osd(non_divergent[0])
+    # ctx.manager.mark_out_osd(non_divergent[0])
+
+    # Remove the same pg that was exported
+    cmd = ((prefix + "--op remove --pgid 1.0").
+           format(id=non_divergent[0], file=expfile))
+    proc = exp_remote.run(args=cmd, wait=True,
+                          check_status=False, stdout=StringIO())
+    assert proc.exitstatus == 0
+
+    cmd = ((prefix + "--op import --file {file}").
+           format(id=non_divergent[0], file=expfile))
+    proc = exp_remote.run(args=cmd, wait=True,
+                          check_status=False, stdout=StringIO())
+    assert proc.exitstatus == 0
+
+    # bring in our divergent friend and other node
+    log.info("revive divergent %d", divergent)
+    ctx.manager.revive_osd(divergent)
+    ctx.manager.mark_in_osd(divergent)
+    log.info("revive %d", non_divergent[0])
+    ctx.manager.revive_osd(non_divergent[0])
+    #ctx.manager.mark_in_osd(non_divergent[0])
+
+    while len(ctx.manager.get_osd_status()['up']) < 3:
+        time.sleep(10)
+
+    log.info('delay recovery divergent')
+    ctx.manager.set_config(divergent, osd_recovery_delay_start=100000)
+    log.info('mark divergent in')
+    ctx.manager.mark_in_osd(divergent)
+
+    log.info('wait for peering')
+    rados(ctx, mon, ['-p', 'foo', 'put', 'foo', dummyfile])
+
+    log.info("killing divergent %d", divergent)
+    ctx.manager.kill_osd(divergent)
+    log.info("reviving divergent %d", divergent)
+    ctx.manager.revive_osd(divergent)
+
+    log.info('allowing recovery')
+    # Set osd_recovery_delay_start back to 0 and kick the queue
+    for i in osds:
+        ctx.manager.raw_cluster_cmd('tell', 'osd.%d' % i, 'debug',
+                                    'kick_recovery_wq', ' 0')
+
+    log.info('reading divergent objects')
+    for i in range(DIVERGENT_WRITE + DIVERGENT_REMOVE):
+        exit_status = rados(ctx, mon, ['-p', 'foo', 'get', 'existing_%d' % i,
+                            '-o', '/tmp/existing'])
+        assert exit_status is 0
+
+    (remote,) = ctx.\
+        cluster.only('osd.{o}'.format(o=divergent)).remotes.iterkeys()
+    msg = "dirty_divergent_priors: true, divergent_priors: %d" \
+          % (DIVERGENT_WRITE + DIVERGENT_REMOVE)
+    cmd = 'grep "{msg}" /var/log/ceph/ceph-osd.{osd}.log'\
+          .format(msg=msg, osd=divergent)
+    proc = remote.run(args=cmd, wait=True, check_status=False)
+    assert proc.exitstatus == 0
+
+    cmd = 'rm {file}'.format(file=expfile)
+    remote.run(args=cmd, wait=True)
+    log.info("success")
