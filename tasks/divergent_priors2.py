@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 def task(ctx, config):
     """
     Test handling of divergent entries with prior_version
-    prior to log_tail
+    prior to log_tail and a ceph-objectstore-tool export/import
 
     config: none
 
