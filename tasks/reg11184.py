@@ -206,6 +206,7 @@ def task(ctx, config):
     ctx.manager.kill_osd(divergent)
     log.info("reviving divergent %d", divergent)
     ctx.manager.revive_osd(divergent)
+    time.sleep(3)
 
     log.info('allowing recovery')
     # Set osd_recovery_delay_start back to 0 and kick the queue
