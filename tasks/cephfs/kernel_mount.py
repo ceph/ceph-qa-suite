@@ -69,8 +69,8 @@ class KernelMount(CephFSMount):
                 self.mountpoint,
                 '-v',
                 '-o',
-                'name={id},secretfile={secret}'.format(id=self.client_id,
-                                                       secret=secret),
+                'name={id},secretfile={secret},noshare'.format(id=self.client_id,
+                                                               secret=secret),
             ],
         )
 
