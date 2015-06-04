@@ -1,8 +1,11 @@
-
+from collections import defaultdict
+import json
 import logging
 from textwrap import dedent
 import time
 import gevent
+from gevent import event
+
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
 
 log = logging.getLogger(__name__)
@@ -499,3 +502,129 @@ class TestStrays(CephFSTestCase):
 
         # file_a's data should still exist
         self.assertTrue(self.fs.data_objects_present(file_a_ino, size_mb * 1024 * 1024))
+
+    def test_cache_full(self):
+        """
+        That when the number of strays in existence is pushing the edge of the
+        MDS cache size limit, our behaviour remains sane.
+        """
+
+        # Simulate a system with a really large number of files, by tuning down
+        # cache size parameters such that "10000 files" becomes "really large"
+        self.fs.set_ceph_conf("mds", "mds_cache_size", "1000")
+
+        # Turn the purge throttle way down, so that we will build up a number
+        # of strays that challenges the MDS cache size limit
+        self.fs.set_ceph_conf("mds", "mds_max_purge_files", "1")
+
+        self.fs.mds_fail_restart()
+        self.fs.wait_for_daemons()
+
+        self.fs.mon_manager.raw_cluster_cmd(
+            "tell", "mds.{0}".format(self.fs.get_lone_mds_id()), "injectargs", "--mds_max_purge_files {0}".format(
+                1
+            ))
+
+        class StatWatcher(gevent.Greenlet):
+            def __init__(self, fs):
+                super(StatWatcher, self).__init__()
+                self.maxes = {}
+                self.fs = fs
+                self.stop_event = event.Event()
+
+            def _run(self):
+                subsys_of_interest = ['mds_cache', 'mds']
+
+                while not self.stop_event.is_set():
+                    for subsys in subsys_of_interest:
+                        current_stats = self.fs.mds_asok(['perf', 'dump', subsys])[subsys]
+
+                        if self.maxes.get(subsys, None) is None:
+                            self.maxes[subsys] = current_stats
+
+                        for k, v in current_stats.items():
+                            if v > self.maxes[subsys][k]:
+                                self.maxes[subsys][k] = v
+
+                    self.stop_event.wait(timeout=5)
+
+        watcher = StatWatcher(self.fs)
+        watcher.start()
+
+        try:
+            # Create 20 directories with 1000 files in each
+            dir_count = 20
+            file_count = 1000
+            self.mount_a.run_python(dedent("""
+                import os
+
+                for dir_n in range(0, {dir_count}):
+                    dir_path = os.path.join("{base}", "dir_%s" % dir_n)
+                    os.mkdir(dir_path)
+                    for file_n in range(0, {file_count}):
+                        f = open(os.path.join(dir_path, "file_%s" % file_n), 'w')
+                        f.write("CONTENT %s.%s" % (dir_n, file_n))
+                        f.close()
+            """.format(
+                base=self.mount_a.mountpoint,
+                dir_count=dir_count,
+                file_count=file_count
+            )))
+
+            # Delete all my files
+            for dir_n in range(0, dir_count):
+                self.mount_a.run_shell(["sudo", "rm", "-rf", "dir_%s" % dir_n])
+
+            # Check that the number of files stray plus the number purged equals the number we deleted
+            # XXX TODO
+            after_del = self.fs.mds_asok(['perf', 'dump', 'mds_cache'])['mds_cache']
+            log.info("After delete, current stats:\n{0}".format(
+                json.dumps(after_del, indent=2)
+            ))
+
+            # Ramp up the purge rate and check everything gets purged eventually
+            self.fs.mon_manager.raw_cluster_cmd(
+                "tell", "mds.{0}".format(self.fs.get_lone_mds_id()), "injectargs", "--mds_max_purge_files {0}".format(
+                    1000
+                ))
+
+            def all_gone():
+                current_stats = self.fs.mds_asok(['perf', 'dump', 'mds_cache'])['mds_cache']
+                done = current_stats['strays_purged'] >= dir_count * file_count
+                if not done:
+                    log.info("Not done purging yet, current stats:\n{0}".format(
+                        json.dumps(current_stats, indent=2)
+                    ))
+                return done
+
+            self.wait_until_true(all_gone, timeout=3600)
+
+            # Recover the high water mark of the cache size.  If we go to more than 2x the limit,
+            # consider it a failure: on a real system we would probably have exhausted some physical
+            # resources and go stuck.
+            # XXX enforce limit
+            log.info("High water:\n{0}".format(json.dumps(watcher.maxes, indent=2)))
+        finally:
+            watcher.stop_event.set()
+            watcher.join()
+            log.info("High water on shutdown:\n{0}".format(json.dumps(watcher.maxes, indent=2)))
+
+
+
+# {
+#     "mds_cache": {
+#         "num_strays": 0,
+#         "num_strays_purging": 0,
+#         "num_strays_delayed": 0,
+#         "num_purge_ops": 0,
+#         "strays_created": 0,
+#         "strays_purged": 0,
+#         "strays_reintegrated": 0,
+#         "strays_migrated": 0,
+#         "num_recovering_processing": 0,
+#         "num_recovering_enqueued": 0,
+#         "num_recovering_prioritized": 0,
+#         "recovery_started": 0,
+#         "recovery_completed": 0
+#     }
+# }
