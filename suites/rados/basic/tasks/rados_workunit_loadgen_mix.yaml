@@ -4,6 +4,7 @@ overrides:
     - wrongly marked me down
 tasks:
 - install:
+    rhbuild : 1.3.0
 - ceph:
 - workunit:
     clients:

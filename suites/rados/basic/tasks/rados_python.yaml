@@ -1,5 +1,6 @@
 tasks:
 - install:
+    rhbuild : 1.3.0
 - ceph:
     log-whitelist:
     - wrongly marked me down

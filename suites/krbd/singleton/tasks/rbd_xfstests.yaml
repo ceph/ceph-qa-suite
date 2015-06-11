@@ -5,6 +5,7 @@ roles:
 - [client.1]
 tasks:
 - install:
+    rhbuild : 1.3.0
 - ceph:
 - rbd.xfstests:
     client.0:

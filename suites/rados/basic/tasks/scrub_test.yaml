@@ -13,5 +13,6 @@ overrides:
     - repair 1 errors, 1 fixed
 tasks:
 - install:
+   rhbuild : 1.3.0
 - ceph:
 - scrub_test:
