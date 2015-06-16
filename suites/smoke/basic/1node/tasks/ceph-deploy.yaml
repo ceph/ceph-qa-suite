@@ -1,0 +1,3 @@
+tasks:
+- ceph_deploy.single_node_test: 	
+      rhbuild: 1.3.0
