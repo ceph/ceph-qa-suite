@@ -1,0 +1,3 @@
+overrides:
+   ceph:
+    rhbuild: 1.3.0
