@@ -4,6 +4,7 @@ overrides:
       global:
         ms die on skipped message: false
 tasks:
+- ansible:
 - install:
 - ceph:
     fs: btrfs
@@ -11,6 +12,7 @@ tasks:
     all:
       image_size: 20480
 - workunit:
+    tag: v0.94.1
     clients:
       all:
         - suites/iozone.sh

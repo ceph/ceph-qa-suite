@@ -4,6 +4,7 @@ overrides:
       global:
         ms die on skipped message: false
 tasks:
+- ansible:
 - install:
 - ceph:
     fs: xfs

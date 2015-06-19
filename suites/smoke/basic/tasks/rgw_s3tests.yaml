@@ -1,4 +1,5 @@
 tasks:
+- ansible:
 - install:
 - ceph:
     fs: xfs

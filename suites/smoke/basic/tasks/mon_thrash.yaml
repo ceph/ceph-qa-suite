@@ -8,7 +8,8 @@ overrides:
         ms inject internal delays: 0.002
         ms inject socket failures: 2500
 tasks:
-- install: null
+- ansible:
+- install:
 - ceph:
     fs: xfs
 - mon_thrash:

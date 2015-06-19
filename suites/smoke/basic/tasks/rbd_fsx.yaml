@@ -6,6 +6,7 @@ overrides:
       global:
         ms inject socket failures: 5000
 tasks:
+- ansible: 
 - install: null
 - ceph:
     fs: xfs
