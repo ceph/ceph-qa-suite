@@ -2,6 +2,7 @@ overrides:
    ansible:
     repo: https://github.com/ceph/ceph-cm-ansible.git
     playbook: downstream_setup.yml
+    cleanup: true
     vars:
       yum_repos:
          - url: "http://puddle.ceph.redhat.com/puddles/RHCeph/1.3-RHEL-7/latest/Server-RH7-CEPH-MON-1.3.repo"
