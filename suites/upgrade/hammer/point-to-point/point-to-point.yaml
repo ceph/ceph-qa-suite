@@ -114,7 +114,7 @@ workload_hammer:
    - print: "**** done rgw workload_hammer"
    - s3tests:
        client.0:
-         force-branch: hammer
+         branch: hammer
          rgw_server: client.0
    - print: "**** done s3tests workload_hammer"
 upgrade-sequence_hammer:
