@@ -33,6 +33,7 @@ def task(ctx, config):
 	  write_fadvise_dontneed: write behavior like with LIBRADOS_OP_FLAG_FADVISE_DONTNEED.
 	                          This mean data don't access in the near future.
 				  Let osd backend don't keep data in cache.
+          balance_reads: causes read ops to be sent with BALANCE_READS.
 
     For example::
 
@@ -138,6 +139,8 @@ def task(ctx, config):
         args.extend(['--ec-pool'])
     if config.get('write_fadvise_dontneed', False):
         args.extend(['--write-fadvise-dontneed'])
+    if config.get('balance_reads', False):
+        args.extend(['--balance_reads'])
     if config.get('pool_snaps', False):
         args.extend(['--pool-snaps'])
     args.extend([
