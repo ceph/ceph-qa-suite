@@ -5,6 +5,8 @@ overrides:
     - osd_map_max_advance
     fs: xfs
     conf:
+      mon:
+        mon debug unsafe allow tier with nonempty snaps: true
       osd:
         osd map max advance: 1000
 roles:
@@ -40,6 +42,11 @@ tasks:
 - parallel:
    - workload_hammer
    - upgrade-sequence_hammer
+- workunit:
+    clients:
+      client.1:
+      - rados/test.sh
+      - cls
 - print: "**** done parallel hammer branch"
 #######################
 workload:
@@ -110,6 +117,12 @@ upgrade-sequence1:
    - print: "**** done ceph.restart all mon/mds/osd v0.94.2"
 workload_hammer:
    sequential:
+   - workunit:
+       clients:
+         client.1:
+         - rados/test.sh
+         - cls
+   - print: "**** done rados/test.sh &  cls workload1"
    - rgw: [client.0]
    - print: "**** done rgw workload_hammer"
    - s3tests:
@@ -117,14 +130,13 @@ workload_hammer:
          force-branch: hammer
          rgw_server: client.0
    - print: "**** done s3tests workload_hammer"
+
 upgrade-sequence_hammer:
    sequential:
    - install.upgrade:
        mon.a:
          branch: hammer
        mon.b:
-         branch: hammer
-       client.1:
          branch: hammer
    - print: "**** done branch: hammer install.upgrade"
    - ceph.restart: [mds.a]
