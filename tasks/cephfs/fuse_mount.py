@@ -97,7 +97,7 @@ class FuseMount(CephFSMount):
         while list_connections() == pre_mount_conns:
             time.sleep(1)
             waited += 1
-            if waited > 30:
+            if waited > 300:
                 raise RuntimeError("Fuse mount failed to populate /sys/ after {0} seconds".format(
                     waited
                 ))
