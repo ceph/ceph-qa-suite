@@ -135,9 +135,9 @@ upgrade-sequence_hammer:
    sequential:
    - install.upgrade:
        mon.a:
-         branch: hammer
+         branch: wip-12021-hammer
        mon.b:
-         branch: hammer
+         branch: wip-12021-hammer
    - print: "**** done branch: hammer install.upgrade"
    - ceph.restart: [mds.a]
    - sleep:
