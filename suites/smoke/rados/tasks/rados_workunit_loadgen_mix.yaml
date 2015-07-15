@@ -2,8 +2,11 @@ tasks:
 - ansible:
 - install:
 - ceph:
-    fs: ext4
-- ceph-fuse:
+    fs: xfs
+    log-whitelist:
+     - wrongly marked me down
+     - slow request
+     - slow requests
 - workunit:
     tag: v0.94.1
     clients:

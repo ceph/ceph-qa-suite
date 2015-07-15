@@ -1,3 +1,4 @@
+suite_branch: hammer
 tasks:
 - ansible: null
 - install: null
@@ -6,6 +7,8 @@ tasks:
     log-whitelist:
     - wrongly marked me down
     - objects unfound and apparently lost
+    - slow requests
+    - slow request
 - thrashosds:
     chance_pgnum_grow: 3
     chance_pgpnum_fix: 1

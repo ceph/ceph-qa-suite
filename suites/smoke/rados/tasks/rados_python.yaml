@@ -1,9 +1,12 @@
 tasks:
+- ansible: null
 - install:
 - ceph:
     fs: btrfs
     log-whitelist:
       - wrongly marked me down
+      - slow request
+      - slow requests
 - ceph-fuse:
 - workunit:
     tag: v0.94.1

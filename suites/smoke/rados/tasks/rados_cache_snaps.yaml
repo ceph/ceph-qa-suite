@@ -1,11 +1,14 @@
+suite_branch: hammer
 tasks:
 - ansible:
 - install: null
 - ceph:
-    fs: btrfs
+    fs: xfs
     log-whitelist:
     - wrongly marked me down
     - objects unfound and apparently lost
+    - slow requests
+    - slow request
 - thrashosds:
     chance_pgnum_grow: 2
     chance_pgpnum_fix: 1
