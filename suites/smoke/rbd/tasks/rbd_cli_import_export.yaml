@@ -7,4 +7,6 @@ tasks:
     tag: v0.94.1
     clients:
       client.0:
-        - cls
+        - rbd/import_export.sh
+    env:
+      RBD_CREATE_ARGS: --new-format

@@ -1,14 +1,12 @@
 tasks:
 - ansible:
-    
 - install:
 - ceph:
     fs: xfs
-- ceph-fuse:
 - workunit:
     tag: v0.94.1
     clients:
       client.0:
-        - rbd/import_export.sh
+        - rbd/test_librbd.sh
     env:
-      RBD_CREATE_ARGS: --new-format
+      RBD_FEATURES: "1"

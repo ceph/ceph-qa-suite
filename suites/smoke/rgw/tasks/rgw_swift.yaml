@@ -1,9 +1,10 @@
+suite_branch: hammer
 tasks:
 - ansible:
 - install:
 - ceph:
     fs: xfs
 - rgw: [client.0]
-- s3tests:
+- swift:
     client.0:
       rgw_server: client.0

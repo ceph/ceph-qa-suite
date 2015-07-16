@@ -1,5 +1,5 @@
 overrides:
-  ansible:
+   ansible:
     repo: https://github.com/ceph/ceph-cm-ansible.git
     playbook: downstream_setup.yml
     cleanup: true
@@ -8,7 +8,22 @@ overrides:
          - url: "http://fpaste.org/244005/43682819/raw/"
            name: "all_repo"
       disable_yum_repos: ['epel', 'rhel7', 'rhel7-optional', 'rhel7-extras', 'lab-extras', 'rhel-7-fcgi-ceph'] 
+   install:
+    ceph: 
+     rhbuild: 1.3.0
+     log-whitelist: ['slow request', 'slow requests' ]
+    conf:
+      global:
+        ms die on skipped message: false
 tasks:
-- ansible: null
-- ceph_deploy.single_node_test:
-      rhbuild: 1.3.0
+- ansible:
+- install:
+- ceph:
+- rbd:
+    all:
+      image_size: 20480
+- workunit:
+    tag: v0.94.1
+    clients:
+      all:
+        - suites/iozone.sh
