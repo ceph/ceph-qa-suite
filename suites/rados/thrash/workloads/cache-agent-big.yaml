@@ -23,6 +23,7 @@ tasks:
     objects: 6600
     max_seconds: 1200
     size: 1024
+    balance_reads: true
     op_weights:
       read: 100
       write: 100
