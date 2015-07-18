@@ -11,3 +11,11 @@ tasks:
     client.0:
       objecter_requests:
         test: "http://ceph.newdream.net/git/?p=ceph.git;a=blob_plain;f=src/test/admin_socket/objecter_requests;hb={branch}"
+openstack:
+  machine:
+    disk: 40 # GB
+    ram: 8000 # MB
+    cpus: 1
+  volumes: # attached to each instance
+    count: 0
+    size: 1 # GB

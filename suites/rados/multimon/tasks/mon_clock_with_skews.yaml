@@ -13,3 +13,11 @@ tasks:
     - clocks not synchronized
 - mon_clock_skew_check:
     expect-skew: true
+openstack:
+  machine:
+    disk: 40 # GB
+    ram: 8000 # MB
+    cpus: 1
+  volumes: # attached to each instance
+    count: 0
+    size: 1 # GB

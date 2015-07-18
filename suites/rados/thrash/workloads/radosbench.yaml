@@ -9,3 +9,11 @@ tasks:
 - radosbench:
     clients: [client.0]
     time: 1800
+openstack:
+  machine:
+    disk: 40 # GB
+    ram: 8000 # MB
+    cpus: 1
+  volumes: # attached to each instance
+    count: 0
+    size: 1 # GB
