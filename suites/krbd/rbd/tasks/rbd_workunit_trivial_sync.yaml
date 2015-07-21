@@ -1,9 +1,11 @@
 tasks:
+- ansible:
 - install:
     rhbuild : 1.3.0
 - ceph:
 - rbd:
     all:
 - workunit:
+    tag: v0.94.1
     clients:
       all: [fs/misc/trivial_sync.sh]

@@ -1,4 +1,5 @@
 tasks:
+- ansible:
 - install:
     rhbuild : 1.3.0
 - ceph:
@@ -6,6 +7,7 @@ tasks:
     all:
       image_size: 20480
 - workunit:
+    tag: v0.94.1
     clients:
       all:
         - suites/ffsb.sh
