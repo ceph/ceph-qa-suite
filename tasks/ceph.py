@@ -760,6 +760,146 @@ def cluster(ctx, config):
             ),
         )
 
+    if config['cgroups']:
+        log.info('Creating cgroups...')
+        def has_net_limits(remote, roles, config):
+            # checks if a cgroup configuration for a role in the given remote
+            # contains the 'net.limit' parameter
+            for role in roles:
+                if role in config['cgroups'] and config['cgroups'][role]:
+                    for param in config['cgroups'][role]:
+                        if 'net.limit' in param:
+                            return True
+            return False
+        for remote, roles_for_host in ctx.cluster.remotes.iteritems():
+            remote.run(
+                args=[
+                    'sudo',
+                    'cgcreate',
+                    '-g',
+                    'cpu,memory,blkio,net_cls:/ceph',
+                ]
+            )
+            if has_net_limits(remote, roles_for_host, config):
+                # - enables htb as the queuing discipline for eth* interfaces
+                # - adds a class parent with 10: identifier
+                # - adds filters to prioritize packets that are marked with 10: id
+                remote.run(args=[
+                    run.Raw('for dev in `cd /sys/class/net && ls -d eth*`'),
+                    run.Raw(';'),
+                    'do',
+                    'sudo',
+                    'tc',
+                    'qdisc',
+                    'add',
+                    'dev',
+                    run.Raw('$dev'),
+                    'root',
+                    'handle',
+                    '10:',
+                    'htb',
+                    run.Raw('&&'),
+                    'sudo',
+                    'tc',
+                    'filter',
+                    'add',
+                    'dev',
+                    run.Raw('$dev'),
+                    'parent',
+                    '10:',
+                    'protocol',
+                    'ip',
+                    'prio',
+                    '10',
+                    'handle',
+                    '1:',
+                    'cgroup',
+                    run.Raw(';'),
+                    'done'
+                    ]
+                )
+            counter = {'num_net_classes': 1}
+            for role in roles_for_host:
+                if role in config['cgroups'] and config['cgroups'][role]:
+                    remote.run(
+                        args=[
+                            'sudo',
+                            'cgcreate',
+                            '-g',
+                            'cpu,memory,blkio,net_cls:/ceph/' + role,
+                        ]
+                    )
+                    for param in config['cgroups'][role]:
+                        if 'io.limit' in param:
+                            # sets limits on sd* devices
+                            bandwidth = param.split('=')[1]
+                            remote.run(args=[
+                                run.Raw('for dev in `cd /sys/block && ls -d sd*`'),
+                                run.Raw(';'),
+                                'do',
+                                'sudo',
+                                'cgset',
+                                '-r',
+                                run.Raw(
+                                    'blkio.throttle.write_bps_device="`cat /sys/block/$dev/dev` {}"'.format(
+                                        bandwidth
+                                    )
+                                ),
+                                '/ceph/' + role,
+                                run.Raw('&&'),
+                                'sudo',
+                                'cgset',
+                                '-r',
+                                run.Raw(
+                                    'blkio.throttle.read_bps_device="`cat /sys/block/$dev/dev` {}"'.format(
+                                        bandwidth
+                                    )
+                                ),
+                                '/ceph/' + role,
+                                run.Raw(';'),
+                                'done'
+                            ])
+                        elif 'net.limit' in param:
+                            # limits bandwidth on eth* interfaces: Creates
+                            # tc classes as well as net_cls classes to tag
+                            # net packets
+                            remote.run(args=[
+                                run.Raw('for dev in `cd /sys/class/net && ls -d eth*`'),
+                                run.Raw(';'),
+                                'do',
+                                'sudo',
+                                'tc',
+                                'class',
+                                'add',
+                                'dev',
+                                run.Raw('$dev'),
+                                'parent',
+                                '10:',
+                                'classid',
+                                '10:{}'.format(counter['num_net_classes']),
+                                'htb',
+                                'rate',
+                                param.split('=')[1],
+                                run.Raw('&&'),
+                                'sudo',
+                                'cgset',
+                                '-r',
+                                'net_cls.classid=0x0010000{}'.format(
+                                    counter['num_net_classes']),
+                                '/ceph/' + role,
+                                run.Raw(';'),
+                                'done'
+                            ])
+                            counter['num_net_classes'] += 1
+                        else:
+                            remote.run(args=[
+                                'sudo',
+                                'cgset',
+                                '-r',
+                                param,
+                                '/ceph/' + role,
+                            ])
+
     try:
         yield
     except Exception:
@@ -859,6 +999,33 @@ def cluster(ctx, config):
                             remote,
                             '/var/lib/ceph/mon',
                             path + '/' + role + '.tgz')
+
+        if config['cgroups']:
+            log.info('Removing cgroups...')
+            for remote in ctx.cluster.remotes:
+                remote.run(
+                    args=[
+                        'sudo',
+                        'cgdelete',
+                        '-r',
+                        '-g',
+                        'cpu,memory,blkio,net_cls:/ceph',
+                        run.Raw('&&'),
+                        run.Raw('for dev in `cd /sys/class/net && ls -d eth*`'),
+                        run.Raw(';'),
+                        'do',
+                        'sudo',
+                        'tc',
+                        'qdisc',
+                        'del',
+                        'dev',
+                        run.Raw('$dev'),
+                        'root',
+                        run.Raw(';'),
+                        'done'
+                    ],
+                    check_status=False,
+                )
 
         log.info('Cleaning ceph cluster...')
         run.wait(
@@ -1009,6 +1176,13 @@ def run_daemon(ctx, config, type_):
                 run_cmd = teuthology.get_valgrind_args(testdir, name,
                                                        run_cmd,
                                                        valgrind_args)
+
+            if 'cgroups' in config and name in config['cgroups']:
+                run_cmd = run_cmd + [
+                    'cgexec',
+                    '-g',
+                    'cpu,memory,blkio,net_cls:/ceph/' + name
+                ]
 
             run_cmd.extend(run_cmd_tail)
 
@@ -1272,6 +1446,30 @@ def task(ctx, config):
     Those nodes which are using memcheck or valgrind will get
     checked for bad results.
 
+    To run daemons in cgroups (cpu, memory, blkio and net_cls subsystems)
+    include their names and the cgset arguments to use in a cgroups section::
+
+        tasks:
+        - ceph:
+            cgroups:
+              osd.1: [
+                cpu.cfs_quota_us=200000,
+                cpu.cfs_period_us=1000000,
+                io.limit=10485760,
+                net.limit=10mbit
+              ]
+              mds.1: [memory.limit_in_bytes=2G]
+
+    Note that for limiting network/IO bandwidth, the ``net.limit`` and
+    ``io.limit`` options can be used. For ``net.limit``, a ``tc`` class is
+    created and, using the cgroup's ``net_cls`` subsystem, network packets are
+    associated from the daemon to it. This class limits network throughput to
+    the bandwidth specified in ``net.limit`` on ethernet interfaces
+    (``eth*``). For ``io.limit``, ``blkio`` limits are placed on read/write
+    operations (bytes per second) on SCSI disk devices (``/dev/sd*``).
+    The ``net.limit`` and ``io.limit`` options are not valid cgroup options; we
+    added them to make it easier to limit bandwidth on network and I/O.
+
     To adjust or modify config options, use::
 
         tasks:
@@ -1339,6 +1537,7 @@ def task(ctx, config):
                 tmpfs_journal=config.get('tmpfs_journal', None),
                 log_whitelist=config.get('log-whitelist', []),
                 cpu_profile=set(config.get('cpu_profile', [])),
+                cgroups=config.get('cgroups', {}),
                 )),
         lambda: run_daemon(ctx=ctx, config=config, type_='mon'),
         lambda: crush_setup(ctx=ctx, config=config),
