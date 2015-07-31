@@ -5,6 +5,7 @@ overrides:
         ms die on skipped message: false
 tasks:
 - install:
+    extra_packages: ['ceph-selinux']
 - ceph:
     fs: btrfs
 - rbd:

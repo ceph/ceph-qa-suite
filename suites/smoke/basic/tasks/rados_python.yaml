@@ -1,5 +1,6 @@
 tasks:
 - install:
+    extra_packages: ['ceph-selinux']
 - ceph:
     fs: btrfs
     log-whitelist:

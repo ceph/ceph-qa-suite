@@ -6,7 +6,8 @@ overrides:
       global:
         ms inject socket failures: 5000
 tasks:
-- install: null
+- install:
+    extra_packages: ['ceph-selinux']
 - ceph:
     fs: xfs
 - thrashosds:

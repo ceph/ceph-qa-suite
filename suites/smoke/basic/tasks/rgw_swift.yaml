@@ -1,5 +1,6 @@
 tasks:
 - install:
+    extra_packages: ['ceph-selinux']
 - ceph:
     fs: ext4
 - rgw: [client.0]

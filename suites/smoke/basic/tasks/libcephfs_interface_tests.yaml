@@ -5,6 +5,7 @@ overrides:
       debug client: 20
 tasks:
 - install:
+    extra_packages: ['ceph-selinux']
 - ceph:
     fs: btrfs
 - ceph-fuse:
