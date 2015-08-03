@@ -1,9 +1,9 @@
 tasks:
 - workunit:
-    branch: hammer
+    branch: wip-12536-hammer
     clients:
       client.0:
         - rbd/import_export.sh
     env:
       RBD_CREATE_ARGS: --new-format
-- print: "**** done rbd/import_export.sh 5-workload"
+- print: "**** done rbd/import_export.sh 5-workload wip-12410-hammer"
