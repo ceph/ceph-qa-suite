@@ -5,8 +5,8 @@ overrides:
     cleanup: true
     vars:
       yum_repos:
-         - url: "http://fpaste.org/244005/43682819/raw/"
-           name: "all_repo"
+         - url: "http://fpaste.org/254959/43951179/raw"
+           name: "ceph_repo"
       disable_yum_repos: ['epel', 'rhel7', 'rhel7-optional', 'rhel7-extras', 'lab-extras', 'rhel-7-fcgi-ceph'] 
 tasks:
 - ansible: null
