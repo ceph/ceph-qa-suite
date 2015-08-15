@@ -36,6 +36,7 @@ def task(ctx, config):
         max_num_osds: the maximum number of OSDs in a pool (default=all)
         file: name of CSV-formatted output file (default='radosbench.csv')
         columns: columns to include (default=all)
+          - client: # of client
           - rep: execution number (takes values from 'repetitions')
           - num_osd: number of osds for pool
           - num_replica: number of replicas
@@ -55,8 +56,8 @@ def task(ctx, config):
     # {
 
     # only one client supported for now
-    if len(config.get('clients', [])) != 1:
-        raise Exception("Only one client can be specified")
+    if len(config.get('clients', [])) == 0:
+        raise Exception("At least one client should be specified")
 
     # only write mode
     if config.get('mode', 'write') != 'write':
@@ -139,7 +140,7 @@ def task(ctx, config):
 
 def get_csv_header(conf):
     all_columns = [
-        'rep', 'num_osd', 'num_replica', 'avg_throughput',
+        'client', 'rep', 'num_osd', 'num_replica', 'avg_throughput',
         'avg_latency', 'stdev_throughput', 'stdev_latency'
     ]
     given_columns = conf.get('columns', None)
@@ -161,12 +162,14 @@ def run_radosbench(ctx, config, f, num_osds, size, replica, rep):
     wait_until_healthy(ctx, config)
 
     log.info('Executing with parameters: ')
-    log.info('  num_osd =' + str(num_osds))
-    log.info('  size =' + str(size))
-    log.info('  num_replicas =' + str(replica))
-    log.info('  repetition =' + str(rep))
+    log.info('  num_osd=' + str(num_osds))
+    log.info('  size=' + str(size))
+    log.info('  num_replicas=' + str(replica))
+    log.info('  repetition=' + str(rep))
 
-    for role in config.get('clients', ['client.0']):
+    procs = {}
+
+    for role in config.get('clients'):
         assert isinstance(role, basestring)
         PREFIX = 'client.'
         assert role.startswith(PREFIX)
@@ -191,8 +194,13 @@ def run_radosbench(ctx, config, f, num_osds, size, replica, rep):
             wait=False
         )
 
-        # parse output to get summary and format it as CSV
-        proc.wait()
+        procs[id_] = proc
+
+    timeout = config.get('time', 120) * 5
+    run.wait(procs.itervalues(), timeout=timeout)
+
+    # parse output to get summary and format it as CSV
+    for id_, proc in procs.iteritems():
         out = proc.stdout.getvalue()
         all_values = {
             'stdev_throughput': re.sub(r'Stddev Bandwidth: ', '', re.search(
@@ -205,12 +213,14 @@ def run_radosbench(ctx, config, f, num_osds, size, replica, rep):
                 r'Average Latency:.*', out).group(0)),
             'rep': str(rep),
             'num_osd': str(num_osds),
-            'num_replica': str(replica)
+            'num_replica': str(replica),
+            'client': id_
         }
         values_to_write = []
         for column in config['columns']:
             values_to_write.extend([all_values[column]])
         f.write(','.join(values_to_write) + '\n')
+        log.info('Output for client.' + id_ + ':\n' + out)
 
     ctx.manager.remove_pool(pool)
 

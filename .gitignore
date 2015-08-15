@@ -1,3 +1,5 @@
+.DS_Store
+.ropeproject
 *~
 .*.sw[nmop]
 *.pyc

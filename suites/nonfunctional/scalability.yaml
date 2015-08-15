@@ -1,0 +1,50 @@
+roles:
+- [osd.0, osd.2, osd.4, mon.0]
+- [osd.1, osd.3, osd.5]
+- [client.0]
+- [client.1]
+- [client.2]
+tasks:
+- ansible:
+    repo: https://github.com/ceph/ceph-cm-ansible.git
+    playbook:
+    - tasks:
+      - name: "Install cgroup-bin"
+        apt: name=cgroup-bin state=present
+      - name: "load net_cls cgroups module"
+        modprobe: name=cls_cgroup state=present
+      - name: "re-mount cgroups virtual filesystem"
+        service: name=cgroup-lite state=restarted
+    hosts:
+    - osd.0
+    - osd.1
+    - client.0
+    - client.1
+    - client.2
+- install:
+- ceph:
+    fs: ext4
+    cgroups:
+      osd.0: [io.limit=20000000]
+      osd.1: [io.limit=20000000]
+      osd.2: [io.limit=20000000]
+      osd.3: [io.limit=20000000]
+      osd.4: [io.limit=20000000]
+      osd.5: [io.limit=20000000]
+- radosbenchsweep:
+    clients: [client.0, client.1, client.2]
+    time: 180
+    min_num_replicas: 1
+    max_num_replicas: 1
+    min_num_osds: 1
+    max_num_osds: 6
+- aver:
+    input: "radosbench.csv"
+    validations:
+    - "expect avg_throughput > 0"
+
+    #- "expect sum(avg_throughput(num_osd=1)) < sum(avg_throughput(num_osd=2))"
+    #- "expect sum(avg_throughput(num_osd=2)) < sum(avg_throughput(num_osd=3))"
+    #- "expect sum(avg_throughput(num_osd=3)) < sum(avg_throughput(num_osd=4))"
+    #- "expect sum(avg_throughput(num_osd=4)) < sum(avg_throughput(num_osd=5))"
+    #- "expect sum(avg_throughput(num_osd=5)) < sum(avg_throughput(num_osd=6))"
