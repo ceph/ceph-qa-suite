@@ -1,0 +1,6 @@
+overrides:
+  workunit:
+      branch: refs/pull/5727/head
+  ceph-deploy:
+      dev: infernalis
+      keep_running: true
