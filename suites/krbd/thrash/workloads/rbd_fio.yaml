@@ -1,0 +1,8 @@
+tasks:
+- rbd_fio:
+    client.0:
+       fio-version: 2.2.9
+       formats: [2]
+       features: [1, 2]
+       io-engine: sync
+       rw: randrw
