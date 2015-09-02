@@ -12,6 +12,7 @@ import json
 import logging
 from collections import namedtuple
 from textwrap import dedent
+import errno
 
 from teuthology.orchestra.run import CommandFailedError
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
@@ -194,3 +195,58 @@ class TestForwardScrub(CephFSTestCase):
         self.fs.wait_for_daemons()
         self.mount_a.mount()
         self._validate_linkage(inos)
+
+    def test_io_error(self):
+        """
+        That when an error has been found by scrub, attempts to read within
+        that subtree result in an -EIO.
+        """
+
+        # Create initial metadata structure
+        self.mount_a.run_shell(["mkdir", "parent"])
+        self.mount_a.run_shell(["mkdir", "parent/stillhere"])
+        self.mount_a.run_shell(["touch", "parent/stillhere/file_a"])
+        self.mount_a.run_shell(["mkdir", "parent/corrupted"])
+        self.mount_a.run_shell(["touch", "parent/corrupted/file_b"])
+        inos = self._get_paths_to_ino()
+
+        self.mount_a.umount_wait()
+        self.fs.mds_asok(["flush", "journal"])
+        self.fs.mds_stop()
+        self.fs.journal_tool(["journal", "reset"], rank=0)
+
+        # Corrupt a dentry
+        frag_obj_id = "{0:x}.00000000".format(inos["./parent"])
+        self.fs.rados(["setomapval", frag_obj_id, "corrupted_head", "JUNKDATA"])
+
+        # Start the MDS and do a scrub
+        self.fs.mds_restart()
+        tag = "mytag123"
+        self.fs.mds_asok(["tag", "path", "/parent", tag])
+
+        # The ScrubStack should have informed DamageTable that the dentry is unreadable
+        # such that attempting to read it would result in an EIO from the client
+        self.mount_a.mount()
+
+        p = self.mount_a.run_shell(["ls", "parent/corrupted"], wait=False)
+        p.check_status = False
+        p.wait()
+        self.assertEqual(p.exitstatus, errno.EIO)
+
+        self.mount_a.umount_wait()
+
+        self.fs.mds_stop()
+
+        # We should be able to repair this, and once we've repaired it the
+        # directory should be accessible again
+        self.fs.table_tool(["0", "reset", "session"])
+        self.fs.table_tool(["0", "reset", "snap"])
+        self.fs.table_tool(["0", "reset", "inode"])
+        if False:
+            with self.assertRaises(CommandFailedError):
+                # Normal reset should fail when no objects are present, we'll use --force instead
+                self.fs.journal_tool(["journal", "reset"])
+        self.fs.journal_tool(["journal", "reset", "--force"])
+        self.fs.data_scan(["init"])
+        self.fs.data_scan(["scan_extents", self.fs.get_data_pool_name()])
+        self.fs.data_scan(["scan_inodes", self.fs.get_data_pool_name()])
