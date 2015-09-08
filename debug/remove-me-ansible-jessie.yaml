@@ -1,0 +1,4 @@
+overrides:
+  ansible.cephlab:
+    repo: https://github.com/ceph/ceph-cm-ansible.git
+    branch: wip-12957
