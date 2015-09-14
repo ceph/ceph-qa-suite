@@ -1,6 +1,6 @@
 tasks:
 - install:
-    branch: hammer
+    branch: wip-12848-hammer
 - print: "**** done install hammer"
 - ceph:
     fs: xfs

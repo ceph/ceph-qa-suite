@@ -32,7 +32,7 @@ upgrade-first-half:
   sequential:
   - install.upgrade:
       mon.a:
-        branch: hammer
+        branch: wip-12848-hammer
   - print: "**** done install.upgrade mon.a and osd.{0,1}"
   - ceph.restart:
       daemons: [mon.a]
@@ -54,7 +54,7 @@ upgrade-second-half:
   sequential:
   - install.upgrade:
       mon.b:
-        branch: hammer
+        branch: wip-12848-hammer
   - print: "**** done install.upgrade mon.{b,c} and osd.{2,3}"
   - ceph.restart:
       daemons: [mon.b]
