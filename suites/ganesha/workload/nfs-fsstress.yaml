@@ -1,8 +1,0 @@
-tasks:
-- nfs-mount:
-    client.0:
-      share: ceph
-- workunit:
-    clients:
-      client.0:
-        - suites/fsstress.sh
