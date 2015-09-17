@@ -221,6 +221,7 @@ class TestForwardScrub(CephFSTestCase):
 
         # Start the MDS and do a scrub
         self.fs.mds_restart()
+        self.fs.wait_for_daemons()
         tag = "mytag123"
         self.fs.mds_asok(["tag", "path", "/parent", tag])
 
@@ -228,10 +229,12 @@ class TestForwardScrub(CephFSTestCase):
         # such that attempting to read it would result in an EIO from the client
         self.mount_a.mount()
 
-        p = self.mount_a.run_shell(["ls", "parent/corrupted"], wait=False)
-        p.check_status = False
-        p.wait()
-        self.assertEqual(p.exitstatus, errno.EIO)
+        try:
+            self.mount_a.stat("parent/corrupted")
+        except CommandFailedError as e:
+            self.assertEqual(e.exitstatus, errno.EIO)
+        else:
+            raise AssertionError("Stat on corrupted dentry should not succeed!")
 
         self.mount_a.umount_wait()
 
@@ -247,6 +250,10 @@ class TestForwardScrub(CephFSTestCase):
                 # Normal reset should fail when no objects are present, we'll use --force instead
                 self.fs.journal_tool(["journal", "reset"])
         self.fs.journal_tool(["journal", "reset", "--force"])
-        self.fs.data_scan(["init"])
-        self.fs.data_scan(["scan_extents", self.fs.get_data_pool_name()])
-        self.fs.data_scan(["scan_inodes", self.fs.get_data_pool_name()])
+        self.fs.data_scan(["scan_frags", "--force-corrupt"])
+
+        # Now the dentry we corrupted should be accessible once again
+        self.fs.mds_restart()
+        self.fs.wait_for_daemons()
+        self.mount_a.mount()
+        self.mount_a.stat("parent/corrupted")

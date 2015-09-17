@@ -203,7 +203,23 @@ class Filesystem(object):
             elif mds_status['state'] == 'up:active':
                 active_count += 1
 
-        return active_count >= status['max_mds']
+        if active_count >= status['max_mds']:
+            # The MDSMap says these guys are active, but let's check they really are
+            for mds_id, mds_status in status['info'].items():
+                if mds_status['state'] == 'up:active':
+                    try:
+                        daemon_status = self.mds_asok(["status"], mds_id=mds_status['name'])
+                    except CommandFailedError:
+                        # MDS not even running
+                        return False
+
+                    if daemon_status['state'] != 'up:active':
+                        # MDS hasn't taken the latest map yet
+                        return False
+
+            return True
+        else:
+            return False
 
     def get_active_names(self):
         """
@@ -708,7 +724,7 @@ class Filesystem(object):
         if quiet:
             base_args = [os.path.join(self._prefix, tool), '--debug-mds=1', '--debug-objecter=1']
         else:
-            base_args = [os.path.join(self._prefix, tool), '--debug-mds=4', '--debug-objecter=1']
+            base_args = [os.path.join(self._prefix, tool), '--debug-mds=20', '--debug-objecter=1']
 
         if rank is not None:
             base_args.extend(["--rank", "%d" % rank])
