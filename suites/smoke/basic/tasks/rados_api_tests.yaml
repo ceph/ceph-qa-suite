@@ -1,7 +1,7 @@
 tasks:
 - install: null
 - ceph:
-    fs: ext4
+    fs: xfs
     log-whitelist:
     - wrongly marked me down
     - objects unfound and apparently lost
