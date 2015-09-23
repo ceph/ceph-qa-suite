@@ -69,9 +69,7 @@ function build_package() {
     # options (otherwise parts of the source tree will be left out).
     #
     ./autogen.sh
-    ./configure --with-rocksdb --with-ocf \
-        --with-nss --with-debug --enable-cephfs-java \
-        --with-lttng --with-babeltrace
+    ./configure --with-debug --with-radosgw --with-fuse --with-libatomic-ops --with-gtk2 --with-profiler --enable-cephfs-java --without-cryptopp --with-tcmalloc
     #
     # use distdir= to set the name of the top level directory of the
     # tarbal to match the desired version
