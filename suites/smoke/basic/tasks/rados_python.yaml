@@ -4,7 +4,6 @@ tasks:
     fs: btrfs
     log-whitelist:
       - wrongly marked me down
-- ceph-fuse:
 - workunit:
     clients:
       client.0:
