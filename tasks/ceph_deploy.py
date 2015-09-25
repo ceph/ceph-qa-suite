@@ -232,7 +232,14 @@ def build_ceph_cluster(ctx, config):
 
         # install ceph
         gitbuilder_host = ' --gitbuilder-host=' + teuth_config.gitbuilder_host + ' '
+
+        if teuth_config.check_packages_signatures:
+            no_check_packages_signatures = ''
+        else:
+            no_check_packages_signatures = ' --no-check-packages-signatures'
+
         install_nodes = ('./ceph-deploy install ' + (ceph_branch if ceph_branch else "--dev=master") +
+                         no_check_packages_signatures +
                          gitbuilder_host +
                          " " + all_nodes)
         estatus_install = execute_ceph_deploy(install_nodes)
@@ -240,6 +247,7 @@ def build_ceph_cluster(ctx, config):
             raise RuntimeError("ceph-deploy: Failed to install ceph")
         # install ceph-test package too
         install_nodes2 = ('./ceph-deploy install --tests ' + (ceph_branch if ceph_branch else "--dev=master") +
+                         no_check_packages_signatures +
                          gitbuilder_host +
                           " " + all_nodes)
         estatus_install = execute_ceph_deploy(install_nodes2)
