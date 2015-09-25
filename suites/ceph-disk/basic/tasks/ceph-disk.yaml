@@ -25,6 +25,7 @@ tasks:
 - ssh_keys:
 - print: "**** done ssh_keys"
 - ceph-deploy:
+   ceph-deploy-branch: wip-gitbuilder-host
 - print: "**** done ceph-deploy"
 #
 # Keep this around for debugging purposes. If uncommented the target
