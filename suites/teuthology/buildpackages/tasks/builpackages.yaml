@@ -3,7 +3,7 @@ roles:
 tasks:
     - buildpackages:
         machine:
-          disk: 40 # GB
+          disk: 15 # GB
           ram: 15000 # MB
-          cpus: 16
+          cpus: 8
     - install:
