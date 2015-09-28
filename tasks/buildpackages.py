@@ -93,7 +93,10 @@ def task(ctx, config):
         target = os.path.dirname(urlparse.urlparse(url).path.strip('/'))
         target = os.path.dirname(target) + '-' + sha1
         openstack = OpenStack()
-        select = '^(vps|eg)-'
+        if 'cloud.ovh.net' in os.environ['OS_AUTH_URL']:
+            select = '^(vps|eg)-'
+        else:
+            select = ''
         build_flavor = openstack.flavor(config['machine'], select)
         http_flavor = openstack.flavor({
             'disk': 10, # GB
