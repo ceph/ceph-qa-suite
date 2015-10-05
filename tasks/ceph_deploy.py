@@ -65,7 +65,7 @@ def is_healthy(ctx, config):
     testdir = teuthology.get_testdir(ctx)
     ceph_admin = teuthology.get_first_mon(ctx, config)
     (remote,) = ctx.cluster.only(ceph_admin).remotes.keys()
-    max_tries = 90  # 90 tries * 10 secs --> 15 minutes
+    max_tries = 9000  # 90 tries * 10 secs --> 15 minutes
     tries = 0
     while True:
         tries += 1
