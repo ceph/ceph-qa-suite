@@ -5,3 +5,11 @@ tasks:
 - ceph:
     fs: xfs
 - print: "**** done ceph"
+openstack:
+  machine:
+    disk: 40 # GB
+    ram: 8000 # MB
+    cpus: 1
+  volumes: # attached to each instance
+    count: 3
+    size: 20 # GB
