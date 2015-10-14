@@ -177,9 +177,13 @@ def task(ctx, config):
             else:
                 select = ''
             build_flavor = openstack.flavor(config['machine'], select)
+            # asking for > 25GB RAM and > 700GB disk is a way to get
+            # more bandwidth: eg-30 flavors on ovh.com are capped to
+            # 500Mb/s, flavors with less ram/disk are capped to
+            # 250Mb/s or 100Mb/s
             http_flavor = openstack.flavor({
-                'disk': 10, # GB
-                'ram': 1024, # MB
+                'disk': 700, # GB
+                'ram': 25000, # MB
                 'cpus': 1,
             }, select)
             cmd = (". " + os.environ['HOME'] + "/.ssh_agent ; " +
