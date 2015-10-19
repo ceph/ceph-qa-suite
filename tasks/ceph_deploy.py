@@ -15,6 +15,7 @@ from teuthology.config import config as teuth_config
 from teuthology.task import install as install_fn
 from teuthology.orchestra import run
 from tasks.cephfs.filesystem import Filesystem
+from . import util
 
 log = logging.getLogger(__name__)
 
@@ -166,6 +167,36 @@ def get_all_nodes(ctx, config):
     nodelist = " ".join(nodelist)
     return nodelist
 
+def setup_repository(ctx, config, admin):
+    gitbuilder = install_fn._get_gitbuilder_project(
+        ctx, admin, config)
+    (tag, branch, sha1) = util.get_tag_branch_sha1(gitbuilder)
+    all_nodes = get_all_nodes(ctx, config)
+    url = ("http://" + teuth_config.gitbuilder_host + "/ceph-" +
+           gitbuilder.pkg_type + "-" +
+           gitbuilder.distro + "-" +
+           gitbuilder.arch + "-" +
+           gitbuilder.flavor + "/" +
+           "sha1/" + sha1)
+    if gitbuilder.pkg_type == 'rpm':
+        url += "/" + gitbuilder.arch
+    cmd = ("./ceph-deploy repo --repo-url " +
+           url + " " +
+           "teuthology " +
+           all_nodes)
+    testdir = teuthology.get_testdir(ctx)
+    estatus = admin.run(
+        args=[
+            'cd',
+            '{tdir}/ceph-deploy'.format(tdir=testdir),
+            run.Raw('&&'),
+            run.Raw(cmd),
+        ],
+        check_status=False,
+    ).exitstatus
+    if estatus != 0:
+        raise RuntimeError("ceph-deploy: Failed to setup repository")
+
 @contextlib.contextmanager
 def build_ceph_cluster(ctx, config):
     """Build a ceph cluster"""
@@ -190,11 +221,6 @@ def build_ceph_cluster(ctx, config):
     try:
         log.info('Building ceph cluster using ceph-deploy...')
         testdir = teuthology.get_testdir(ctx)
-        ceph_branch = None
-        if config.get('branch') is not None:
-            cbranch = config.get('branch')
-            for var, val in cbranch.iteritems():
-                ceph_branch = '--{var}={val}'.format(var=var, val=val)
         all_nodes = get_all_nodes(ctx, config)
         mds_nodes = get_nodes_using_role(ctx, 'mds')
         mds_nodes = " ".join(mds_nodes)
@@ -230,13 +256,14 @@ def build_ceph_cluster(ctx, config):
                     teuthology.append_lines_to_file(ceph_admin, conf_path, lines,
                                                     sudo=True)
 
+        setup_repository(ctx, config, ceph_admin)
         # install ceph
-        install_nodes = './ceph-deploy install ' + (ceph_branch if ceph_branch else "--dev=master") + " " + all_nodes
+        install_nodes = './ceph-deploy install --no-adjust-repos ' + all_nodes
         estatus_install = execute_ceph_deploy(install_nodes)
         if estatus_install != 0:
             raise RuntimeError("ceph-deploy: Failed to install ceph")
         # install ceph-test package too
-        install_nodes2 = './ceph-deploy install --tests ' + (ceph_branch if ceph_branch else "--dev=master") + " " + all_nodes
+        install_nodes2 = './ceph-deploy install --tests --no-adjust-repos ' + all_nodes
         estatus_install = execute_ceph_deploy(install_nodes2)
         if estatus_install != 0:
             raise RuntimeError("ceph-deploy: Failed to install ceph-test")
@@ -650,9 +677,6 @@ def task(ctx, config):
 
     overrides = ctx.config.get('overrides', {})
     teuthology.deep_merge(config, overrides.get('ceph-deploy', {}))
-
-    if config.get('branch') is not None:
-        assert isinstance(config['branch'], dict), 'branch must be a dictionary'
 
     log.info('task ceph-deploy with config ' + str(config))
 
