@@ -24,6 +24,21 @@ import urlparse
 
 log = logging.getLogger(__name__)
 
+def get_config_ceph_deploy(ctx, config):
+    if config is None:
+        config = {}
+    else:
+        config = copy.deepcopy(config)
+
+    assert isinstance(config, dict), \
+        "task ceph-deploy only supports a dictionary for configuration"
+
+    overrides = ctx.config.get('overrides', {})
+    teuthology.deep_merge(config, overrides.get('ceph-deploy', {}))
+
+    log.info('ceph-deploy with config ' + str(config))
+    return [config]
+
 def get_config_install(ctx, config):
     if config is None:
         config = {}
@@ -49,6 +64,7 @@ def get_config_install_upgrade(ctx, config):
     return r
 
 GET_CONFIG_FUNCTIONS = {
+    'ceph-deploy': get_config_ceph_deploy,
     'install': get_config_install,
     'install.upgrade': get_config_install_upgrade,
 }
@@ -60,7 +76,7 @@ def lookup_configs(ctx, node):
             configs.extend(lookup_configs(ctx, leaf))
     elif type(node) is types.DictType:
         for (key, value) in node.iteritems():
-            if key in ('install', 'install.upgrade'):
+            if key in ('install', 'install.upgrade', 'ceph-deploy'):
                 configs.extend(GET_CONFIG_FUNCTIONS[key](ctx, value))
             elif key in ('overrides',):
                 pass
