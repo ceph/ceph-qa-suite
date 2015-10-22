@@ -9,5 +9,6 @@ tasks:
         rbd cache: true
         rbd cache max dirty: 0
 - workunit:
+    branch: hammer
     clients:
       all: [rbd/qemu-iotests.sh]
