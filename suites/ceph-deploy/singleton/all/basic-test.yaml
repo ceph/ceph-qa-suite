@@ -22,7 +22,14 @@ roles:
   - osd.7
   - osd.8
 - - client.0
-
+openstack:
+  - machine:
+     disk: 40 # GB
+     ram: 8000 # MB
+     cpus: 1
+    volumes: # attached to each instance
+     count: 3
+     size: 10 # GB
 tasks:
 - install:
      extras: yes
