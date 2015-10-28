@@ -1,6 +1,25 @@
+overrides:
+  ceph-deploy:
+    conf:
+      client:
+        log file: /var/log/ceph/ceph-$name.$pid.log
+      mon:
+        debug mon: 1
+        debug ms: 20
+        debug paxos: 20
+      osd:
+        debug filestore: 20
+        debug journal: 20
+        debug ms: 1
+        debug osd: 20
+        osd op thread timeout: 60
+        osd sloppy crc: true
+      global:
+        mon pg warn min per osd: 2
+        osd pool default size: 2
 tasks:
-- install:
-- ceph:
+- ssh-keys:
+- ceph-deploy:
     fs: xfs
 - workunit:
     clients:

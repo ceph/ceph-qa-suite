@@ -399,48 +399,17 @@ def build_ceph_cluster(ctx, config):
                               'grep', 'ceph'], check_status=False)
 
 	log.info('Checking cluster log for badness...')
-        def first_in_ceph_log(remote, pattern, excludes):
-            """
-            Find the first occurence of the pattern specified in the Ceph log,
-            Returns None if none found.
-
-            :param pattern: Pattern scanned for.
-            :param excludes: Patterns to ignore.
-            :return: First line of text (or None if not found)
-            """
-            args = [
-                'sudo',
-                'egrep', pattern,
-                '/var/log/ceph/ceph.log',
-                ]
-            for exclude in excludes:
-                args.extend([run.Raw('|'), 'egrep', '-v', exclude])
-            args.extend([
-                    run.Raw('|'), 'head', '-n', '1',
-                    ])
-            r = remote.run(
-                stdout=StringIO(),
-                args=args,
-                )
-            stdout = r.stdout.getvalue()
-            if stdout != '':
-                return stdout
-            return None
-
 	for remote in ctx.cluster.remotes.iterkeys():
-	    if first_in_ceph_log(remote, '\[ERR\]|\[WRN\]|\[SEC\]', config.get('log-whitelist', [])) is not None:
-                log.warning('Found errors (ERR|WRN|SEC) in cluster log')
-                ctx.summary['success'] = False
-            # use the most severe problem as the failure reason
-            if 'failure_reason' not in ctx.summary:
-                for pattern in ['\[SEC\]', '\[ERR\]', '\[WRN\]']:
-                    match = first_in_ceph_log(remote, pattern, config.get('log-whitelist', []))
-                    if match is not None:
-                        ctx.summary['failure_reason'] = \
-                            '"{match}" in cluster log'.format(
-                            match=match.rstrip('\n'),
-                            )
-                        break
+            for pattern in ['\[SEC\]', '\[ERR\]', '\[WRN\]']:
+                match = first_in_ceph_log(remote, pattern, config.get('log-whitelist', []))
+                if match is not None:
+                    log.warning('Found errors (ERR|WRN|SEC) in cluster log')
+                    ctx.summary['success'] = False
+                    ctx.summary['failure_reason'] = \
+                        '"{match}" in cluster log'.format(
+                        match=match.rstrip('\n'),
+                        )
+                    break
     
         if ctx.archive is not None:
             # archive mon data, too
@@ -498,6 +467,33 @@ def build_ceph_cluster(ctx, config):
         log.info('Purging data...')
         execute_ceph_deploy(purgedata_nodes)
 
+def first_in_ceph_log(remote, pattern, excludes):
+    """
+    Find the first occurence of the pattern specified in the Ceph log,
+    Returns None if none found.
+
+    :param pattern: Pattern scanned for.
+    :param excludes: Patterns to ignore.
+    :return: First line of text (or None if not found)
+    """  
+    args = [
+        'sudo',
+        'egrep', pattern,
+        '/var/log/ceph/ceph.log',
+        ]
+    for exclude in excludes:
+        args.extend([run.Raw('|'), 'egrep', '-v', exclude])
+    args.extend([
+            run.Raw('|'), 'head', '-n', '1',
+            ])
+    r = remote.run(
+        stdout=StringIO(),
+        args=args,
+        )
+    stdout = r.stdout.getvalue()
+    if stdout != '':
+        return stdout
+    return None
 
 def execute_cdeploy(admin,cmd,path):
     """Execute ceph-deploy commands """
@@ -748,11 +744,12 @@ def task(ctx, config):
                 stable: bobtail
              mon_initial_members: 1
              only_mon: true
-             fs: xfs|btrfs|ext4 #default xfs
+             fs: xfs|btrfs|ext4
+             # default xfs
              wait-for-scrub: False
-                    #By default, the cluster log is checked for errors and warnings,
-                    #and the run marked failed if any appear. You can ignore log
-                    #entries by giving a list of egrep compatible regexes using log-whitelist
+                    # By default, the cluster log is checked for errors and warnings,
+                    # and the run marked failed if any appear. You can ignore log
+                    # entries by giving a list of egrep compatible regexes using log-whitelist
              log-whitelist: ['foo.*bar', 'bad message']
              keep_running: true
 
