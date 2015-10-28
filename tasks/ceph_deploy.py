@@ -281,6 +281,8 @@ def build_ceph_cluster(ctx, config):
             osd_create_cmd = './ceph-deploy osd create '
             if config.get('dmcrypt') is not None:
                 osd_create_cmd += '--dmcrypt '
+            if config.get('fs'):
+                osd_create_cmd += '--fs-type ' + config.get('fs') + ' '
             osd_create_cmd += ":".join(d)
             estatus_osd = execute_ceph_deploy(osd_create_cmd)
             if estatus_osd == 0:
@@ -618,6 +620,7 @@ def task(ctx, config):
                 stable: bobtail
              mon_initial_members: 1
              only_mon: true
+             fs: xfs|btrfs|ext4 #default xfs
              keep_running: true
 
         tasks:
@@ -627,6 +630,7 @@ def task(ctx, config):
         - ceph-deploy:
              branch:
                 dev: master
+             fs: xfs|btrfs|ext4 #default xfs
              conf:
                 mon:
                    debug mon = 20
