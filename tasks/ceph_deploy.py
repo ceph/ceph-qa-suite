@@ -597,6 +597,9 @@ def single_node_test(ctx, config):
     if config is None:
         config = {}
 
+    overrides = ctx.config.get('overrides', {})
+    teuthology.deep_merge(config, overrides.get('ansible', {}))
+
     if config.get('rhbuild'):
         log.info("RH Build, Skip Download")
         with contextutil.nested(
