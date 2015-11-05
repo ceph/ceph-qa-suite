@@ -1,4 +1,3 @@
-suite_branch: hammer
 tasks:
 - install:
 - ceph:
