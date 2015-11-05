@@ -13,6 +13,7 @@ from teuthology import misc as teuthology
 from teuthology import contextutil
 from teuthology.config import config as teuth_config
 from teuthology.task import install as install_fn
+from teuthology.task import ansible
 from teuthology.orchestra import run
 from tasks.cephfs.filesystem import Filesystem
 
@@ -599,6 +600,7 @@ def single_node_test(ctx, config):
     if config.get('rhbuild'):
         log.info("RH Build, Skip Download")
         with contextutil.nested(
+          lambda: ansible.CephLab(ctx=ctx,config=config)
           lambda: cli_test(ctx=ctx,config=config),
           ):
           yield
