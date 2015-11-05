@@ -600,7 +600,7 @@ def single_node_test(ctx, config):
     if config.get('rhbuild'):
         log.info("RH Build, Skip Download")
         with contextutil.nested(
-          lambda: ansible.CephLab(ctx=ctx,config=config)
+          lambda: ansible.CephLab(ctx=ctx,config=config),
           lambda: cli_test(ctx=ctx,config=config),
           ):
           yield
