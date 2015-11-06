@@ -177,12 +177,7 @@ def task(ctx, config):
     log.debug("config is %s", config)
 
     overrides = ctx.config.get('overrides', {})
-    # merge each client section, but only if it exists in config since there isn't
-    # a sensible default action for this task
-    for client in config.iterkeys():
-        if config[client]:
-            log.debug('config[{client}]: {data}'.format(client=client, data=config[client]))
-            teuthology.deep_merge(config[client], overrides.get('radosgw-agent', {}))
+    teuthology.deep_merge(config, overrides.get('radosgw-agent', {}))
 
     ctx.radosgw_agent = argparse.Namespace()
     ctx.radosgw_agent.config = config
