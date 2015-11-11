@@ -24,6 +24,7 @@ DEFAULTS = {
     'no_epel': True,
     'calamari_user': 'admin',
     'calamari_password': 'admin',
+    'other_tests': False,
 }
 
 
@@ -50,6 +51,8 @@ def task(ctx, config):
                installations.
     calamari_user -- user name to log into gui
     calamari_password -- calamari user password
+    other_tests -- If True, do ceph installation instructions to allow other tests, like rbd and
+                   rados tests, to run from this installation.
     """
     local_config = DEFAULTS
     local_config.update(config)
@@ -64,7 +67,7 @@ def task(ctx, config):
     with contextutil.nested(
         lambda: adjust_yum_repos(ctx, cal_svr, config['no_epel']),
         lambda: calamari_install(config, cal_svr),
-        lambda: ceph_install(ctx, cal_svr),
+        lambda: ceph_install(ctx, cal_svr, config['other_tests']),
         # do it again because ceph-deploy installed epel for centos
         lambda: remove_epel(ctx, config['no_epel']),
         lambda: calamari_connect(ctx, cal_svr),
@@ -292,7 +295,7 @@ def calamari_install(config, cal_svr):
 
 
 @contextlib.contextmanager
-def ceph_install(ctx, cal_svr):
+def ceph_install(ctx, cal_svr, other_tests):
     """
     Install ceph if ceph was not previously installed by teuthology.  This
     code tests the case where calamari is installed on a brand new system.
@@ -303,10 +306,36 @@ def ceph_install(ctx, cal_svr):
         ret = deploy_ceph(ctx, cal_svr)
         if ret:
             raise RuntimeError('ceph installs failed')
+        if other_tests:
+            # In order to run other teuthology tests (rados, rgw),
+            # /etc/ceph/ceph.keyring needs to be constructed, and
+            # /usr/bin/ceph-coverage needs to be installed.
+            inst_sw = {'deb': 'apt-get', 'rpm': 'yum'}
+            key_data = ''
+            for remote in ctx.cluster.remotes:
+                remote_wkey = remote.run(
+                    args=['stat', '-t', '--', run.Raw('*.keyring'), run.Raw('>'), '/dev/null', run.Raw('2>&1'),
+                          run.Raw('&&'), 'cat', run.Raw('*.keyring')],
+                    stdout=StringIO(), wait=True)
+                key_data =  remote_wkey.stdout.getvalue()
+                if len(key_data) > 0:
+                    break
+            for remote in ctx.cluster.remotes:
+                #remote.run(args=['sudo', inst_sw[remote.os.package_type],
+                #           'install', '-y', 'git', 'gcc', 'make'])
+                #remote.run(args=['sudo', 'wget', '-O', '/usr/bin/ceph-coverage',
+                #           'https://raw.github.com/ceph/ceph/master/src/ceph-coverage.in'])
+                #remote.run(args=['sudo', 'chmod', '0775',
+                #                 '/usr/bin/ceph-coverage'])
+                misc.sudo_write_file(remote, '/etc/ceph/ceph.keyring', key_data)
     try:
         yield
     finally:
         if loc_inst:
+            if other_tests:
+                for remote in ctx.cluster.remotes:
+                #    remote.run(args=['sudo', 'rm', '/usr/bin/ceph-coverage'])
+                    remote.run(args=['sudo', 'rm', '/etc/ceph/ceph.keyring'])
             if not undeploy_ceph(ctx, cal_svr):
                 log.error('Cleanup of Ceph installed by Calamari-setup failed')
 
