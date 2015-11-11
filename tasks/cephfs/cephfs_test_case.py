@@ -140,6 +140,12 @@ class CephFSTestCase(unittest.TestCase):
                 'mon', 'allow r',
                 'osd', 'allow rw pool={0}'.format(self.fs.get_data_pool_name()))
 
+        log.info(client_mount_ids)
+
+        # In case the test changes the IDs of clients, stash them so that we can
+        # reset in tearDown
+        self._original_client_ids = client_mount_ids
+
         # In case there were any extra auth identities around from a previous
         # test, delete them
         for entry in self.auth_list():
@@ -171,6 +177,9 @@ class CephFSTestCase(unittest.TestCase):
         self.mount_a.teardown()
         if self.mount_b:
             self.mount_b.teardown()
+
+        for i, m in enumerate(self.mounts):
+            m.client_id = self._original_client_ids[i]
 
         for subsys, key in self.configs_set:
             self.fs.clear_ceph_conf(subsys, key)
