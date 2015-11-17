@@ -1321,11 +1321,13 @@ class CephManager:
             del r['more']
         return r
 
-    def get_pg_stats(self):
+    def get_pg_stats(self, debug=False):
         """
         Dump the cluster and get pg stats
         """
         out = self.raw_cluster_cmd('pg', 'dump', '--format=json')
+        if debug:
+            log.info(out)
         j = json.loads('\n'.join(out.split('\n')[1:]))
         return j['pg_stats']
 
@@ -1387,7 +1389,7 @@ class CephManager:
         """
         Return pg for the pgid specified.
         """
-        all_stats = self.get_pg_stats()
+        all_stats = self.get_pg_stats(debug=True)
 
         for pg in all_stats:
             if pg['pgid'] == pgid:
