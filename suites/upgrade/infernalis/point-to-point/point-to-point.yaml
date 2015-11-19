@@ -117,7 +117,9 @@ workload_infernalis:
    - print: "**** done rgw workload_infernalis"
    - s3tests:
        client.0:
-         force-branch: infernalis
+         # for s3tests ceph-infernalis should be used 
+         # for new similar tests should check with Yehuda about the branch name 
+         force-branch: ceph-infernalis
          rgw_server: client.0
    - print: "**** done s3tests workload_infernalis"
 upgrade-sequence_infernalis:
