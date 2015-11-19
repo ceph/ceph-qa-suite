@@ -1,3 +1,5 @@
+# desc: test manual locking and blacklisting via librbd
+# format: default
 tasks:
 - workunit:
     clients:

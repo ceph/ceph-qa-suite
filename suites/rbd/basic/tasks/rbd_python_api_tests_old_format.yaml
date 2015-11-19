@@ -1,3 +1,4 @@
+# desc: librbd python api tests
 tasks:
 - workunit:
     clients:

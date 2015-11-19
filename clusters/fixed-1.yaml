@@ -1,2 +1,3 @@
+# desc: single node cluster
 roles:
 - [mon.a, mon.b, mon.c, osd.0, osd.1, osd.2, client.0]

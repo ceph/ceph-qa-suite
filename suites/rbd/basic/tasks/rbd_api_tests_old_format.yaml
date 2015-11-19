@@ -1,3 +1,4 @@
+# desc: c/c++ librbd api tests with format 1 images
 tasks:
 - workunit:
     clients:

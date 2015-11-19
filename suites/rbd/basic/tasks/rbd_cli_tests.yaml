@@ -1,3 +1,4 @@
+# desc: basic rbd cli tool tests
 tasks:
 - workunit:
     clients:
