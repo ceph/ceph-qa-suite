@@ -43,7 +43,7 @@ vc.disconnect()
         keyring_local.write(out)
         keyring_local.flush()
         mount.client_id = id_name
-        mount.client_remote.put_file(keyring_local.name, mount.get_keyring_path())
+        mount.client_remote.put_file(keyring_local.name, mount.get_keyring_path(), sudo=True)
         self.set_conf("client.{name}".format(name=id_name), "keyring", mount.get_keyring_path())
 
     def test_lifecycle(self):
