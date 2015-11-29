@@ -121,7 +121,6 @@ class TestScrubChecks(CephFSTestCase):
                                                           i=run_seq)
         self.mount_a.write_n_mb(new_file, 1)
 
-        self.mount_a.run_shell([""])
         command = "flush_path {file}".format(file=test_new_file)
         self.asok_command(mds_rank, command, success_validator)
 
