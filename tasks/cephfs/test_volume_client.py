@@ -29,6 +29,27 @@ vc.connect()
 vc.disconnect()
         """.format(payload=script, conf_path=client.config_path))
 
+    def _sudo_write_file(self, remote, path, data):
+        """
+        Write data to a remote file as super user
+
+        :param remote: Remote site.
+        :param path: Path on the remote being written to.
+        :param data: Data to be written.
+
+        Both perms and owner are passed directly to chmod.
+        """
+        remote.run(
+            args=[
+                'sudo',
+                'python',
+                '-c',
+                'import shutil, sys; shutil.copyfileobj(sys.stdin, file(sys.argv[1], "wb"))',
+                path,
+            ],
+            stdin=data,
+        )
+
     def _configure_vc_auth(self, mount, id_name):
         """
         Set up auth credentials for the VolumeClient user
@@ -39,11 +60,8 @@ vc.disconnect()
             "osd", "allow rw",
             "mon", "allow *"
         )
-        keyring_local = tempfile.NamedTemporaryFile()
-        keyring_local.write(out)
-        keyring_local.flush()
         mount.client_id = id_name
-        mount.client_remote.put_file(keyring_local.name, mount.get_keyring_path(), sudo=True)
+        self._sudo_write_file(mount.client_remote, mount.get_keyring_path(), out)
         self.set_conf("client.{name}".format(name=id_name), "keyring", mount.get_keyring_path())
 
     def test_lifecycle(self):
