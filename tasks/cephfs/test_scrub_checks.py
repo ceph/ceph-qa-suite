@@ -108,7 +108,6 @@ class TestScrubChecks(CephFSTestCase):
         command = "scrub_path /"
         self.asok_command(mds_rank, command, success_validator)
 
-        client = self.mount_a.client_remote
         new_dir = "{repo_path}/new_dir_{i}".format(repo_path=repo_path, i=run_seq)
         test_new_dir = "{repo_path}/new_dir_{i}".format(repo_path=test_repo_path,
                                                         i=run_seq)
@@ -120,8 +119,9 @@ class TestScrubChecks(CephFSTestCase):
                                                      i=run_seq)
         test_new_file = "{repo_path}/new_file_{i}".format(repo_path=test_repo_path,
                                                           i=run_seq)
-        client.run(args=[
-            "echo", "hello", run.Raw('>'), new_file])
+        self.mount_a.write_n_mb(new_file, 1)
+
+        self.mount_a.run_shell([""])
         command = "flush_path {file}".format(file=test_new_file)
         self.asok_command(mds_rank, command, success_validator)
 
