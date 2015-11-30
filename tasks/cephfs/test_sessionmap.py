@@ -1,7 +1,6 @@
 
 import json
 import logging
-import tempfile
 from tasks.cephfs.fuse_mount import FuseMount
 from teuthology.exceptions import CommandFailedError
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
