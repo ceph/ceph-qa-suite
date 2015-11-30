@@ -1,6 +1,5 @@
 import json
 import logging
-import tempfile
 import time
 import os
 from textwrap import dedent
@@ -113,20 +112,18 @@ vc.disconnect()
         existing_ids = [a['entity'] for a in self.auth_list()]
         self.assertIn("client.{0}".format(guest_entity), existing_ids)
 
-        keyring_local = tempfile.NamedTemporaryFile()
-        keyring_local.write(dedent("""
+        keyring_txt = dedent("""
         [client.{guest_entity}]
             key = {key}
 
         """.format(
             guest_entity=guest_entity,
             key=key
-        )))
-        keyring_local.flush()
+        ))
 
         # We should be able to mount the volume
         self.mounts[2].client_id = guest_entity
-        self.mounts[2].client_remote.put_file(keyring_local.name, self.mounts[2].get_keyring_path())
+        self._sudo_write_file(self.mounts[2].client_remote, self.mounts[2].get_keyring_path(), keyring_txt)
         self.set_conf("client.{0}".format(guest_entity), "debug client", "20")
         self.set_conf("client.{0}".format(guest_entity), "debug objecter", "20")
         self.set_conf("client.{0}".format(guest_entity), "keyring", self.mounts[2].get_keyring_path())
