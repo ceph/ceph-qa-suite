@@ -174,9 +174,8 @@ class CephFSTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.fs.clear_firewall()
-        self.mount_a.teardown()
-        if self.mount_b:
-            self.mount_b.teardown()
+        for m in self.mounts:
+            m.teardown()
 
         for i, m in enumerate(self.mounts):
             m.client_id = self._original_client_ids[i]
