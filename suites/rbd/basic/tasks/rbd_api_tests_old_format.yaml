@@ -1,4 +1,6 @@
-# desc: c/c++ librbd api tests with format 1 images
+description:
+- desc: c/c++ librbd api tests with format 1 images
+  rbd_format: 1
 tasks:
 - workunit:
     clients:

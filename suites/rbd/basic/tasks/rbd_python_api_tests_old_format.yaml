@@ -1,4 +1,6 @@
-# desc: librbd python api tests
+description:
+- desc: librbd python api tests
+  rbd_format: 1
 tasks:
 - workunit:
     clients:

@@ -1,4 +1,5 @@
-# desc: frequent network fault injection
+description:
+- desc: frequent network fault injection
 overrides:
   ceph:
     conf:

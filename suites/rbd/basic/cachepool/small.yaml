@@ -1,4 +1,5 @@
-# desc: writeback replicated cache pool for rbd
+description:
+- desc: writeback replicated cache pool for rbd
 tasks:
 - exec:
     client.0:

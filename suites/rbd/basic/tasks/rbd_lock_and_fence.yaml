@@ -1,5 +1,6 @@
-# desc: test manual locking and blacklisting via librbd
-# format: default
+description:
+- desc: test manual locking and blacklisting via librbd
+  rbd_format: 2
 tasks:
 - workunit:
     clients:

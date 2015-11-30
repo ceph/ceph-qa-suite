@@ -1,4 +1,6 @@
-# desc: basic rbd cli tool tests
+description:
+- desc: basic rbd cli tool tests
+  rbd_format: 2
 tasks:
 - workunit:
     clients:

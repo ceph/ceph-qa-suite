@@ -1,4 +1,5 @@
-# desc: btrfs under the osds
+description:
+- desc: btrfs under the osds
 overrides:
   ceph:
     fs: btrfs

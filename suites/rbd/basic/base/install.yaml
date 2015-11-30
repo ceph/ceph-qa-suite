@@ -1,4 +1,5 @@
-# desc: install ceph
+description:
+- desc: install ceph
 tasks:
 - install:
 - ceph:
