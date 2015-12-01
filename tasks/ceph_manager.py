@@ -846,8 +846,8 @@ class CephManager:
         Execute "ceph -w" in the background with stdout connected to a StringIO,
         and return the RemoteProcess.
         """
-        return self.controller.run(args=["ceph", "-w"], wait=False,
-                                   stdout=StringIO(), stdin=run.PIPE)
+        return self.controller.run(args=["sudo", "daemon-helper", "kill", "ceph", "-w"],
+                                   wait=False, stdout=StringIO(), stdin=run.PIPE)
 
     def do_rados(self, remote, cmd):
         """
