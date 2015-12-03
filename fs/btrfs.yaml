@@ -1,4 +1,4 @@
-description:
+meta:
 - desc: btrfs under the osds
 overrides:
   ceph:
