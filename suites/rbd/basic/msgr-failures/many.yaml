@@ -1,4 +1,4 @@
-description:
+meta:
 - desc: frequent network fault injection
 overrides:
   ceph:

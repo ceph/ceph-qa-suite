@@ -1,4 +1,4 @@
-description:
+meta:
 - desc: low-level object class tests for cls_rbd.so
 tasks:
 - workunit:

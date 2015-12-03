@@ -1,4 +1,4 @@
-description:
+meta:
 - desc: basic rbd cli tool tests
   rbd_format: 2
 tasks:

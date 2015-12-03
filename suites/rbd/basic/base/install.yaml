@@ -1,4 +1,4 @@
-description:
+meta:
 - desc: install ceph
 tasks:
 - install:

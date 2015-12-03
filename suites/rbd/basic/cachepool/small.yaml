@@ -1,4 +1,4 @@
-description:
+meta:
 - desc: writeback replicated cache pool for rbd
 tasks:
 - exec:

@@ -1,4 +1,4 @@
-description:
+meta:
 - desc: c/c++ librbd api tests with format 1 images
   rbd_format: 1
 tasks:

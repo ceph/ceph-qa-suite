@@ -1,4 +1,4 @@
-description:
+meta:
 - desc: librbd python api tests
   rbd_format: 1
 tasks:

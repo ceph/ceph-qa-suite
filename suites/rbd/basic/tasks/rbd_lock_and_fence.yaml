@@ -1,4 +1,4 @@
-description:
+meta:
 - desc: test manual locking and blacklisting via librbd
   rbd_format: 2
 tasks:
