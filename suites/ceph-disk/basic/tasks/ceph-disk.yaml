@@ -27,10 +27,10 @@ tasks:
 # Keep this around for debugging purposes. If uncommented the target
 # will pause and the workunit can be run and debug manually.
 #
-# - exec:
-#     client.0:
-#       - sleep 1000000000 # forever
-#
+- exec:
+    client.0:
+      - sleep 1000000000 # forever
+
 - workunit:
     clients:
       all:
