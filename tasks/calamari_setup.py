@@ -413,7 +413,6 @@ def deploy_ceph(ctx, cal_svr):
         cal_svr.run(args=cmd.split()).exitstatus
 
     for cmd_pts in [['disk', 'zap'], ['osd', 'create'],]:
-        mach_osd_cnt = {}
         dev_info = _get_dev_list(ctx)
         for osdn in osd_to_name:
             rname =  osd_to_name[osdn]
