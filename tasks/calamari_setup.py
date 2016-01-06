@@ -7,6 +7,7 @@ import os
 import requests
 import shutil
 import webbrowser
+import re
 
 from cStringIO import StringIO
 from teuthology.orchestra import run
@@ -311,6 +312,23 @@ def ceph_install(ctx, cal_svr):
                 log.error('Cleanup of Ceph installed by Calamari-setup failed')
 
 
+def _get_dev_list(ctx):
+    ret_info = {}
+    for remote in ctx.cluster.remotes:
+        loc_dev = []
+        ret_info[remote.shortname] = loc_dev
+        proc = remote.run(args = ['sudo', 'parted', '-l', '-m'],
+                                 stdout=StringIO())
+        lines = proc.stdout.getvalue().split('\n')
+        for lstr in lines:
+            if lstr.startswith('/dev/'):
+                dvscan = re.search('/dev/(.+?):.*', lstr)
+                devname = dvscan.group(1)
+                if devname.endswith('a'):
+                    continue
+                loc_dev.append(devname)
+    return ret_info
+
 def deploy_ceph(ctx, cal_svr):
     """
     Perform the ceph-deploy actions needed to bring up a Ceph cluster.  This
@@ -387,22 +405,17 @@ def deploy_ceph(ctx, cal_svr):
     for cmd in cmds:
         cal_svr.run(args=cmd).exitstatus
 
-    disk_labels = '_dcba'
-    # NEEDS WORK assumes disks start with vd (need to check this somewhere)
-    for cmd_pts in [['disk', 'zap'], ['osd', 'prepare'], ['osd', 'activate']]:
+    for cmd_pts in [['disk', 'zap'], ['osd', 'create'],]:
         mach_osd_cnt = {}
+        dev_info = _get_dev_list(ctx)
         for osdn in osd_to_name:
-            osd_mac = osd_to_name[osdn]
-            mach_osd_cnt[osd_mac] = mach_osd_cnt.get(osd_mac, 0) + 1
+            rname =  osd_to_name[osdn]
+            disk_id = '%s:%s' % (rname, dev_info[rname][0])
+            dev_info[rname] = dev_info[rname][1:]
             arg_list = ['ceph-deploy']
             arg_list.extend(cmd_pts)
-            disk_id = '%s:vd%s' % (osd_to_name[osdn],
-                                   disk_labels[mach_osd_cnt[osd_mac]])
-            if 'activate' in cmd_pts:
-                disk_id += '1'
             arg_list.append(disk_id)
             cal_svr.run(args=arg_list).exitstatus
-
 
 def undeploy_ceph(ctx, cal_svr):
     """
