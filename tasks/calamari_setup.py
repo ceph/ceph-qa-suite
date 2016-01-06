@@ -387,23 +387,24 @@ def deploy_ceph(ctx, cal_svr):
     cmds = ['ceph-deploy new ' + ' '.join(all_mons)]
 
     if use_install_repo:
-        cmds.append('ceph-deploy repo ceph-mon ' +
+        cmds.append('ceph-deploy install --repo --release=ceph-mon ' +
                     ' '.join(all_mons))
-        cmds.append('ceph-deploy install --no-adjust-repos --mon ' +
+        cmds.append('ceph-deploy install --mon ' +
                     ' '.join(all_mons))
-        cmds.append('ceph-deploy repo ceph-osd ' +
+        cmds.append('ceph-deploy install --repo --release=ceph-osd ' +
                     ' '.join(all_osds))
-        cmds.append('ceph-deploy install --no-adjust-repos --osd ' +
+        cmds.append('ceph-deploy install --osd ' +
                     ' '.join(all_osds))
         # We tell users to use `hostname` in our docs. Do the same here.
-        cmds.append('ceph-deploy install --no-adjust-repos --cli `hostname`')
+        cmds.append('ceph-deploy install --cli %s' % cal_svr.shortname)
+
     else:
         cmds.append('ceph-deploy install ' + ' '.join(all_machines))
 
     cmds.append('ceph-deploy mon create-initial')
 
     for cmd in cmds:
-        cal_svr.run(args=cmd).exitstatus
+        cal_svr.run(args=cmd.split()).exitstatus
 
     for cmd_pts in [['disk', 'zap'], ['osd', 'create'],]:
         mach_osd_cnt = {}
