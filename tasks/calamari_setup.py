@@ -21,6 +21,7 @@ DEFAULTS = {
     'version': 'v0.80.9',
     'test_image': None,
     'start_browser': False,
+    'no_calamari': False,
     'email': 'x@y.com',
     'no_epel': True,
     'calamari_user': 'admin',
@@ -42,6 +43,8 @@ def task(ctx, config):
     version -- ceph version we are testing against
     test_image -- Can be an HTTP URL, in which case fetch from this
                   http path; can also be local path
+    no_calamari -- If True, calamari is not connected (used when iso is
+                   installed but used for non calamari tests).
     start_browser -- If True, start a browser.  To be used by runs that will
                      bring up a browser quickly for human use.  Set to False
                      for overnight suites that are testing for problems in
@@ -68,7 +71,7 @@ def task(ctx, config):
         lambda: ceph_install(ctx, cal_svr),
         # do it again because ceph-deploy installed epel for centos
         lambda: remove_epel(ctx, config['no_epel']),
-        lambda: calamari_connect(ctx, cal_svr),
+        lambda: calamari_connect(config['no_calamari'], ctx, cal_svr),
         lambda: browser(config['start_browser'], cal_svr.hostname),
     ):
         yield
@@ -453,17 +456,20 @@ def undeploy_ceph(ctx, cal_svr):
 
 
 @contextlib.contextmanager
-def calamari_connect(ctx, cal_svr):
+def calamari_connect(no_calamari, ctx, cal_svr):
     """
     Connect calamari to the ceph nodes.
     """
-    connects = ['ceph-deploy', 'calamari', 'connect']
-    for machine_info in ctx.cluster.remotes:
-        if 'client.0' not in ctx.cluster.remotes[machine_info]:
-            connects.append(machine_info.shortname)
-    ret = cal_svr.run(args=connects)
-    if ret.exitstatus:
-        raise RuntimeError('calamari connect failed')
+    if no_calamari:
+        log.info("Calamari is not being enabled")
+    else:
+        connects = ['ceph-deploy', 'calamari', 'connect']
+        for machine_info in ctx.cluster.remotes:
+            if 'client.0' not in ctx.cluster.remotes[machine_info]:
+                connects.append(machine_info.shortname)
+        ret = cal_svr.run(args=connects)
+        if ret.exitstatus:
+            raise RuntimeError('calamari connect failed')
     try:
         yield
     finally:
