@@ -246,13 +246,16 @@ def calamari_install(config, cal_svr):
         )
 
     # install ice_setup package
+    mnt_pt = "/mnt"
+    if str(cal_svr.os) in  ['rhel 7.1',]:
+        mnt_pt = "/mnt/Installer"
     args = {
         'deb': 'sudo dpkg -i /mnt/ice-setup*deb',
-        'rpm': 'sudo yum -y localinstall /mnt/ice_setup*rpm'
+        'rpm': 'sudo yum -y localinstall %s/ice_setup*rpm' % mnt_pt
     }.get(cal_svr.system_type, None)
     if not args:
         raise RuntimeError('{0}: unknown system type'.format(cal_svr))
-    ret = cal_svr.run(args=args)
+    ret = cal_svr.run(args=args.split())
     if ret.exitstatus:
         raise RuntimeError('ice_setup package install failed')
 
@@ -261,9 +264,9 @@ def calamari_install(config, cal_svr):
     ice_in = StringIO(icesetdata)
     ice_out = StringIO()
     if icetype == 'tarball':
-        args = 'sudo python ice_setup.py'
+        args = 'sudo python ice_setup.py'.split()
     else:
-        args = 'sudo ice_setup -d /mnt'
+        args = 'sudo ice_setup -d /mnt'.split()
     ret = cal_svr.run(args=args, stdin=ice_in, stdout=ice_out)
     log.debug(ice_out.getvalue())
     if ret.exitstatus:
