@@ -104,3 +104,6 @@ tasks:
       time: 30
       size: 1
   - ceph_manager.wait_for_clean: null
+openstack:
+  - machine:
+      disk: 60 # GB
