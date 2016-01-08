@@ -4,3 +4,6 @@ tasks:
     time: 300
     unique_pool: true
     ec_pool: true
+openstack:
+  - machine:
+      disk: 60 # GB

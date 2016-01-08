@@ -118,3 +118,6 @@ tasks:
   - ceph.restart: [osd.0, osd.1, osd.2]
   - ceph_manager.wait_for_clean: null
   - print: '**** done verifying final upgrade'
+openstack:
+  - machine:
+      disk: 60 # GB

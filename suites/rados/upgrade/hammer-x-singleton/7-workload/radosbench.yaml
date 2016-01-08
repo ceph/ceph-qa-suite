@@ -3,3 +3,6 @@ tasks:
     clients: [client.0]
     time: 900
 - print: "**** done radosbench 7-workload"
+openstack:
+  - machine:
+      disk: 60 # GB
