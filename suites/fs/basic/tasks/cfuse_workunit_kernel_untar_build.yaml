@@ -4,3 +4,7 @@ tasks:
     clients:
       all:
         - kernel_untar_build.sh
+
+openstack:
+- machine:
+    disk: 40

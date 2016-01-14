@@ -4,3 +4,7 @@ tasks:
     clients:
       all:
         - suites/dbench.sh
+
+openstack:
+- machine:
+    disk: 40

@@ -6,3 +6,6 @@ tasks:
       all:
         - fs/misc
 
+openstack:
+- machine:
+    disk: 40
