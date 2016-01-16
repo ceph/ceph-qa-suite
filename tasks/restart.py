@@ -40,7 +40,7 @@ def get_tests(ctx, config, role, remote, testdir):
         refspec = config.get('tag')
     if refspec is None:
         refspec = 'HEAD'
-    log.info('Pulling restart qa/workunits from ref %s', refspec)
+    log.info('Pulling restart qa/workunits from git@gitlab.xsky.com:infrastructure/ceph-qa-test.git xsky-master')
 
     remote.run(
         logger=log.getChild(role),
@@ -49,8 +49,8 @@ def get_tests(ctx, config, role, remote, testdir):
             run.Raw('&&'),
             'git',
             'archive',
-            '--remote=git://git.ceph.com/ceph.git',
-            '%s:qa/workunits' % refspec,
+            '--remote=git@gitlab.xsky.com:infrastructure/ceph-qa-test.git',
+            'xsky-master:qa/workunits',
             run.Raw('|'),
             'tar',
             '-C', srcdir,
