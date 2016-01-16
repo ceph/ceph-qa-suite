@@ -8,6 +8,7 @@ overrides:
       - scrub mismatch
       - ScrubResult
       - failed to encode map
+      - wrongly marked me down
 roles:
 - - mon.a
   - mds.a
