@@ -16,6 +16,6 @@ tasks:
       all:
         - mon/workloadgen.sh
     env:
-      LOADGEN_NUM_OSDS: "5"
+      LOADGEN_NUM_OSDS: "4"
       VERBOSE: "1"
       DURATION: "600"
