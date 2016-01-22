@@ -539,9 +539,11 @@ def cli_test(ctx, config):
 
     for i in range(3):
         zap_disk = 'disk zap '  + "{n}:{d}".format(n=nodename,d=devs[i])
-        prepare= 'osd prepare ' + "{n}:{d}".format(n=nodename,d=devs[i])
+        prepare = 'osd prepare ' + "{n}:{d}".format(n=nodename,d=devs[i])
+        activate = 'osd activate ' + "{n}:{d}1".format(n=nodename,d=devs[i])
         execute_cdeploy(admin,zap_disk,path)
         execute_cdeploy(admin,prepare,path)
+        execute_cdeploy(admin,activate,path)
         
     admin.run(args=['ls',run.Raw('-lt'),run.Raw('~/cdtest/')])
     time.sleep(4)
