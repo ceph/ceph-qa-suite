@@ -70,6 +70,18 @@ def ceph_log(ctx, config):
             wait=False,
             )
         )
+    log.info('Creating xsky-xdc log directories...')
+    run.wait(
+        ctx.cluster.run(
+            args=[
+                'sudo',
+                'mkdir',
+                '-p',
+                '/var/log/xsky-xdc',
+                ],
+            wait=False,
+            )
+        )
 
     try:
         yield
@@ -100,6 +112,27 @@ def ceph_log(ctx, config):
                     wait=False,
                     ),
                 )
+            run.wait(
+                ctx.cluster.run(
+                    args=[
+                        'sudo',
+                        'find',
+                        '/var/log/xsky-xdc',
+                        '-name',
+                        '*.log',
+                        '-print0',
+                        run.Raw('|'),
+                        'sudo',
+                        'xargs',
+                        '-0',
+                        '--no-run-if-empty',
+                        '--',
+                        'gzip',
+                        '--',
+                        ],
+                    wait=False,
+                    ),
+                )
 
             log.info('Archiving logs...')
             path = os.path.join(ctx.archive, 'remote')
@@ -109,6 +142,8 @@ def ceph_log(ctx, config):
                 os.makedirs(sub)
                 teuthology.pull_directory(remote, '/var/log/ceph',
                                           os.path.join(sub, 'log'))
+                teuthology.pull_directory(remote, '/var/log/xsky-xdc',
+                                          os.path.join(sub, 'xsky-xdc-log'))
 
 
 def assign_devs(roles, devs):
