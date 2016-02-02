@@ -1,6 +1,7 @@
 tasks:
-- install:
-- ceph: null
+- ssh-keys:
+- ceph-deploy:
+    fs: xfs
 - rbd_fio:
     client.0:
       fio-version: 2.2.9
