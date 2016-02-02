@@ -9,6 +9,7 @@ import time
 import logging
 import traceback
 import json
+import re
 
 from teuthology import misc as teuthology
 from teuthology import contextutil
@@ -16,53 +17,12 @@ from teuthology.config import config as teuth_config
 from teuthology.task import install as install_fn
 from teuthology.task import ansible
 from teuthology.orchestra import run
+from teuthology.packaging import install_package
+from teuthology.parallel import parallel
 from tasks.cephfs.filesystem import Filesystem
 
 log = logging.getLogger(__name__)
 
-
-@contextlib.contextmanager
-def download_ceph_deploy(ctx, config):
-    """
-    Downloads ceph-deploy from the ceph.com git mirror and (by default)
-    switches to the master branch. If the `ceph-deploy-branch` is specified, it
-    will use that instead.
-    """
-    log.info('Downloading ceph-deploy...')
-    testdir = teuthology.get_testdir(ctx)
-    ceph_admin = ctx.cluster.only(teuthology.get_first_mon(ctx, config))
-    default_cd_branch = {'ceph-deploy-branch': 'master'}
-    ceph_deploy_branch = config.get(
-        'ceph-deploy',
-        default_cd_branch).get('ceph-deploy-branch')
-
-    ceph_admin.run(
-        args=[
-            'git', 'clone', '-b', ceph_deploy_branch,
-            teuth_config.ceph_git_base_url + 'ceph-deploy.git',
-            '{tdir}/ceph-deploy'.format(tdir=testdir),
-            ],
-        )
-    ceph_admin.run(
-        args=[
-            'cd',
-            '{tdir}/ceph-deploy'.format(tdir=testdir),
-            run.Raw('&&'),
-            './bootstrap',
-            ],
-        )
-
-    try:
-        yield
-    finally:
-        log.info('Removing ceph-deploy ...')
-        ceph_admin.run(
-            args=[
-                'rm',
-                '-rf',
-                '{tdir}/ceph-deploy'.format(tdir=testdir),
-                ],
-            )
 
 
 def is_healthy(ctx, config):
@@ -185,31 +145,40 @@ def build_ceph_cluster(ctx, config):
         return ceph_admin.run(
             args=[
                 'cd',
-                '{tdir}/ceph-deploy'.format(tdir=testdir),
-                run.Raw('&&'),
+                '{tdir}/cdtest'.format(tdir=testdir),
+                run.Raw(';'),
                 run.Raw(cmd),
             ],
             check_status=False,
         ).exitstatus
+    
+    def install_extra_packages(remote,extra_packages):
+	for pkg in extra_packages:
+	    install_package(pkg, remote)
 
     try:
         log.info('Building ceph cluster using ceph-deploy...')
         testdir = teuthology.get_testdir(ctx)
+        ceph_admin.run(args=['mkdir', run.Raw('{tdir}/cdtest'.format(tdir=testdir))],check_status=False)
+        extra_packages = ['ceph-deploy', 'ceph-test', 'ceph-selinux', ]
+	for remote in ctx.cluster.remotes.iterkeys():
+		with parallel() as p:
+		   p.spawn(install_extra_packages, remote, extra_packages)
         ceph_branch = None
         if config.get('branch') is not None:
             cbranch = config.get('branch')
             for var, val in cbranch.iteritems():
                 ceph_branch = '--{var}={val}'.format(var=var, val=val)
         all_nodes = get_all_nodes(ctx, config)
-        mds_nodes = get_nodes_using_role(ctx, 'mds')
-        mds_nodes = " ".join(mds_nodes)
+        #mds_nodes = get_nodes_using_role(ctx, 'mds')
+        #mds_nodes = " ".join(mds_nodes)
         mon_node = get_nodes_using_role(ctx, 'mon')
         mon_nodes = " ".join(mon_node)
-        new_mon = './ceph-deploy new'+" "+mon_nodes
+        new_mon = 'ceph-deploy new'+" "+mon_nodes
         mon_hostname = mon_nodes.split(' ')[0]
         mon_hostname = str(mon_hostname)
-        gather_keys = './ceph-deploy gatherkeys'+" "+mon_hostname
-        deploy_mds = './ceph-deploy mds create'+" "+mds_nodes
+        gather_keys = 'ceph-deploy gatherkeys'+" "+mon_hostname
+        #deploy_mds = 'ceph-deploy mds create'+" "+mds_nodes
         no_of_osds = 0
 
         if mon_nodes is None:
@@ -221,7 +190,8 @@ def build_ceph_cluster(ctx, config):
 
         log.info('adding config inputs...')
         testdir = teuthology.get_testdir(ctx)
-        conf_path = '{tdir}/ceph-deploy/ceph.conf'.format(tdir=testdir)
+        #conf_path = '{tdir}/ceph-deploy/ceph.conf'.format(tdir=testdir)
+        conf_path = '{tdir}/cdtest/ceph.conf'.format(tdir=testdir)
 
         if config.get('conf') is not None:
             confp = config.get('conf')
@@ -236,37 +206,37 @@ def build_ceph_cluster(ctx, config):
                                                     sudo=True)
 
         # install ceph
-        install_nodes = './ceph-deploy install ' + (ceph_branch if ceph_branch else "--dev=master") + " " + all_nodes
+        install_nodes = 'ceph-deploy install ' + all_nodes
         estatus_install = execute_ceph_deploy(install_nodes)
         if estatus_install != 0:
             raise RuntimeError("ceph-deploy: Failed to install ceph")
         # install ceph-test package too
-        install_nodes2 = './ceph-deploy install --tests ' + (ceph_branch if ceph_branch else "--dev=master") + " " + all_nodes
-        estatus_install = execute_ceph_deploy(install_nodes2)
+        #install_nodes2 = './ceph-deploy install --tests ' + all_nodes
+        #estatus_install = execute_ceph_deploy(install_nodes2)
         if estatus_install != 0:
             raise RuntimeError("ceph-deploy: Failed to install ceph-test")
 
-        mon_create_nodes = './ceph-deploy mon create-initial'
+        mon_create_nodes = 'ceph-deploy mon create-initial'
         # If the following fails, it is OK, it might just be that the monitors
         # are taking way more than a minute/monitor to form quorum, so lets
         # try the next block which will wait up to 15 minutes to gatherkeys.
         execute_ceph_deploy(mon_create_nodes)
-
         estatus_gather = execute_ceph_deploy(gather_keys)
-        max_gather_tries = 90
+        max_gather_tries = 30
+        sleep_time=10
         gather_tries = 0
         while (estatus_gather != 0):
             gather_tries += 1
             if gather_tries >= max_gather_tries:
-                msg = 'ceph-deploy was not able to gatherkeys after 15 minutes'
+                msg = 'ceph-deploy was not able to gatherkeys after {min} minutes'.format(min=(max_gather_tries * sleep_time)/60)
                 raise RuntimeError(msg)
             estatus_gather = execute_ceph_deploy(gather_keys)
-            time.sleep(10)
+            time.sleep(sleep_time)
 
-        if mds_nodes:
-            estatus_mds = execute_ceph_deploy(deploy_mds)
-            if estatus_mds != 0:
-                raise RuntimeError("ceph-deploy: Failed to deploy mds")
+        #if mds_nodes:
+        #    estatus_mds = execute_ceph_deploy(deploy_mds)
+        #    if estatus_mds != 0:
+        #        raise RuntimeError("ceph-deploy: Failed to deploy mds")
 
         if config.get('test_mon_destroy') is not None:
             for d in range(1, len(mon_node)):
@@ -276,29 +246,32 @@ def build_ceph_cluster(ctx, config):
                     raise RuntimeError("ceph-deploy: Failed to delete monitor")
 
         node_dev_list = get_dev_for_osd(ctx, config)
-        osd_create_cmd = './ceph-deploy osd create --zap-disk '
         for d in node_dev_list:
+            osd_create_cmd = 'ceph-deploy osd create --zap-disk '
             if config.get('dmcrypt') is not None:
                 osd_create_cmd += '--dmcrypt '
             if config.get('fs'):
-                osd_create_cmd += '--fs-type ' + config.get('fs') + ' '
-            osd_create_cmd += ":".join(d)
+                osd_create_cmd += '--fs-type ' + config.get('fs') + ' ' + d
+            #add activate due to few existing bz's
+            node_dev_part = re.split(':',d)
+            osd_activate_cmd =  'ceph-deploy osd activate ' + node_dev_part[0] + ":" + node_dev_part[1] + "1"
             estatus_osd = execute_ceph_deploy(osd_create_cmd)
-            if estatus_osd == 0:
-                log.info('successfully created osd')
-                no_of_osds += 1
-            else:
-                disks = d.split(':')
-                dev_disk = disks[0]+":"+disks[1]
-                j_disk = disks[0]+":"+disks[2]
-                zap_disk = './ceph-deploy disk zap '+dev_disk+" "+j_disk
-                execute_ceph_deploy(zap_disk)
-                estatus_osd = execute_ceph_deploy(osd_create_cmd_d)
-                if estatus_osd == 0:
-                    log.info('successfully created osd')
-                    no_of_osds += 1
-                else:
-                    raise RuntimeError("ceph-deploy: Failed to create osds")
+            execute_ceph_deploy(osd_activate_cmd)
+            #if estatus_osd == 0:
+            log.info('successfully created osd')
+            no_of_osds += 1
+            #else:
+            #    disks = d.split(':')
+            #    dev_disk = disks[0]+":"+disks[1]
+            #    j_disk = disks[0]+":"+disks[2]
+            #    zap_disk = 'ceph-deploy disk zap '+dev_disk+" "+j_disk
+            #    execute_ceph_deploy(zap_disk)
+            #    estatus_osd = execute_ceph_deploy(osd_create_cmd)
+            #    if estatus_osd == 0:
+            #        log.info('successfully created osd')
+            #        no_of_osds += 1
+            #    else:
+            #        raise RuntimeError("ceph-deploy: Failed to create osds")
 
         if config.get('wait-for-healthy', True) and no_of_osds >= 2:
             is_healthy(ctx=ctx, config=None)
@@ -366,11 +339,11 @@ def build_ceph_cluster(ctx, config):
                         perms='0644'
                     )
 
-            if mds_nodes:
-                log.info('Configuring CephFS...')
-                ceph_fs = Filesystem(ctx, admin_remote=clients.remotes.keys()[0])
-                if not ceph_fs.legacy_configured():
-                    ceph_fs.create()
+            #if mds_nodes:
+            #    log.info('Configuring CephFS...')
+            #    ceph_fs = Filesystem(ctx, admin_remote=clients.remotes.keys()[0])
+            #    if not ceph_fs.legacy_configured():
+            #        ceph_fs.create()
         elif not config.get('only_mon'):
             raise RuntimeError(
                 "The cluster is NOT operational due to insufficient OSDs")
@@ -467,8 +440,8 @@ def build_ceph_cluster(ctx, config):
 
         # Prevent these from being undefined if the try block fails
         all_nodes = get_all_nodes(ctx, config)
-        purge_nodes = './ceph-deploy purge'+" "+all_nodes
-        purgedata_nodes = './ceph-deploy purgedata'+" "+all_nodes
+        purge_nodes = 'ceph-deploy purge'+" "+all_nodes
+        purgedata_nodes = 'ceph-deploy purgedata'+" "+all_nodes
 
         log.info('Purging package...')
         execute_ceph_deploy(purge_nodes)
@@ -798,13 +771,14 @@ def task(ctx, config):
 
     overrides = ctx.config.get('overrides', {})
     teuthology.deep_merge(config, overrides.get('ceph-deploy', {}))
+    teuthology.deep_merge(config, overrides.get('ansible', {}))
 
     if config.get('branch') is not None:
         assert isinstance(config['branch'], dict), 'branch must be a dictionary'
 
     with contextutil.nested(
          lambda: install_fn.ship_utilities(ctx=ctx, config=None),
-         lambda: download_ceph_deploy(ctx=ctx, config=config),
+         lambda: ansible.CephLab(ctx,config=config),
          lambda: build_ceph_cluster(ctx=ctx, config=config),
         ):
         yield
