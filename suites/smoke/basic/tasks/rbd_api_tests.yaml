@@ -1,6 +1,7 @@
 tasks:
-- install:
-- ceph:
+tasks:
+- ssh-keys:
+- ceph-deploy:
     fs: xfs
 - workunit:
     clients:
