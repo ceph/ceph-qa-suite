@@ -770,7 +770,6 @@ def task(ctx, config):
         "task ceph-deploy only supports a dictionary for configuration"
 
     overrides = ctx.config.get('overrides', {})
-    teuthology.deep_merge(config, overrides.get('ceph-deploy', {}))
     teuthology.deep_merge(config, overrides.get('ansible', {}))
 
     if config.get('branch') is not None:
