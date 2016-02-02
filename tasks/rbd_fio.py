@@ -100,7 +100,7 @@ def run_fio(remote, config):
         
     formats=[1,2]
     features=[1,2,4]
-    fio_version='2.2.9'
+    fio_version='2.5'
     if config.get('formats'):
         formats=config['formats']
     if config.get('features'):
