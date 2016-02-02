@@ -770,14 +770,15 @@ def task(ctx, config):
         "task ceph-deploy only supports a dictionary for configuration"
 
     overrides = ctx.config.get('overrides', {})
-    teuthology.deep_merge(config, overrides.get('ansible', {}))
+    teuthology.deep_merge(config, overrides.get('ceph-deploy', {}))
+    ansible_config = overrides.get('ansible', {})
 
     if config.get('branch') is not None:
         assert isinstance(config['branch'], dict), 'branch must be a dictionary'
 
     with contextutil.nested(
          lambda: install_fn.ship_utilities(ctx=ctx, config=None),
-         lambda: ansible.CephLab(ctx,config=config),
+         lambda: ansible.CephLab(ctx,config=ansible_config),
          lambda: build_ceph_cluster(ctx=ctx, config=config),
         ):
         yield
