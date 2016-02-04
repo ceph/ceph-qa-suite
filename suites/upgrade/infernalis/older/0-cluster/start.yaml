@@ -14,6 +14,7 @@ overrides:
     - log bound mismatch
     - failed to encode map
     - soft lockup
+    - detected stalls on CPUs
     fs: xfs
 roles:
 - - mon.a
