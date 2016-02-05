@@ -1,7 +1,6 @@
 tasks:
 - ssh-keys:
 - ceph-deploy:
-- ceph-fuse:
 - workunit:
     clients:
       all:
