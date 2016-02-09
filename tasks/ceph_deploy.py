@@ -273,6 +273,7 @@ def build_ceph_cluster(ctx, config):
             #    else:
             #        raise RuntimeError("ceph-deploy: Failed to create osds")
 
+        ceph_admin.run(args=['sudo', 'cat', '/etc/ceph/ceph.conf'],check_status=False)
         if config.get('wait-for-healthy', True) and no_of_osds >= 2:
             is_healthy(ctx=ctx, config=None)
 
