@@ -14,6 +14,9 @@ overrides:
     - scrub mismatch
     - ScrubResult
     - failed to encode map
+    - wrongly marked me down
+    - soft lockup
+    - detected stalls on CPUs
     conf:
       mon:
         mon warn on legacy crush tunables: false
