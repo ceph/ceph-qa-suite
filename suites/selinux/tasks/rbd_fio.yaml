@@ -1,0 +1,11 @@
+tasks:
+- ssh-keys:
+- ceph-deploy:
+- rbd_fio:
+    client.0:
+       fio-io-size: 90%
+       formats: [2]
+       features: [[layering],[striping]]
+       io-engine: sync
+       rw: randrw
+       runtime: 1200

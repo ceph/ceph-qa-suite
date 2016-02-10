@@ -1,0 +1,9 @@
+tasks:
+- ssh-keys:
+- ceph-deploy:
+- rbd:
+    all:
+- workunit:
+    clients:
+      all:
+        - kernel_untar_build.sh
