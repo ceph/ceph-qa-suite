@@ -1,8 +1,8 @@
 roles:
 - [mon.0, osd.0, osd.1, client.0]
 tasks:
-- install:
-- ceph:
+- ssh-keys:
+- ceph-deploy:
 - workunit:
     clients:
       all:
