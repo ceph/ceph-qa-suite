@@ -80,6 +80,7 @@ def repair_test_1(ctx, corrupter, chooser, scrub_type):
     ctx.manager.wait_for_clean()
     with ctx.manager.pool(pool, 1):
 
+        time.sleep(1)
         log.info("starting repair test type 1")
         victim_osd = chooser(ctx, pool, 0)
 
@@ -122,6 +123,7 @@ def repair_test_2(ctx, config, chooser):
     pool = "repair_pool_2"
     ctx.manager.wait_for_clean()
     with ctx.manager.pool(pool, 1):
+        time.sleep(1)
         log.info("starting repair test type 2")
         victim_osd = chooser(ctx, pool, 0)
         first_mon = teuthology.get_first_mon(ctx, config)
