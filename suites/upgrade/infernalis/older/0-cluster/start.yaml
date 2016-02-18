@@ -29,3 +29,4 @@ roles:
   - osd.5
   - client.0
 - - client.1
+  - client.2
