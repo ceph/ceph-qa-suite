@@ -13,13 +13,11 @@ import re
 
 from teuthology import misc as teuthology
 from teuthology import contextutil
-from teuthology.config import config as teuth_config
 from teuthology.task import install as install_fn
 from teuthology.task import ansible
 from teuthology.orchestra import run
 from teuthology.packaging import install_package
 from teuthology.parallel import parallel
-from tasks.cephfs.filesystem import Filesystem
 
 log = logging.getLogger(__name__)
 
@@ -164,11 +162,11 @@ def build_ceph_cluster(ctx, config):
 	for remote in ctx.cluster.remotes.iterkeys():
 		with parallel() as p:
 		   p.spawn(install_extra_packages, remote, extra_packages)
-        ceph_branch = None
-        if config.get('branch') is not None:
-            cbranch = config.get('branch')
-            for var, val in cbranch.iteritems():
-                ceph_branch = '--{var}={val}'.format(var=var, val=val)
+        #ceph_branch = None
+        #if config.get('branch') is not None:
+        #    cbranch = config.get('branch')
+            #for var, val in cbranch.iteritems():
+                #ceph_branch = '--{var}={val}'.format(var=var, val=val)
         all_nodes = get_all_nodes(ctx, config)
         #mds_nodes = get_nodes_using_role(ctx, 'mds')
         #mds_nodes = " ".join(mds_nodes)
@@ -255,7 +253,7 @@ def build_ceph_cluster(ctx, config):
             #add activate due to few existing bz's
             node_dev_part = re.split(':',d)
             osd_activate_cmd =  'ceph-deploy osd activate ' + node_dev_part[0] + ":" + node_dev_part[1] + "1"
-            estatus_osd = execute_ceph_deploy(osd_create_cmd)
+            execute_ceph_deploy(osd_create_cmd)
             execute_ceph_deploy(osd_activate_cmd)
             #if estatus_osd == 0:
             log.info('successfully created osd')
@@ -711,7 +709,6 @@ def single_node_test(ctx, config):
     else:
         with contextutil.nested(
              lambda: install_fn.ship_utilities(ctx=ctx, config=None),
-             lambda: download_ceph_deploy(ctx=ctx, config=config),
              lambda: cli_test(ctx=ctx,config=config),
             ):
             yield
