@@ -35,9 +35,14 @@ tasks:
    - workload
 - print: "**** done workload v9.2.0"
 
+- parallel:
+   - workload1
+   - upgrade-sequence1
+- print: "**** done parallel v9.2.1"
+
 ###- parallel:
-###   - workload1
-###   - upgrade-sequence1
+###   - workloadX
+###   - upgrade-sequenceX
 ###- print: "**** done parallel v9.2.X"
 
 - parallel:
@@ -52,7 +57,70 @@ workload:
          client.0:
            - suites/blogbench.sh
    - print: "**** done suites/blogbench.sh workload"
-###workload1:
+
+workload1:
+   sequential:
+   - workunit:
+       clients:
+         client.0:
+         - rados/load-gen-big.sh
+   - print: "**** done rados/load-gen-big.sh workload1"
+   - workunit:
+       clients:
+         client.0:
+         - rados/test.sh
+         - cls
+   - print: "**** done rados/test.sh &  cls workload1"
+   - workunit:
+       clients:
+         client.0:
+         - rbd/test_librbd.sh
+   - print: "**** done rbd/test_librbd.sh workload1"
+upgrade-sequence1:
+   sequential:
+   - install.upgrade:
+       mon.a:
+         tag: v9.2.1
+       mon.b:
+         tag: v9.2.1
+       client.1:
+         tag: v9.2.1
+   - print: "**** done v9.2.1 install.upgrade"
+   - ceph.restart: [mon.a]
+   - sleep:
+       duration: 60
+   - ceph.restart: [mon.b]
+   - sleep:
+       duration: 60
+   - ceph.restart: [mon.c]
+   - sleep:
+       duration: 60
+   - ceph.restart: [mds.a]
+   - sleep:
+       duration: 60
+   - ceph.restart: [osd.0]
+   - sleep:
+       duration: 30
+   - ceph.restart: [osd.1]
+   - sleep:
+       duration: 30
+   - ceph.restart: [osd.2]
+   - sleep:
+       duration: 30
+   - ceph.restart: [osd.3]
+   - sleep:
+       duration: 30
+   - ceph.restart: [osd.4]
+   - sleep:
+       duration: 30
+   - ceph.restart: [osd.5]
+   - sleep:
+       duration: 30
+   - print: "**** done ceph.restart all mon/mds/osd v0.94.1"
+
+
+### =====
+###workloadX:
 ###   sequential:
 ###   - workunit:
 ###       clients:
@@ -70,7 +138,7 @@ workload:
 ###         client.0:
 ###         - rbd/test_librbd.sh
 ###   - print: "**** done rbd/test_librbd.sh workload1"
-###upgrade-sequence1:
+###upgrade-sequenceX:
 ###   sequential:
 ###   - install.upgrade:
 ###       mon.a:
@@ -110,7 +178,8 @@ workload:
 ###   - ceph.restart: [osd.5]
 ###   - sleep:
 ###       duration: 30
-###   - print: "**** done ceph.restart all mon/mds/osd v0.94.2"
+###   - print: "**** done ceph.restart all mon/mds/osd v0.94.X"
+
 workload_infernalis:
    sequential:
    - rgw: [client.0]
