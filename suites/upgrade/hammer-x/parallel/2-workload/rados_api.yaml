@@ -1,7 +1,7 @@
 workload:
   sequential:
     - workunit:
-        branch: hammer
+        branch: wip-hammer-added-mon-logging
         clients:
           client.0:
             - cls

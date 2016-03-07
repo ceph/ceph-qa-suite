@@ -1,7 +1,7 @@
 tasks:
 - install:
-    branch: hammer
-- print: "**** done installing hammer"
+    branch: wip-hammer-added-mon-logging
+- print: "**** done installing wip-hammer-added-mon-logging"
 - ceph:
     fs: xfs
 - print: "**** done ceph"
