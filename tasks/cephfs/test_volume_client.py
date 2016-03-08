@@ -2,6 +2,8 @@ import json
 import logging
 import time
 import os
+import re
+from collections import defaultdict
 from textwrap import dedent
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
 from teuthology.exceptions import CommandFailedError
@@ -50,37 +52,42 @@ vc.disconnect()
             stdin=data,
         )
 
-    def _configure_vc_auth(self, mount, id_name):
+    def _configure_vc_auth(self, mount, id_name, key_prefix=None):
         """
         Set up auth credentials for the VolumeClient user
+
+        :param key_prefix: e.g. "client.manila."
         """
-        out = self.fs.mon_manager.raw_cluster_cmd(
-            "auth", "get-or-create", "client.{name}".format(name=id_name),
-            "mds", "allow *",
-            "osd", "allow rw",
-            "mon", "allow *"
-        )
+
+        if key_prefix is None:
+            out = self.fs.mon_manager.raw_cluster_cmd(
+                "auth", "get-or-create", "client.{name}".format(name=id_name),
+                "mds", "allow *",
+                "osd", "allow rw",
+                "mon", "allow *"
+            )
+        else:
+            mon_caps = ('allow r; ' +
+                       'allow command "auth del" with entity prefix {prefix}; ' +
+                       'allow command "auth caps" with entity prefix {prefix}; ' +
+                       'allow command "auth get" with entity prefix {prefix}; ' +
+                       'allow command "auth get-or-create" with entity prefix {prefix}')
+            mon_caps = mon_caps.format(prefix=key_prefix)
+
+            out = self.fs.mon_manager.raw_cluster_cmd(
+                "auth", "get-or-create", "client.{name}".format(name=id_name),
+                "mds", "allow *",
+                "osd", "allow rw",
+                "mon", mon_caps
+            )
+
         mount.client_id = id_name
-        self._sudo_write_file(mount.client_remote, mount.get_keyring_path(), out)
-        self.set_conf("client.{name}".format(name=id_name), "keyring", mount.get_keyring_path())
+        self._sudo_write_file(mount.client_remote, mount.get_keyring_path(),
+                              out)
+        self.set_conf("client.{name}".format(name=id_name), "keyring",
+                      mount.get_keyring_path())
 
-    def test_lifecycle(self):
-        """
-        General smoke test for create, extend, destroy
-        """
-
-        # I'm going to use mount_c later as a guest for mounting the created
-        # shares
-        self.mounts[2].umount()
-
-        # I'm going to leave mount_b unmounted and just use it as a handle for
-        # driving volumeclient.  It's a little hacky but we don't have a more
-        # general concept for librados/libcephfs clients as opposed to full
-        # blown mounting clients.
-        self.mount_b.umount_wait()
-        self._configure_vc_auth(self.mount_b, "manila")
-
-        guest_entity = "guest"
+    def _test_lifecycle(self, guest_entity):
         group_id = "grpid"
         volume_id = "volid"
 
@@ -98,13 +105,14 @@ vc.disconnect()
         # Authorize
         key = self._volume_client_python(self.mount_b, dedent("""
             vp = VolumePath("{group_id}", "{volume_id}")
-            auth_result = vc.authorize(vp, "{guest_entity}")
+            auth_result = vc.authorize(vp, "{guest_entity}", tenant_id="foo")
             print auth_result['auth_key']
         """.format(
             group_id=group_id,
             volume_id=volume_id,
             guest_entity=guest_entity
         )))
+        self._validate_metadata()
 
         # The dir should be created
         self.mount_a.stat(os.path.join("volumes", group_id, volume_id))
@@ -141,6 +149,7 @@ vc.disconnect()
             volume_id=volume_id,
             guest_entity=guest_entity
         )))
+        self._validate_metadata()
 
         # Once deauthorized, the client should be unable to do any more metadata ops
         # The way that the client currently behaves here is to block (it acts like
@@ -173,11 +182,30 @@ vc.disconnect()
             guest_entity=guest_entity
         )))
 
+    def setUp(self):
+        super(TestVolumeClient, self).setUp()
+
+        # I'm going to use mount_c later as a guest for mounting the created
+        # shares
+        self.mounts[2].umount()
+
+        # I'm going to leave mount_b unmounted and just use it as a handle for
+        # driving volumeclient.  It's a little hacky but we don't have a more
+        # general concept for librados/libcephfs clients as opposed to full
+        # blown mounting clients.
+        self.mount_b.umount_wait()
+
+    def test_lifecycle(self):
+        """
+        General smoke test for create, extend, destroy
+        """
+        self._configure_vc_auth(self.mount_b, "manila")
+        self._test_lifecycle(guest_entity="guest")
+
     def test_idempotency(self):
         """
         That the volumeclient interface works when calling everything twice
         """
-        self.mount_b.umount_wait()
         self._configure_vc_auth(self.mount_b, "manila")
 
         guest_entity = "guest"
@@ -228,7 +256,6 @@ vc.disconnect()
         for mon_daemon_state in self.ctx.daemons.iter_daemons_of_role('mon'):
             mon_daemon_state.restart()
 
-        self.mount_b.umount_wait()
         self._configure_vc_auth(self.mount_b, "manila")
 
         # Calculate how many PGs we'll expect the new volume pool to have
@@ -273,3 +300,165 @@ vc.disconnect()
         #  it at some point as/when the logic gets fancier)
         created_pg_num = self.fs.mon_manager.get_pool_property(list(new_pools)[0], "pg_num")
         self.assertEqual(expected_pg_num, created_pg_num)
+
+    def test_multitenancy(self):
+        # I will have two different tenants authorize the same ceph auth_id,
+        # and demonstrate that the first tenant (who created it) gets the key
+        # back, and the second tenant is denied the key
+        self._configure_vc_auth(self.mount_b, "manila", "client.manila.")
+
+        alice_entity = "manila.alice"
+
+        bob_tenant = "bob"
+        charles_tenant = "charles"
+
+        bob_group_id = "bob_group"
+        bob_volume_id = "bob_volume"
+
+        charles_group_id = "charles_group"
+        charles_volume_id = "charles_volume"
+
+        # Create
+        self._volume_client_python(self.mount_b, dedent("""
+            vp = VolumePath("{group_id}", "{volume_id}")
+            create_result = vc.create_volume(vp, 10)
+            print create_result['mount_path']
+        """.format(
+            group_id=bob_group_id,
+            volume_id=bob_volume_id
+        )))
+        self._volume_client_python(self.mount_b, dedent("""
+            vp = VolumePath("{group_id}", "{volume_id}")
+            create_result = vc.create_volume(vp, 10)
+            print create_result['mount_path']
+        """.format(
+            group_id=charles_group_id,
+            volume_id=charles_volume_id
+        )))
+
+        # Authorize
+        bob_key = self._volume_client_python(self.mount_b, dedent("""
+            vp = VolumePath("{group_id}", "{volume_id}")
+            auth_result = vc.authorize(vp, "{alice_entity}", "{bob_tenant}")
+            print auth_result['auth_key']
+        """.format(
+            group_id=bob_group_id,
+            volume_id=bob_volume_id,
+            alice_entity=alice_entity,
+            bob_tenant=bob_tenant
+        )))
+        self.assertNotEqual(bob_key, "None")
+        log.info("Bob key: {0}".format(bob_key))
+        self._validate_metadata()
+
+        # Authorize
+        charles_key = self._volume_client_python(self.mount_b, dedent("""
+            vp = VolumePath("{group_id}", "{volume_id}")
+            auth_result = vc.authorize(vp, "{alice_entity}", "{charles_tenant}")
+            print auth_result['auth_key']
+        """.format(
+            group_id=charles_group_id,
+            volume_id=charles_volume_id,
+            alice_entity=alice_entity,
+            charles_tenant=charles_tenant
+        )))
+        log.info("Charles key: {0}".format(charles_key))
+        self.assertEqual(charles_key, "None")
+        self._validate_metadata()
+
+        bob_auths_str = self._volume_client_python(self.mount_b, dedent("""
+            vp = VolumePath("{group_id}", "{volume_id}")
+            auths = vc.get_authorized_ids(vp)
+            import json
+            print json.dumps(auths)
+        """.format(
+            group_id=bob_group_id,
+            volume_id=bob_volume_id,
+        )))
+        auths = json.loads(bob_auths_str)
+        self.assertEqual(auths, [{'id': 'manila.alice'}])
+
+        charles_auths_str = self._volume_client_python(self.mount_b, dedent("""
+            vp = VolumePath("{group_id}", "{volume_id}")
+            auths = vc.get_authorized_ids(vp)
+            import json
+            print json.dumps(auths)
+        """.format(
+            group_id=charles_group_id,
+            volume_id=charles_volume_id,
+        )))
+        auths = json.loads(charles_auths_str)
+        self.assertEqual(auths, [{'id': 'manila.alice'}])
+
+    def test_lifecycle_limited_caps(self):
+        # Test that when the VolumeClient user has mon auth caps that
+        # restrict Ceph auth IDs to a prefix, it responds sanely to requests
+        # to authorize keys outside that prefix.
+        self._configure_vc_auth(self.mount_b, "manila",
+                                key_prefix="client.manila.")
+
+        self._test_lifecycle(guest_entity="manila.guest")
+
+    def _validate_metadata(self):
+
+        by_auth_id = {}
+        by_volume = defaultdict(list)
+
+        auth_pattern = "_{auth_id}.meta"
+        volume_pattern = "_{group}:{vol}.meta"
+
+        # First scrape the rules out of ceph auth caps
+        out = self.fs.mon_manager.raw_cluster_cmd("auth", "list",
+                                                  "--format=json-pretty")
+        auth_list = json.loads(out)['auth_dump']
+        for auth_identity in auth_list:
+            if 'mds' not in auth_identity['caps']:
+                continue
+
+            mds_caps = auth_identity['caps']['mds']
+            if "path" not in mds_caps:
+                # Not authorizing any volumes, ignore it
+                continue
+
+            client_prefix = "client."
+            if not auth_identity['entity'].startswith(client_prefix):
+                continue
+            auth_id = auth_identity['entity'][len(client_prefix):]
+
+            # I'm sure there's a way to do this with just one RE group, but
+            # this works.
+            paths = []
+            for a, b in re.findall(" path=(.*),| path=(.*)$", mds_caps):
+                paths.append(a if a else b)
+
+            volumes = []
+            for path in paths:
+                log.info("PATH={path}".format(path=path))
+                prefix, group, vol = path.split("/")[1:]
+                assert prefix == "volumes"
+
+                if group == "_nogroup":
+                    group = None
+
+                volumes.append({'group_id': group, 'volume_id': vol})
+
+                by_volume[(group, vol)].append(auth_id)
+
+            by_auth_id[auth_id] = volumes
+
+        # Validate auth metadata is present for expected ids
+        for auth_id, expected_volumes in by_auth_id.items():
+            meta_path = os.path.join("volumes", auth_pattern.format(
+                auth_id=auth_id))
+            p = self.mount_a.run_shell(["cat", meta_path])
+            content_str = p.stdout.getvalue()
+            log.info("content_str: '{0}'".format(content_str))
+            content = json.loads(content_str)
+
+            assert sorted(content['volumes']) == sorted(expected_volumes)
+
+        # Validate volume metadata is present for expected volumes
+
+        # Validate that no extra auth metadata files are present
+
+        # Validate that no extra volume_metadata files are present

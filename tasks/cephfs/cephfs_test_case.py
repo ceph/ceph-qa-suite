@@ -149,7 +149,7 @@ class CephFSTestCase(unittest.TestCase):
         # In case there were any extra auth identities around from a previous
         # test, delete them
         for entry in self.auth_list():
-            ent_type, ent_id = entry['entity'].split(".")
+            ent_type, ent_id = entry['entity'].split(".", 1)
             if ent_type == "client" and ent_id not in client_mount_ids and ent_id != "admin":
                 self.fs.mon_manager.raw_cluster_cmd("auth", "del", entry['entity'])
 
