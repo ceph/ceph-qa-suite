@@ -1,0 +1,5 @@
+tasks:
+- qemu_live_migration:
+      qemu-image: http://cloud-images.ubuntu.com/releases/14.04/release/ubuntu-14.04-server-cloudimg-amd64-disk1.img 
+      secret-file: http://fpaste.org/334196/14189914/raw/
+      vm-xml: http://fpaste.org/334202/42490145/raw/
