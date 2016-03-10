@@ -1,3 +1,4 @@
+os_type: "centos"
 tasks:
 - install:
 - ceph:
