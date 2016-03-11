@@ -75,9 +75,9 @@ def get_test_files(config):
     client = config.get('client0')
     log.info("Get the test files")
     out=StringIO.StringIO()
-    client.run(args=['wget', run.Raw('-O'), run.Raw(img_name),
-                     run.Raw(image_location)])
-    client.run(args=['wget', run.Raw('-O'), run.Raw(vm_name),
+    client.run(args=['wget', '-O', run.Raw(img_name),
+                     run.Raw(image_location)], check_status=False)
+    client.run(args=['wget', '-nv', '-O', run.Raw(vm_name),
                      run.Raw(vm_file)])
 
 
@@ -103,8 +103,8 @@ def libvirt_set_secret(config):
     out=StringIO.StringIO()
     clients = [config.get('client0'), config.get('client1')]
     for client in clients:
-       client.run(args=['wget', run.Raw('-O'), run.Raw('{dir}/secret.xml'.format(dir=qemu_test_dir)),
-             	          run.Raw(secret_file)],stdout=out)
+       client.run(args=['wget', '-nv', '-O', run.Raw('{dir}/secret.xml'.format(dir=qemu_test_dir)),
+             	          run.Raw(secret_file)])
        client.run(args=['cd', qemu_test_dir, run.Raw(';'), 'ceph', 'auth', 'get-key',
                         'client.libvirt', run.Raw('|'), 'sudo', 'tee', 'client.libvirt'])
        client.run(args=['cd', qemu_test_dir, run.Raw(';'), 'sudo', 'virsh', 'secret-define',
@@ -140,9 +140,9 @@ def setup_libvirtd(config):
        client.run(args=['sudo', 'cp', '/etc/libvirt/libvirtd.conf', qemu_test_dir])
        client.run(args=['sudo', 'cp', '/etc/sysconfig/libvirtd', qemu_test_dir])
        log.info("Overwrite the config files with the user provided config")
-       client.run(args=['sudo', 'wget', run.Raw('-O'), run.Raw('/etc/libvirt/libvirtd.conf'),
+       client.run(args=['sudo', 'wget', '-nv', '-O', run.Raw('/etc/libvirt/libvirtd.conf'),
              	          libvirtd_conf])
-       client.run(args=['sudo', 'wget', run.Raw('-O'), run.Raw('/etc/sysconfig/libvirtd'),
+       client.run(args=['sudo', 'wget', '-nv', '-O', run.Raw('/etc/sysconfig/libvirtd'),
              	          libvirtd_args])
        client.run(args=['sudo', 'systemctl', 'restart', 'libvirtd'])
 
