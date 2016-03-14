@@ -1,0 +1,5 @@
+os_type: "centos"
+tasks:
+- install:
+- ceph:
+- install_rbd_dependency:

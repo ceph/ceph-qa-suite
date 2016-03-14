@@ -1,0 +1,7 @@
+tasks:
+- qemu_live_migration:
+      libvirtd-conf: 'http://fpaste.org/335911/74695111/raw/'
+      libvirtd-args: 'http://fpaste.org/335914/74697031/raw/'
+      qemu-image: 'http://cloud-images.ubuntu.com/releases/14.04/release/ubuntu-14.04-server-cloudimg-amd64-disk1.img'
+      secret-file: 'http://fpaste.org/334196/14189914/raw/'
+      vm-file: 'http://fpaste.org/336533/57994014/raw/'
