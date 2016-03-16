@@ -31,9 +31,12 @@ function get_ceph() {
     local git_ceph_url=$1
     local sha1=$2
 
-    test -d ceph || git clone ${git_ceph_url}
+    test -d ceph || git clone ${git_ceph_url} ceph
     cd ceph
-    git fetch --tags http://github.com/ceph/ceph
+    if test -d src ; then # so we don't try to fetch when using a fixture
+       git fetch --tags http://github.com/ceph/ceph
+    fi
+    git fetch --tags ${git_ceph_url}
     git checkout ${sha1}
 }
 
@@ -123,8 +126,28 @@ function test_link_same() {
     rm -fr $d
 }
 
+function maybe_parallel() {
+    local nproc=$1
+    local vers=$2
+
+    if echo $vers | grep --quiet '0\.67' ; then
+        return
+    fi
+
+    if test $nproc -gt 1 ; then
+        echo -j${nproc}
+    fi
+}
+
+function test_maybe_parallel() {
+    test "$(maybe_parallel 1 0.72)" = "" || return 1
+    test "$(maybe_parallel 8 0.67)" = "" || return 1
+    test "$(maybe_parallel 8 0.72)" = "-j8" || return 1
+}
+
 if test "$1" = "TEST" ; then
     shopt -s -o xtrace
     PS4='${BASH_SOURCE[0]}:$LINENO: ${FUNCNAME[0]}:  '
     test_link_same
+    test_maybe_parallel
 fi
