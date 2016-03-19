@@ -1,7 +1,7 @@
 tasks:
 - install:
-    branch: hammer
-- print: "**** done installing hammer"
+    branch: hammer-pr-8052
+- print: "**** done installing hammer-pr-8052"
 - ceph:
     fs: xfs
 - print: "**** done ceph"
