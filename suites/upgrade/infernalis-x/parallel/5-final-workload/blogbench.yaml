@@ -2,8 +2,8 @@ meta:
 - desc: |
    run a cephfs stress test
    mount ceph-fuse on client.3 before running workunit
-workload:
-  sequential:
+tasks:
+- sequential:
   - ceph-fuse:
   - print: "**** done ceph-fuse 5-final-workload"
   - workunit:
