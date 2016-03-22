@@ -34,7 +34,7 @@ def task(ctx, config):
 
     repo = 'https://github.com/nfs-ganesha/nfs-ganesha.git'
     branch="next"
-    commit="dc0699dc0c950a2a2103314cba6f62d79f68db16"
+    commit="2c403fe18a7450c394cbdabb205f8cb0ff2a219b"
     gsh_prefix="/opt/ganesha" # where to install ganesha
     ceph_prefix="/usr/local" # where this process installed (?) ceph
 
@@ -63,7 +63,6 @@ GANESHA_PREFIX="/opt/ganesha"
 cmake -DCMAKE_INSTALL_PREFIX="{gsh_prefix}"  \
     -DUSE_FSAL_CEPH=ON \
     -DUSE_FSAL_PROXY=OFF \
-    -DUSE_FSAL_CEPH=OFF \
     -DUSE_FSAL_GPFS=OFF \
     -DUSE_FSAL_ZFS=OFF \
     -DUSE_FSAL_LUSTRE=ON \
