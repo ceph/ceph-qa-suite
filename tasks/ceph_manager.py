@@ -766,12 +766,14 @@ class CephManager:
     REPLICATED_POOL = 1
     ERASURE_CODED_POOL = 3
 
-    def __init__(self, controller, ctx=None, config=None, logger=None):
+    def __init__(self, controller, ctx=None, config=None, logger=None,
+                 cluster='ceph'):
         self.lock = threading.RLock()
         self.ctx = ctx
         self.config = config
         self.controller = controller
         self.next_pool_id = 0
+        self.cluster = cluster
         if (logger):
             self.log = lambda x: logger.info(x)
         else:
@@ -803,6 +805,8 @@ class CephManager:
             'ceph-coverage',
             '{tdir}/archive/coverage'.format(tdir=testdir),
             'ceph',
+            '--cluster',
+            self.cluster,
         ]
         ceph_args.extend(args)
         proc = self.controller.run(
@@ -822,6 +826,8 @@ class CephManager:
             'ceph-coverage',
             '{tdir}/archive/coverage'.format(tdir=testdir),
             'ceph',
+            '--cluster',
+            self.cluster,
         ]
         ceph_args.extend(args)
         proc = self.controller.run(
@@ -835,8 +841,15 @@ class CephManager:
         Execute "ceph -w" in the background with stdout connected to a StringIO,
         and return the RemoteProcess.
         """
-        return self.controller.run(args=["sudo", "daemon-helper", "kill", "ceph", "-w"],
-                                   wait=False, stdout=StringIO(), stdin=run.PIPE)
+        return self.controller.run(
+            args=["sudo",
+                  "daemon-helper",
+                  "kill",
+                  "ceph",
+                  '--cluster',
+                  self.cluster,
+                  "-w"],
+            wait=False, stdout=StringIO(), stdin=run.PIPE)
 
     def do_rados(self, remote, cmd):
         """
@@ -848,6 +861,8 @@ class CephManager:
             'ceph-coverage',
             '{tdir}/archive/coverage'.format(tdir=testdir),
             'rados',
+            '--cluster',
+            self.cluster,
             ]
         pre.extend(cmd)
         proc = remote.run(
@@ -939,8 +954,11 @@ class CephManager:
             'ceph-coverage',
             '{tdir}/archive/coverage'.format(tdir=testdir),
             'ceph',
+            '--cluster',
+            self.cluster,
             '--admin-daemon',
-            '/var/run/ceph/ceph-{type}.{id}.asok'.format(
+            '/var/run/ceph/{cluster}-{type}.{id}.asok'.format(
+                cluster=self.cluster,
                 type=service_type,
                 id=service_id),
             ]
@@ -1099,11 +1117,12 @@ class CephManager:
                      for x in filter(lambda x:
                                      not x.running(),
                                      self.ctx.daemons.
-                                     iter_daemons_of_role('osd'))]
+                                     iter_daemons_of_role('osd', self.cluster))]
         live_osds = [int(x.id_) for x in
                      filter(lambda x:
                             x.running(),
-                            self.ctx.daemons.iter_daemons_of_role('osd'))]
+                            self.ctx.daemons.iter_daemons_of_role('osd',
+                                                                  self.cluster))]
         return {'in': in_osds, 'out': out_osds, 'up': up_osds,
                 'down': down_osds, 'dead': dead_osds, 'live': live_osds,
                 'raw': osd_lines}
@@ -1743,7 +1762,7 @@ class CephManager:
                                                 "Check ipmi config.")
             remote.console.power_off()
         else:
-            self.ctx.daemons.get_daemon('osd', osd).stop()
+            self.ctx.daemons.get_daemon('osd', osd, self.cluster).stop()
 
     def blackhole_kill_osd(self, osd):
         """
@@ -1752,7 +1771,7 @@ class CephManager:
         self.raw_cluster_cmd('--', 'tell', 'osd.%d' % osd,
                              'injectargs', '--filestore-blackhole')
         time.sleep(2)
-        self.ctx.daemons.get_daemon('osd', osd).stop()
+        self.ctx.daemons.get_daemon('osd', osd, self.cluster).stop()
 
     def revive_osd(self, osd, timeout=150, skip_admin_check=False):
         """
@@ -1775,8 +1794,8 @@ class CephManager:
             teuthology.reconnect(self.ctx, 60, [remote])
             mount_osd_data(self.ctx, remote, str(osd))
             self.make_admin_daemon_dir(remote)
-            self.ctx.daemons.get_daemon('osd', osd).reset()
-        self.ctx.daemons.get_daemon('osd', osd).restart()
+            self.ctx.daemons.get_daemon('osd', osd, self.cluster).reset()
+        self.ctx.daemons.get_daemon('osd', osd, self.cluster).restart()
 
         if not skip_admin_check:
             # wait for dump_ops_in_flight; this command doesn't appear
@@ -1804,14 +1823,16 @@ class CephManager:
         Wrapper to local get_daemon call which sends the given
         signal to the given osd.
         """
-        self.ctx.daemons.get_daemon('osd', osd).signal(sig, silent=silent)
+        self.ctx.daemons.get_daemon('osd', osd,
+                                    self.cluster).signal(sig, silent=silent)
 
     ## monitors
     def signal_mon(self, mon, sig, silent=False):
         """
         Wrapper to local get_deamon call
         """
-        self.ctx.daemons.get_daemon('mon', mon).signal(sig, silent=silent)
+        self.ctx.daemons.get_daemon('mon', mon,
+                                    self.cluster).signal(sig, silent=silent)
 
     def kill_mon(self, mon):
         """
@@ -1830,7 +1851,7 @@ class CephManager:
 
             remote.console.power_off()
         else:
-            self.ctx.daemons.get_daemon('mon', mon).stop()
+            self.ctx.daemons.get_daemon('mon', mon, self.cluster).stop()
 
     def revive_mon(self, mon):
         """
@@ -1849,13 +1870,13 @@ class CephManager:
 
             remote.console.power_on()
             self.make_admin_daemon_dir(remote)
-        self.ctx.daemons.get_daemon('mon', mon).restart()
+        self.ctx.daemons.get_daemon('mon', mon, self.cluster).restart()
 
     def get_mon_status(self, mon):
         """
         Extract all the monitor status information from the cluster
         """
-        addr = self.ctx.ceph.conf['mon.%s' % mon]['mon addr']
+        addr = self.ctx.ceph[self.cluster].conf['mon.%s' % mon]['mon addr']
         out = self.raw_cluster_cmd('-m', addr, 'mon_status')
         return json.loads(out)
 
@@ -1907,7 +1928,7 @@ class CephManager:
         """
         Return path to osd data with {id} needing to be replaced
         """
-        return "/var/lib/ceph/osd/ceph-{id}"
+        return '/var/lib/ceph/osd/' + self.cluster + '-{id}'
 
     def make_admin_daemon_dir(self, remote):
         """

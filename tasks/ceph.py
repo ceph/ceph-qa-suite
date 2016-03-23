@@ -1468,6 +1468,7 @@ def task(ctx, config):
                 mon,
                 ctx=ctx,
                 logger=log.getChild('ceph_manager.' + config['cluster']),
+                cluster=config['cluster'],
             )
             yield
         finally:
