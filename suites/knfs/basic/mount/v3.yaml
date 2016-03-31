@@ -1,4 +1,7 @@
 tasks:
+- exec:
+    client.0:
+      - sleep 1000000000 # forever
 - nfs:
     client.1:
         server: client.0
