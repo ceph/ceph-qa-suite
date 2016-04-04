@@ -87,8 +87,7 @@ def ceph_log(ctx, config):
         yield
 
     finally:
-        if ctx.archive is not None and \
-                not (ctx.config.get('archive-on-error') and ctx.summary['success']):
+        if ctx.archive is not None and not ctx.summary['success']:
             # and logs
             log.info('Compressing logs...')
             run.wait(
