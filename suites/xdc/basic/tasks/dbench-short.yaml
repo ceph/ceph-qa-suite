@@ -1,0 +1,22 @@
+overrides:
+  ceph:
+    conf:
+      global:
+        auth_supported: none
+        auth_cluster_required: none
+        auth_service_required: none
+        auth_client_required: none
+      client:
+        rbd_cache: false
+tasks:
+- install:
+- install:
+    project: xsky-xdc
+    branch: utest
+- ceph:
+- xdc:
+- scsi:
+- workunit:
+    clients:
+        all:
+            - suites/dbench-short.sh

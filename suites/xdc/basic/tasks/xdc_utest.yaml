@@ -1,0 +1,18 @@
+overrides:
+  ceph:
+    conf:
+      global:
+        auth_supported: none
+        auth_cluster_required: none
+        auth_service_required: none
+        auth_client_required: none
+tasks:
+- install:
+- install:
+    project: xsky-xdc
+    branch: utest
+- ceph:
+- workunit:
+    clients:
+      client.0:
+        - xdc/test.sh
