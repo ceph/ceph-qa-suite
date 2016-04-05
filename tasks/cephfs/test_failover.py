@@ -159,8 +159,12 @@ class TestMultiFilesystems(CephFSTestCase):
 
     def setUp(self):
         super(TestMultiFilesystems, self).setUp()
+        self.fs.mon_manager.raw_cluster_cmd("fs", "set",
+                                            "enable_multiple", "true",
+                                            "--yes-i-really-mean-it")
         self.fs.mon_manager.raw_cluster_cmd("fs", "flag", "set",
-                                            "enable_multiple", "true")
+                                            "allow_multimds", "true",
+                                            "--yes-i-really-mean-it")
 
     def _setup_two(self):
         fs_a = self.mds_cluster.get_filesystem("alpha")
