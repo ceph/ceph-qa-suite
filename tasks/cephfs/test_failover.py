@@ -88,6 +88,51 @@ class TestFailover(CephFSTestCase):
         with self.assertRaises(CommandFailedError):
             self.mounts[0].mount()
 
+    def test_incarnations(self):
+        """
+        Reproducer for #15399, wherein deleting and recreating a filesystem
+        causes the incarnations to get lost.
+        :return:
+        """
+
+        # Record what the incarnation for rank 0 was initially
+        inc = self.fs.get_mds_info(self.fs.get_active_names()[0])['incarnation']
+
+        # First let's have a failover to increment the incarnation
+        self.mds_cluster.mds_stop(self.fs.get_active_names()[0])
+        self.mds_cluster.mds_fail(self.fs.get_active_names()[0])
+        self.fs.wait_for_daemons()
+        use_mds_id = self.fs.get_active_names()[0]
+        self.assertEqual(
+            self.fs.get_mds_info(use_mds_id)['incarnation'],
+            inc + 1)
+        inc += 1
+
+        # Now do some metadata IO so that the OSDs will see ops with
+        # the new incarnation
+        self.mount_a.create_files()
+        self.fs.mds_asok(["flush", "journal"])
+
+        # OSDs are now in the state we want.  Remove the filesystem.
+        self.mds_cluster.mds_stop()
+        self.mds_cluster.mds_fail()
+
+        self.fs.mon_manager.raw_cluster_cmd(
+            "fs", "rm", self.fs.name, "--yes-i-really-mean-it")
+        self.fs.mon_manager.raw_cluster_cmd(
+            "fs", "new", self.fs.name, self.fs.metadata_pool_name,
+            self.fs.data_pool_name)
+
+        self.mds_cluster.mds_restart(use_mds_id)
+        self.fs.wait_for_daemons()
+        self.assertEqual(use_mds_id, self.fs.get_active_names()[0])
+
+        # The MDS comes up, it should have got an incarnation higher than
+        # the last one it had for its OSD ops to work properly
+        self.assertGreater(
+            self.fs.get_mds_info(use_mds_id)['incarnation'],
+            inc)
+
 
 class TestStandbyReplay(CephFSTestCase):
     MDSS_REQUIRED = 2
@@ -149,6 +194,7 @@ class TestStandbyReplay(CephFSTestCase):
         self.assertEqual(mds_map['failed'], [])
         self.assertEqual(mds_map['damaged'], [])
         self.assertEqual(mds_map['stopped'], [])
+
 
 class TestMultiFilesystems(CephFSTestCase):
     CLIENTS_REQUIRED = 2
