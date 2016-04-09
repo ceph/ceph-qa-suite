@@ -15,6 +15,7 @@ from teuthology.config import config as teuth_config
 from teuthology.task import install as install_fn
 from teuthology.orchestra import run
 from tasks.cephfs.filesystem import Filesystem
+from tasks import set_repo
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +59,37 @@ def download_ceph_deploy(ctx, config):
                 '{tdir}/ceph-deploy'.format(tdir=testdir),
             ],
         )
+
+
+@contextlib.contextmanager
+def install_ceph_deploy(ctx, config):
+    """
+    Install ceph-deploy rpm or debian package, Along with
+    any additional extra packages requested in config.
+    """
+    for remote in ctx.cluster.remotes.iterkeys():
+        if remote.os.package_type == 'deb':
+            deb_pkgs = ['ceph-deploy', 'ceph-test']
+            if config.get('deb_extra_pkgs'):
+                extra_pkgs = config.get('deb_extra_pkgs')
+                deb_pkgs.extend(extra_pkgs)
+            deb_pkg = str.join(' ', deb_pkgs)
+            remote.run(args=['sudo', 'apt-get', '-y', 'install', run.Raw(deb_pkg)])
+        elif remote.os.package_type == 'rpm':
+            rpm_pkgs = ['ceph-deploy', 'ceph-test']
+            if config.get('rpm_extra_pkgs'):
+                extra_pkgs = config.get('rpm_extra_pkgs')
+                rpm_pkgs.extend(extra_pkgs)
+            rpm_pkg = str.join(' ', rpm_pkgs)
+            remote.run(args=['sudo', 'yum', '-y', 'install', run.Raw(rpm_pkg)])
+    try:
+        yield
+    finally:
+        for remote in ctx.cluster.remotes.iterkeys():
+            if remote.os.package_type == 'deb':
+                remote.run(args=['sudo', 'apt-get', '-y', 'remove', deb_pkg])
+            elif remote.os.package_type == 'rpm':
+                remote.run(args=['sudo', 'yum', '-y', 'remove', rpm_pkg])
 
 
 def is_healthy(ctx, config):
@@ -198,6 +230,8 @@ def build_ceph_cluster(ctx, config):
     try:
         log.info('Building ceph cluster using ceph-deploy...')
         testdir = teuthology.get_testdir(ctx)
+        if config.get('rhbuild'):
+            ceph_admin.run(args=['mkdir', '{tdir}/ceph-deploy'.format(tdir=testdir)])
         ceph_branch = None
         if config.get('branch') is not None:
             cbranch = config.get('branch')
@@ -208,11 +242,16 @@ def build_ceph_cluster(ctx, config):
         mds_nodes = " ".join(mds_nodes)
         mon_node = get_nodes_using_role(ctx, 'mon')
         mon_nodes = " ".join(mon_node)
-        new_mon = './ceph-deploy new' + " " + mon_nodes
+        # use rpm path in case of rhbuild instead of git path
+        if config.get('rhbuild'):
+            rel_path = ''
+        else:
+            rel_path = './'
+        new_mon = rel_path + 'ceph-deploy new' + " " + mon_nodes
         mon_hostname = mon_nodes.split(' ')[0]
         mon_hostname = str(mon_hostname)
-        gather_keys = './ceph-deploy gatherkeys' + " " + mon_hostname
-        deploy_mds = './ceph-deploy mds create' + " " + mds_nodes
+        gather_keys = rel_path + 'ceph-deploy gatherkeys' + " " + mon_hostname
+        deploy_mds = rel_path + 'ceph-deploy mds create' + " " + mds_nodes
         no_of_osds = 0
 
         if mon_nodes is None:
@@ -239,19 +278,24 @@ def build_ceph_cluster(ctx, config):
                         ceph_admin, conf_path, lines, sudo=True)
 
         # install ceph
-        install_nodes = './ceph-deploy install ' + \
-            (ceph_branch if ceph_branch else "--dev=master") + " " + all_nodes
+        if config.get('rhbuild'):
+            install_nodes = 'ceph-deploy install ' + all_nodes
+        else:
+            install_nodes = './ceph-deploy install ' + \
+                (ceph_branch if ceph_branch else "--dev=master") + " " + all_nodes
         estatus_install = execute_ceph_deploy(install_nodes)
         if estatus_install != 0:
             raise RuntimeError("ceph-deploy: Failed to install ceph")
-        # install ceph-test package too
-        install_nodes2 = './ceph-deploy install --tests ' + \
-            (ceph_branch if ceph_branch else "--dev=master") + " " + all_nodes
-        estatus_install = execute_ceph_deploy(install_nodes2)
-        if estatus_install != 0:
-            raise RuntimeError("ceph-deploy: Failed to install ceph-test")
-
-        mon_create_nodes = './ceph-deploy mon create-initial'
+        if config.get('rhbuild'):
+            log.info("ceph-test already installed")
+        else:
+            # install ceph-test package too
+            install_nodes2 = './ceph-deploy install --tests ' + \
+                (ceph_branch if ceph_branch else "--dev=master") + " " + all_nodes
+            estatus_install = execute_ceph_deploy(install_nodes2)
+            if estatus_install != 0:
+                raise RuntimeError("ceph-deploy: Failed to install ceph-test")
+        mon_create_nodes = rel_path + 'ceph-deploy mon create-initial'
         # If the following fails, it is OK, it might just be that the monitors
         # are taking way more than a minute/monitor to form quorum, so lets
         # try the next block which will wait up to 15 minutes to gatherkeys.
@@ -285,15 +329,21 @@ def build_ceph_cluster(ctx, config):
         for d in node_dev_list:
             node = d[0]
             for disk in d[1:]:
-                zap = './ceph-deploy disk zap ' + node + ':' + disk
+                zap = rel_path + 'ceph-deploy disk zap ' + node + ':' + disk
                 estatus = execute_ceph_deploy(zap)
                 if estatus != 0:
                     raise RuntimeError("ceph-deploy: Failed to zap osds")
-            osd_create_cmd = './ceph-deploy osd create '
-            if config.get('dmcrypt') is not None:
-                osd_create_cmd += '--dmcrypt '
+            if config.get('prepare_activate'):
+                osd_create_cmd = rel_path + 'ceph-deploy osd prepare '
+            else:
+                osd_create_cmd = rel_path + 'ceph-deploy osd create '
+                if config.get('dmcrypt') is not None:
+                    osd_create_cmd += '--dmcrypt '
             osd_create_cmd += ":".join(d)
             estatus_osd = execute_ceph_deploy(osd_create_cmd)
+            if config.get('prepare_activate'):
+                osd_activate_cmd = 'ceph-deploy osd activate ' + node + ":" + disk + "1"
+                execute_ceph_deploy(osd_activate_cmd)
             if estatus_osd == 0:
                 log.info('successfully created osd')
                 no_of_osds += 1
@@ -453,13 +503,21 @@ def build_ceph_cluster(ctx, config):
 
         # Prevent these from being undefined if the try block fails
         all_nodes = get_all_nodes(ctx, config)
-        purge_nodes = './ceph-deploy purge' + " " + all_nodes
-        purgedata_nodes = './ceph-deploy purgedata' + " " + all_nodes
-
+        purge_nodes = rel_path + 'ceph-deploy purge' + " " + all_nodes
+        purgedata_nodes = rel_path + 'ceph-deploy purgedata' + " " + all_nodes
         log.info('Purging package...')
         execute_ceph_deploy(purge_nodes)
         log.info('Purging data...')
         execute_ceph_deploy(purgedata_nodes)
+        if config.get('rhbuild'):
+            log.info('Removing ceph-deploy ...')
+            ceph_admin.run(
+                args=[
+                    'rm',
+                    '-rf',
+                    '{tdir}/ceph-deploy'.format(tdir=testdir),
+                ],
+            )
 
 
 @contextlib.contextmanager
@@ -480,7 +538,7 @@ def cli_test(ctx, config):
         """Either use git path or repo path """
         args = ['cd', conf_dir, run.Raw(';')]
         if path:
-            args.append('{path}/ceph-deploy/ceph-deploy'.format(path=path));
+            args.append('{path}/ceph-deploy/ceph-deploy'.format(path=path))
         else:
             args.append('ceph-deploy')
         args.append(run.Raw(cmd))
@@ -558,10 +616,10 @@ def cli_test(ctx, config):
     log.info("Waiting for cluster to become healthy")
     with contextutil.safe_while(sleep=10, tries=6,
                                 action='check health') as proceed:
-       while proceed():
-           r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
-           if (out.split(None,1)[0] == 'HEALTH_OK'):
-               break
+        while proceed():
+            r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
+            if (out.split(None, 1)[0] == 'HEALTH_OK'):
+                break
     rgw_install = 'install {branch} --rgw {node}'.format(
         branch=test_branch,
         node=nodename,
@@ -667,6 +725,11 @@ def task(ctx, config):
              dmcrypt: yes
              separate_journal_disk: yes
 
+        - ceph-deploy:
+             rhbuild: 2.0
+             dmcrypt: yes
+             separate_journal_disk: yes
+
     """
     if config is None:
         config = {}
@@ -677,15 +740,26 @@ def task(ctx, config):
     overrides = ctx.config.get('overrides', {})
     teuthology.deep_merge(config, overrides.get('ceph-deploy', {}))
 
-    if config.get('branch') is not None:
+    if config.get('rhbuild'):
+        log.info("RH Build, Skip Download")
+    elif config.get('branch') is not None:
         assert isinstance(
             config['branch'], dict), 'branch must be a dictionary'
 
     log.info('task ceph-deploy with config ' + str(config))
 
-    with contextutil.nested(
-        lambda: install_fn.ship_utilities(ctx=ctx, config=None),
-        lambda: download_ceph_deploy(ctx=ctx, config=config),
-        lambda: build_ceph_cluster(ctx=ctx, config=config),
-    ):
-        yield
+    if config.get('rhbuild'):
+        with contextutil.nested(
+            lambda: install_fn.ship_utilities(ctx=ctx, config=None),
+            lambda: set_repo.task(ctx=ctx, config=config),
+            lambda: install_ceph_deploy(ctx=ctx, config=config),
+            lambda: build_ceph_cluster(ctx=ctx, config=config),
+        ):
+            yield
+    else:
+        with contextutil.nested(
+            lambda: install_fn.ship_utilities(ctx=ctx, config=None),
+            lambda: download_ceph_deploy(ctx=ctx, config=config),
+            lambda: build_ceph_cluster(ctx=ctx, config=config),
+        ):
+            yield
