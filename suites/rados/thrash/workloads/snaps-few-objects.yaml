@@ -11,3 +11,4 @@ tasks:
       snap_remove: 50
       rollback: 50
       copy_from: 50
+      writesame: 50

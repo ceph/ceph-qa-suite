@@ -27,3 +27,4 @@ tasks:
       write: 100
       delete: 50
       copy_from: 50
+      writesame: 50

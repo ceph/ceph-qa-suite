@@ -19,3 +19,4 @@ tasks:
       copy_from: 50
       setattr: 25
       rmattr: 25
+      writesame: 50

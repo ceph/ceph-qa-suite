@@ -54,6 +54,7 @@ def task(ctx, config):
               snap_create: 3
               rollback: 2
               snap_remove: 0
+              writesame: 5
             ec_pool: create an ec pool, defaults to False
             erasure_code_profile:
               name: teuthologyprofile
@@ -175,7 +176,8 @@ def task(ctx, config):
         "append",
         "write",
         "read",
-        "delete"
+        "delete",
+        "writesame",
         ]:
         if field in op_weights:
             weights[field] = op_weights[field]
