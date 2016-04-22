@@ -79,7 +79,7 @@ def task(ctx, config):
 			  '--no-log-to-stderr',
                           '--name', role,
                           '-b', str(config.get('size', 4<<20)),
-                          '--num-objects', str(config.get('objects', 8000)),
+                          '--num-objects', str(config.get('objects', 6000)),
                           '-p' , pool,
                           'bench', str(config.get('time', 360)), 'write',
                           ]).format(tdir=testdir),

@@ -2,4 +2,4 @@ tasks:
 - radosbench:
     clients: [client.0]
     time: 1800
-    objects: 8000
+    objects: 6000
