@@ -1,0 +1,16 @@
+overrides:
+  ceph-deploy:
+    conf:
+      global:
+        ms die on skipped message: false
+tasks:
+- ssh-keys:
+- ceph-deploy:
+    fs: xfs
+- rbd:
+    all:
+      image_size: 20480
+- workunit:
+    clients:
+      all:
+        - suites/iozone.sh
