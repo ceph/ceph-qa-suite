@@ -377,7 +377,9 @@ def build_ceph_cluster(ctx, config):
         ctx.cluster.run(args=['sudo', 'ps', 'aux', run.Raw('|'),
                               'grep', '-v', 'grep', run.Raw('|'),
                               'grep', 'ceph'], check_status=False)
-
+        conf_path = '{tdir}/cdtest'.format(tdir=testdir)
+        log.info("Removing temporary path")
+        ceph_admin.run(args='sudo', 'rm', '-rf', conf_path, check_status=False)
 	log.info('Checking cluster log for badness...')
 	for remote in ctx.cluster.remotes.iterkeys():
             for pattern in ['\[SEC\]', '\[ERR\]', '\[WRN\]']:
