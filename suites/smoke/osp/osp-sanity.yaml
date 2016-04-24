@@ -29,6 +29,7 @@ roles:
   - osd.5
 - - client.0
 tasks:
+- ssh-keys:
 - ceph-deploy:
     fs: xfs
 - exec:
