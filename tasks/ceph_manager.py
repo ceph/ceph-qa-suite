@@ -1300,6 +1300,7 @@ class CephManager:
                 self.raw_cluster_cmd('osd', 'pool', 'create',
                                      pool_name, str(pg_num))
             self.pools[pool_name] = pg_num
+        time.sleep(1)
 
     def add_pool_snap(self, pool_name, snap_name):
         """
