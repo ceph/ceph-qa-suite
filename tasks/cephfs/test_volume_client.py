@@ -64,6 +64,55 @@ vc.disconnect()
         self._sudo_write_file(mount.client_remote, mount.get_keyring_path(), out)
         self.set_conf("client.{name}".format(name=id_name), "keyring", mount.get_keyring_path())
 
+    def _configure_guest_auth(self, volumeclient_mount, guest_mount,
+                              guest_entity, group_id, volume_id):
+        """
+        Set up auth credentials for the guest client to mount a volume.
+
+        :param volumeclient_mount: mount used as the handle for driving
+                                   volumeclient.
+        :param guest_mount: mount used by the guest client.
+        :param guest_entity: auth ID used by the guest client.
+        :param group_id: group ID of the volume.
+        :param volume_id: volume ID of the volume.
+
+        """
+
+        # Authorize the guest client's auth ID to mount the volume.
+        key = self._volume_client_python(volumeclient_mount, dedent("""
+            vp = VolumePath("{group_id}", "{volume_id}")
+            auth_result = vc.authorize(vp, "{guest_entity}")
+            print auth_result['auth_key']
+        """.format(
+            group_id=group_id,
+            volume_id=volume_id,
+            guest_entity=guest_entity
+        )))
+
+        # The guest auth ID should exist.
+        existing_ids = [a['entity'] for a in self.auth_list()]
+        self.assertIn("client.{0}".format(guest_entity), existing_ids)
+
+        # Create keyring file for the guest client.
+        keyring_txt = dedent("""
+        [client.{guest_entity}]
+            key = {key}
+
+        """.format(
+            guest_entity=guest_entity,
+            key=key
+        ))
+        guest_mount.client_id = guest_entity
+        self._sudo_write_file(guest_mount.client_remote,
+                              guest_mount.get_keyring_path(),
+                              keyring_txt)
+
+        # Add a guest client section to the ceph config file.
+        self.set_conf("client.{0}".format(guest_entity), "debug client", "20")
+        self.set_conf("client.{0}".format(guest_entity), "debug objecter", "20")
+        self.set_conf("client.{0}".format(guest_entity),
+                      "keyring", guest_mount.get_keyring_path())
+
     def test_lifecycle(self):
         """
         General smoke test for create, extend, destroy
@@ -95,39 +144,13 @@ vc.disconnect()
             guest_entity=guest_entity
         )))
 
-        # Authorize
-        key = self._volume_client_python(self.mount_b, dedent("""
-            vp = VolumePath("{group_id}", "{volume_id}")
-            auth_result = vc.authorize(vp, "{guest_entity}")
-            print auth_result['auth_key']
-        """.format(
-            group_id=group_id,
-            volume_id=volume_id,
-            guest_entity=guest_entity
-        )))
-
         # The dir should be created
         self.mount_a.stat(os.path.join("volumes", group_id, volume_id))
 
-        # The auth identity should exist
-        existing_ids = [a['entity'] for a in self.auth_list()]
-        self.assertIn("client.{0}".format(guest_entity), existing_ids)
-
-        keyring_txt = dedent("""
-        [client.{guest_entity}]
-            key = {key}
-
-        """.format(
-            guest_entity=guest_entity,
-            key=key
-        ))
-
-        # We should be able to mount the volume
-        self.mounts[2].client_id = guest_entity
-        self._sudo_write_file(self.mounts[2].client_remote, self.mounts[2].get_keyring_path(), keyring_txt)
-        self.set_conf("client.{0}".format(guest_entity), "debug client", "20")
-        self.set_conf("client.{0}".format(guest_entity), "debug objecter", "20")
-        self.set_conf("client.{0}".format(guest_entity), "keyring", self.mounts[2].get_keyring_path())
+        # Authorize and configure credentials for the guest to mount the
+        # the volume.
+        self._configure_guest_auth(self.mount_b, self.mounts[2], guest_entity,
+                                   group_id, volume_id)
         self.mounts[2].mount(mount_path=mount_path)
         self.mounts[2].write_n_mb("data.bin", 1)
 
