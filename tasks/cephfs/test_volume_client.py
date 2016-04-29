@@ -65,7 +65,8 @@ vc.disconnect()
         self.set_conf("client.{name}".format(name=id_name), "keyring", mount.get_keyring_path())
 
     def _configure_guest_auth(self, volumeclient_mount, guest_mount,
-                              guest_entity, group_id, volume_id):
+                              guest_entity, group_id, volume_id,
+                              readonly=False):
         """
         Set up auth credentials for the guest client to mount a volume.
 
@@ -75,18 +76,20 @@ vc.disconnect()
         :param guest_entity: auth ID used by the guest client.
         :param group_id: group ID of the volume.
         :param volume_id: volume ID of the volume.
-
+        :param readonly: defaults to False. If set to 'True' only read-only
+                         mount access is granted to the guest.
         """
 
         # Authorize the guest client's auth ID to mount the volume.
         key = self._volume_client_python(volumeclient_mount, dedent("""
             vp = VolumePath("{group_id}", "{volume_id}")
-            auth_result = vc.authorize(vp, "{guest_entity}")
+            auth_result = vc.authorize(vp, "{guest_entity}", readonly={readonly})
             print auth_result['auth_key']
         """.format(
             group_id=group_id,
             volume_id=volume_id,
-            guest_entity=guest_entity
+            guest_entity=guest_entity,
+            readonly=readonly
         )))
 
         # The guest auth ID should exist.
@@ -332,3 +335,64 @@ vc.disconnect()
         # List the dir's contents on mount A
         self.assertListEqual(self.mount_a.ls("parent1/mydir"),
                              ["afile"])
+
+    def test_readonly_authorization(self):
+        """
+        That guest clients can be restricted to read-only mounts of volumes.
+        """
+
+        volumeclient_mount = self.mounts[1]
+        guest_mount = self.mounts[2]
+        volumeclient_mount.umount_wait()
+        guest_mount.umount_wait()
+
+        # Configure volumeclient_mount as the handle for driving volumeclient.
+        self._configure_vc_auth(volumeclient_mount, "manila")
+
+        guest_entity = "guest"
+        group_id = "grpid"
+        volume_id = "volid"
+
+        # Create a volume.
+        mount_path = self._volume_client_python(volumeclient_mount, dedent("""
+            vp = VolumePath("{group_id}", "{volume_id}")
+            create_result = vc.create_volume(vp, 10)
+            print create_result['mount_path']
+        """.format(
+            group_id=group_id,
+            volume_id=volume_id,
+            guest_entity=guest_entity
+        )))
+
+        # Authorize and configure credentials for the guest to mount the
+        # the volume with read-write access.
+        self._configure_guest_auth(volumeclient_mount, guest_mount, guest_entity,
+                                   group_id, volume_id, readonly=False)
+
+        # Mount the volume, and write to it.
+        guest_mount.mount(mount_path=mount_path)
+        guest_mount.write_n_mb("data.bin", 1)
+
+        # Change the guest auth ID's authorization to read-only mount access.
+        self._volume_client_python(volumeclient_mount, dedent("""
+            vp = VolumePath("{group_id}", "{volume_id}")
+            vc.deauthorize(vp, "{guest_entity}")
+        """.format(
+            group_id=group_id,
+            volume_id=volume_id,
+            guest_entity=guest_entity
+        )))
+        self._configure_guest_auth(volumeclient_mount, guest_mount, guest_entity,
+                                   group_id, volume_id, readonly=True)
+
+        # The effect of the change in access level to read-only is not
+        # immediate. The guest sees the change only after a remount of
+        # the volume.
+        guest_mount.umount_wait()
+        guest_mount.mount(mount_path=mount_path)
+
+        # Read existing content of the volume.
+        self.assertListEqual(guest_mount.ls(guest_mount.mountpoint), ["data.bin"])
+        # Cannot write into read-only volume.
+        with self.assertRaises(CommandFailedError):
+            guest_mount.write_n_mb("rogue.bin", 1)
