@@ -1,6 +1,7 @@
 tasks:
 - install:
 - ceph:
+   fs: xfs
 - ceph-fuse:
     client.0:
         mounted: false
