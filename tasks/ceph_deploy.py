@@ -671,14 +671,15 @@ def single_node_test(ctx, config):
     log.info("Testing ceph-deploy on single node")
     if config is None:
         config = {}
+    ansible_config = {}
     overrides = ctx.config.get('overrides', {})
     teuthology.deep_merge(config, overrides.get('ceph-deploy', {}))
-    teuthology.deep_merge(config, overrides.get('ansible', {}))
+    teuthology.deep_merge(ansible_config, overrides.get('ansible', {}))
 
     if config.get('rhbuild'):
         log.info("RH Build, Skip Download")
         with contextutil.nested(
-            lambda: ansible.CephLab(ctx,config=config),
+            lambda: ansible.CephLab(ctx,config=ansible_config),
             lambda: cli_test(ctx=ctx, config=config),
         ):
             yield
