@@ -11,6 +11,7 @@ import traceback
 
 from teuthology import misc as teuthology
 from teuthology import contextutil
+from teuthology.task import ansible
 from teuthology.config import config as teuth_config
 from teuthology.task import install as install_fn
 from teuthology.orchestra import run
@@ -672,10 +673,12 @@ def single_node_test(ctx, config):
         config = {}
     overrides = ctx.config.get('overrides', {})
     teuthology.deep_merge(config, overrides.get('ceph-deploy', {}))
+    teuthology.deep_merge(config, overrides.get('ansible', {}))
 
     if config.get('rhbuild'):
         log.info("RH Build, Skip Download")
         with contextutil.nested(
+            lambda: ansible.CephLab(ctx,config=config),
             lambda: cli_test(ctx=ctx, config=config),
         ):
             yield
