@@ -619,11 +619,13 @@ def cli_test(ctx, config):
     log.info("Waiting for cluster to become healthy")
     with contextutil.safe_while(sleep=10, tries=6,
                                 action='check health') as proceed:
-       while proceed():
-           r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
-           out = r.stdout.getvalue()
-           if (out.split(None,1)[0] == 'HEALTH_OK'):
-               break
+        while proceed():
+            r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
+            out = r.stdout.getvalue()
+            if (out.split(None, 1)[0] == 'HEALTH_OK'):
+                break
+            elif (out.split(None, 1)[0] == 'HEALTH_WARN'):
+		break
     rgw_install = 'install {branch} --rgw {node}'.format(
         branch=test_branch,
         node=nodename,
