@@ -623,6 +623,8 @@ def cli_test(ctx, config):
             r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
             if (out.split(None, 1)[0] == 'HEALTH_OK'):
                 break
+            elif (out.split(None, 1)[0] == 'HEALTH_WARN'):
+		break
     rgw_install = 'install {branch} --rgw {node}'.format(
         branch=test_branch,
         node=nodename,
