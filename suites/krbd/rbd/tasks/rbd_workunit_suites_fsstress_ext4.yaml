@@ -3,7 +3,7 @@ tasks:
 - ceph:
 - rbd:
     all:
-      fs_type: ext4
+      fs_type: xfs
 - workunit:
     clients:
       all:
