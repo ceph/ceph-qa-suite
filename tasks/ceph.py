@@ -1100,22 +1100,23 @@ def wait_for_mon_quorum(ctx, config):
     assert isinstance(config, list)
     firstmon = teuthology.get_first_mon(ctx, config)
     (remote,) = ctx.cluster.only(firstmon).remotes.keys()
-    while True:
-        r = remote.run(
-            args=[
-                'sudo',
-                'ceph',
-                'quorum_status',
-            ],
-            stdout=StringIO(),
-            logger=log.getChild('quorum_status'),
-        )
-        j = json.loads(r.stdout.getvalue())
-        q = j.get('quorum_names', [])
-        log.debug('Quorum: %s', q)
-        if sorted(q) == sorted(config):
-            break
-        time.sleep(1)
+    with contextutil.safe_while(sleep=10, tries=60,
+                                action='wait for monitor quorum') as proceed:
+        while proceed():
+            r = remote.run(
+                args=[
+                    'sudo',
+                    'ceph',
+                    'quorum_status',
+                ],
+                stdout=StringIO(),
+                logger=log.getChild('quorum_status'),
+            )
+            j = json.loads(r.stdout.getvalue())
+            q = j.get('quorum_names', [])
+            log.debug('Quorum: %s', q)
+            if sorted(q) == sorted(config):
+                break
 
 
 def created_pool(ctx, config):
