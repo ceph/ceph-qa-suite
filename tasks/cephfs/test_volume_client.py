@@ -415,3 +415,6 @@ vc.disconnect()
                 volume_id=volume_ids[i],
                 guest_entity=guest_entity
             )))
+
+        # We must hard-umount the one that we evicted
+        self.mounts[2].umount_wait(force=True)
