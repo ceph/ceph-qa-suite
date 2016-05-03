@@ -272,6 +272,15 @@ def build_ceph_cluster(ctx, config):
             #        raise RuntimeError("ceph-deploy: Failed to create osds")
 
         ceph_admin.run(args=['sudo', 'cat', '/etc/ceph/ceph.conf'],check_status=False)
+	mons = ctx.cluster.only(teuthology.is_type('mon'))
+	osds = ctx.cluster.only(teuthology.is_type('osd'))
+	dirs = ['/var/lib/ceph/', '/var/run/ceph/', '/etc/ceph/', '/var/log/ceph/']
+	for lsz in dirs:
+	    mons.run(args=['ls', '-ldZ', lsz], check_status=False)
+	    mons.run(args=['ls', '-lZ', lsz], check_status=False)
+	for lsz in dirs:
+	    osds.run(args=['ls', '-ldZ', lsz], check_status=False)
+	    osds.run(args=['ls', '-lZ', lsz], check_status=False)
         if config.get('wait-for-healthy', True) and no_of_osds >= 2:
             is_healthy(ctx=ctx, config=None)
 
