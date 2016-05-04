@@ -10,6 +10,7 @@ import logging
 import traceback
 
 from teuthology import misc as teuthology
+
 from teuthology import contextutil
 from teuthology.task import ansible
 from teuthology.config import config as teuth_config
@@ -17,8 +18,11 @@ from teuthology.task import install as install_fn
 from teuthology.orchestra import run
 from tasks.cephfs.filesystem import Filesystem
 from tasks import set_repo
+from tasks.set_repo import set_repo_simple
 
 log = logging.getLogger(__name__)
+ceph_admin = ''
+testdir = ''
 
 
 @contextlib.contextmanager
@@ -162,7 +166,7 @@ def get_nodes_using_role(ctx, target_role):
             else:
                 modified_remotes[_remote].append(svc_id)
 
-    ctx.cluster.remotes = modified_remotes
+    ctx.config['modified_remotes'] = modified_remotes
 
     return nodes_of_interest
 
@@ -206,6 +210,19 @@ def get_all_nodes(ctx, config):
     return nodelist
 
 
+def execute_ceph_deploy(cmd):
+    """Remotely execute a ceph_deploy command"""
+    return ceph_admin.run(
+        args=[
+            'cd',
+            '{tdir}/ceph-deploy'.format(tdir=testdir),
+            run.Raw('&&'),
+            run.Raw(cmd),
+        ],
+        check_status=False,
+    ).exitstatus
+
+
 @contextlib.contextmanager
 def build_ceph_cluster(ctx, config):
     """Build a ceph cluster"""
@@ -213,21 +230,9 @@ def build_ceph_cluster(ctx, config):
     # Expect to find ceph_admin on the first mon by ID, same place that the download task
     # puts it.  Remember this here, because subsequently IDs will change from those in
     # the test config to those that ceph-deploy invents.
+    global ceph_admin, testdir
     (ceph_admin,) = ctx.cluster.only(
         teuthology.get_first_mon(ctx, config)).remotes.iterkeys()
-
-    def execute_ceph_deploy(cmd):
-        """Remotely execute a ceph_deploy command"""
-        return ceph_admin.run(
-            args=[
-                'cd',
-                '{tdir}/ceph-deploy'.format(tdir=testdir),
-                run.Raw('&&'),
-                run.Raw(cmd),
-            ],
-            check_status=False,
-        ).exitstatus
-
     try:
         log.info('Building ceph cluster using ceph-deploy...')
         testdir = teuthology.get_testdir(ctx)
@@ -246,6 +251,7 @@ def build_ceph_cluster(ctx, config):
         # use rpm path in case of rhbuild instead of git path
         if config.get('rhbuild'):
             rel_path = ''
+            ctx.config['rhbuild'] = True
         else:
             rel_path = './'
         new_mon = rel_path + 'ceph-deploy new' + " " + mon_nodes
@@ -693,6 +699,36 @@ def single_node_test(ctx, config):
             lambda: cli_test(ctx=ctx, config=config),
         ):
             yield
+
+
+@contextlib.contextmanager
+def restart(ctx, config):
+    roles = config.get('roles')
+    for role in roles:
+        remotes_and_roles = ctx.cluster.only(role).remotes
+        for remote, roles in remotes_and_roles.iteritems():
+            log.info("Restarting service on %s", remote.shortname)
+            if remote.os.package_type == 'rpm':
+                remote.run(args=['sudo', '/etc/init.d/ceph', 'stop'], check_status=False)
+                remote.run(args=['sudo', 'systemctl', 'stop', 'ceph.service'])
+                log.info("Fix directory permission to be owned by ceph")
+                remote.run(args=['sudo', 'chmod', '-R', '/var/lib/ceph'])
+                remote.run(args=['sudo', 'systemctl', 'start', 'ceph.service'])
+    yield
+
+
+@contextlib.contextmanager
+def upgrade(ctx, config):
+    roles = config.get('roles')
+    for role in roles:
+        remotes_and_roles = ctx.cluster.only(role).remotes
+        for remote, roles in remotes_and_roles.iteritems():
+            config['rhbuild-latest'] = ctx.config.get('rhbuild-latest')
+            set_repo_simple(remote, config)
+            nodename = remote.shortname
+            log.info("Upgrading ceph on  %s", nodename)
+            remote.run(args=['sudo', 'yum', 'install', '-y', 'ceph'])
+    yield
 
 
 @contextlib.contextmanager
