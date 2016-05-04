@@ -7,4 +7,6 @@ overrides:
 tasks:
 - install:
 - build_ganesha:
+    branch: next
+    commit-sha: 9427e31caa80acd96e0f2941d4f7dbf42764b9d7 
 - ceph:

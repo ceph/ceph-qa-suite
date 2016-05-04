@@ -23,7 +23,7 @@ def task(ctx, config):
         - ceph:
         - build_ganesha:
             branch: next
-            commit-sha: dc0699dc0c950a2a2103314cba6f62d79f68db16"dc0699dc0c950a2a2103314cba6f62d79f68db16
+            commit-sha: "9427e31caa80acd96e0f2941d4f7dbf42764b9d7"
 
     :param ctx: Context
     :param config: Configuration
@@ -34,7 +34,7 @@ def task(ctx, config):
 
     repo = 'https://github.com/nfs-ganesha/nfs-ganesha.git'
     branch="next"
-    commit="2c403fe18a7450c394cbdabb205f8cb0ff2a219b"
+    commit="9427e31caa80acd96e0f2941d4f7dbf42764b9d7"
     gsh_prefix="/opt/ganesha" # where to install ganesha
     ceph_prefix="/usr/local" # where this process installed (?) ceph
 
