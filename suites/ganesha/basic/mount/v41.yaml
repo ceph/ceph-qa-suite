@@ -1,5 +1,5 @@
 tasks:
-- nfs:
+- ganesha:
     client.0:
         server: ganesha.0://
         options: [rw,noauto,soft,sec=sys,proto=tcp,rsize=262144,wsize=262144,nfsvers=4.1]

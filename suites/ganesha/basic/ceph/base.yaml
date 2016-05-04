@@ -6,4 +6,5 @@ overrides:
 
 tasks:
 - install:
+- build_ganesha:
 - ceph:
