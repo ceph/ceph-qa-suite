@@ -12,6 +12,7 @@ import traceback
 from teuthology import misc as teuthology
 
 from teuthology import contextutil
+from teuthology.task import ansible
 from teuthology.config import config as teuth_config
 from teuthology.task import install as install_fn
 from teuthology.orchestra import run
@@ -628,6 +629,8 @@ def cli_test(ctx, config):
             r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
             if (out.split(None, 1)[0] == 'HEALTH_OK'):
                 break
+            elif (out.split(None, 1)[0] == 'HEALTH_WARN'):
+		break
     rgw_install = 'install {branch} --rgw {node}'.format(
         branch=test_branch,
         node=nodename,
@@ -676,12 +679,15 @@ def single_node_test(ctx, config):
     log.info("Testing ceph-deploy on single node")
     if config is None:
         config = {}
+    ansible_config = {}
     overrides = ctx.config.get('overrides', {})
     teuthology.deep_merge(config, overrides.get('ceph-deploy', {}))
+    teuthology.deep_merge(ansible_config, overrides.get('ansible', {}))
 
     if config.get('rhbuild'):
         log.info("RH Build, Skip Download")
         with contextutil.nested(
+            lambda: ansible.CephLab(ctx,config=ansible_config),
             lambda: cli_test(ctx=ctx, config=config),
         ):
             yield

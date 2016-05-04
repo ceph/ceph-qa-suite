@@ -2,4 +2,5 @@
 tasks:
     - install:
     - ceph:
+       fs: xfs
     - ceph_fuse:

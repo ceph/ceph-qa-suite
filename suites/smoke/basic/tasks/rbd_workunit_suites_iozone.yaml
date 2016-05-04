@@ -3,6 +3,8 @@ overrides:
     conf:
       global:
         ms die on skipped message: false
+      client:
+        rbd default format: 1
 tasks:
 - install:
 - ceph:
