@@ -5,6 +5,10 @@ from teuthology.orchestra import run
 
 log = logging.getLogger(__name__)
 
+supported_repos = {'1.3.1': 'https://paste.fedoraproject.org/350766/14600017/raw/',
+                   '1.3.2': 'http://paste.fedoraproject.org/354418/4224131/raw/',
+                   }
+
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -25,9 +29,6 @@ def task(ctx, config):
     overrides = ctx.config.get('overrides', {})
     teuthology.deep_merge(config, overrides.get('set-repo', {}))
 
-    supported_repos = {'1.3.1': 'https://paste.fedoraproject.org/350766/14600017/raw/',
-                       '1.3.2': 'https://paste.fedoraproject.org/350766/14600017/raw/',
-                       }
     if config.get('repo'):
         log.info("Updating repo")
         repo = config.get('repo')
@@ -65,3 +66,23 @@ def task(ctx, config):
                 remote.run(args=['sudo', 'rm', '/etc/yum.repos.d/rh_ceph.repo'])
                 remote.run(args=['sudo', 'yum', 'clean', 'metadata'])
                 remote.run(args=['sudo', 'rm', '-rf', 'repo'])
+
+
+def set_repo_simple(remote, config):
+    if config.get('latest'):
+        build_repo = config.get('rhbuild-latest')
+    else:
+        build = config.get('build')
+        build_repo = supported_repos[build]
+    log.info("Setting the repo for build %s", build_repo)
+    if remote.os.package_type == 'rpm':
+        remote.run(args=['sudo', 'rm', run.Raw('/etc/yum.repos.d/*')])
+        remote.run(
+            args=[
+                'sudo',
+                'wget',
+                '-nv',
+                '-O',
+                '/etc/yum.repos.d/rh_ceph.repo',
+                build_repo])
+        remote.run(args=['sudo', 'yum', 'clean', 'metadata'])
