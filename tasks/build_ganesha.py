@@ -2,14 +2,11 @@
 build_ganesha task -- check out, build, and install
 """
 import logging
-import pipes
-import os
-
+import contextlib
 from teuthology import misc as teuthology
 from teuthology.orchestra import run
 
 log = logging.getLogger(__name__)
-
 
 @contextlib.contextmanager
 def task(ctx, config):
