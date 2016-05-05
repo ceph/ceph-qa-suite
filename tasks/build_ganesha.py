@@ -6,13 +6,12 @@ import pipes
 import os
 
 from teuthology import misc as teuthology
-from teuthology.orchestra.run import CommandFailedError
-from teuthology.parallel import parallel
 from teuthology.orchestra import run
 
 log = logging.getLogger(__name__)
 
 
+@contextlib.contextmanager
 def task(ctx, config):
     """
     Check-out, build, and install nfs-ganesha.
