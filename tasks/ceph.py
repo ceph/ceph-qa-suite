@@ -68,6 +68,7 @@ def ceph_log(ctx, config):
             ],
             wait=False,
         )
+    )
     log.info('Creating xsky-xdc log directories...')
     run.wait(
         ctx.cluster.run(
@@ -78,8 +79,8 @@ def ceph_log(ctx, config):
                 '/var/log/xsky-xdc',
                 ],
             wait=False,
-            )
         )
+    )
 
     try:
         yield
