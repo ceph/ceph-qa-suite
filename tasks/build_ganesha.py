@@ -74,9 +74,15 @@ make && make install
 """.format(repo=repo,branch=branch,commit=commit,gsh_prefix=gsh_prefix,ceph_prefix=ceph_prefix)
 
     clients = ctx.cluster.only(teuthology.is_type('client'))
+    log.debug('clients is %r', clients)
     for remote in clients.remotes.iteritems():
+        log.debug('remote is %r', remote)
         try:
-            remote.run(args=[build_gsh])
+            remote.run(
+                args=[
+                    build_gsh,
+                ],
+            )
 
         finally:
             pass
