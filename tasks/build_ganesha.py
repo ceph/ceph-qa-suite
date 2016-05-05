@@ -5,7 +5,7 @@ import logging
 import pipes
 import os
 
-from teuthology import misc
+from teuthology import misc as teuthology
 from teuthology.orchestra.run import CommandFailedError
 from teuthology.parallel import parallel
 from teuthology.orchestra import run
