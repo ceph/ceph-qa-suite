@@ -77,16 +77,10 @@ cmake -DCMAKE_INSTALL_PREFIX="{gsh_prefix}"  \
 make && make install
 """.format(repo=repo,branch=branch,commit=commit,gsh_prefix=gsh_prefix,ceph_prefix=ceph_prefix)
 
-    try:
-        remote.run(
-            args=[
-                # cd first so this will fail if the mount point does
-                # not exist; pure install -d will silently do the
-                # wrong thing
-                gsh_build,
-                '--',
-            ],
-        )
+    clients = ctx.cluster.only(teuthology.is_type('client'))
+    for remote in clients.remotes.iteritems():
+        try:
+            remote.run(args=[build_gsh])
 
-    finally:
-        pass
+        finally:
+            pass
