@@ -1,0 +1,8 @@
+meta:
+- desc: "2 mon, 1 mds  3 osd cluster"
+roles:
+- [mon.a]
+- [mon.b]
+- [mds.a]
+- [osd.0, osd.1, osd.2]
+- [osd.3, osd.4, osd.5, client.0]
