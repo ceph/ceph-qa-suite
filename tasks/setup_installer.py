@@ -28,6 +28,10 @@ def setup_installer(ctx, config):
             rhscon_repo = config.get('rhscon_repo')
             ctx.cluster.run(args=['sudo', 'rm', run.Raw('/etc/yum.repos.d/*')],
                             check_status=False)
+            #remove old systemd files, known issue
+            ctx.cluster.run(args=['sudo', 'rm', '-rf',
+                                  run.Raw('/etc/systemd/system/ceph*')],
+                            check_status=False)
             ceph_installer.run(
                     args=[
                         'sudo',
