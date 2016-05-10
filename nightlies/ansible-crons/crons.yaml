@@ -1,0 +1,53 @@
+# *** SEPIA LAB ***
+- hosts: teuthology.front.sepia.ceph.com
+  vars:
+    qa_email: "-e ceph-qa@ceph.com"
+    cron_wrapper: "/home/teuthology/bin/cron_wrapper"
+    sepia_cron_user: "teuthology"
+    rados_command: "/home/teuthology/bin/schedule_rados.sh"
+
+    suites:
+
+      rgw:
+        name: rgw
+        weekday: 1,6
+        hour: 17
+        min: 05
+        kernel: -k distro
+        priority: -p 100
+        filter:
+        subset:
+
+      fs:
+        name: fs
+        weekday: 1,6
+        hour: 17
+        min: 10
+        kernel:
+        priority:
+        filter:
+        subset:
+
+      rados:
+        name: rados
+        weekday: 2,7
+        hour: 17
+        min: 15
+        kernel:
+        priority:
+        filter:
+        # this case for rados can me done manually for now
+        subset: --subset $(echo "(($(date +%U) % 4) * 7) + CHANGE TO 0...6" | bc)/28
+
+  tasks:
+  - name: "suite {{item.key}} on branch: MASTER"
+    cron:
+      #the line below will be supported in v2.0
+      #cronvar: name="EMAIL" value="yweinste@redhat.com"
+      user: "{{sepia_cron_user}}"
+      name: "suite: {{item.value.name}}  branch: master"
+      hour: "{{item.value.hour}}"
+      minute: "#{{item.value.min}}"
+      weekday: "{{item.value.weekday}}"
+      job: "{{cron_wrapper}} teuthology-suite -v -c master -m smithi -s {{item.value.name}} {{item.value.kernel}} {{item.value.subset}} {{qa_email}} {{item.value.priority}}"
+    with_dict: "{{suites}}"
