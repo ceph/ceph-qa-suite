@@ -1,0 +1,14 @@
+tasks:
+- install: null
+- ceph:
+    fs: xfs
+- exec:
+    client.0:
+      - git clone http://gitlab.lab.eng.rdu2.redhat.com/ceph/ceph-qe-scripts.git
+      - sudo python ceph-qe-scripts/openstack/regression/install/Install_osp.py -pid 8a85f9823e3d5e43013e3ddd4e2a0977 -r rhel-7-server-rpms rhel-7-server-rh-common-rpms rhel-7-server-openstack-7.0-rpms
+      - sudo python ceph-qe-scripts/openstack/regression/install/configure_admin.py -ip images -vp volumes -bp backups -vmp vms
+      - sudo python ceph-qe-scripts/openstack/regression/install/configure_osp.py -ip images -vp volumes -bp backups -vmp vms
+      - sudo python ceph-qe-scripts/openstack/regression/test_bootable_vol.py
+      - sudo cp ceph-qe-scripts/openstack/osp_cleanup.sh .
+      - sudo sh osp_cleanup.sh
+      - sudo rm -rf osp_cleanup.sh
