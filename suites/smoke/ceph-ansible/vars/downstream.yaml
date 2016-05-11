@@ -7,3 +7,4 @@ overrides:
       journal_collocation: true
       journal_size: 1024
       osd_auto_discovery: false
+      ceph_test: true
