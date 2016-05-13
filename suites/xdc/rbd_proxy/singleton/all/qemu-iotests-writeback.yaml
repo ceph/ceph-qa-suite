@@ -1,0 +1,17 @@
+exclude_arch: armv7l
+roles:
+- [mon.a, osd.0, osd.1, client.0]
+tasks:
+- install:
+- install:
+    project: xsky-xdc
+    branch: master
+- ceph:
+    conf:
+      client:
+        rbd cache: true
+        xdc_proxy_feature: true
+        xdc_proxy_process_name: qemu-kvm
+- workunit:
+    clients:
+      all: [rbd/qemu-iotests.sh]

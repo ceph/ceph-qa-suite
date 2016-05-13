@@ -1,0 +1,11 @@
+tasks:
+- install:
+- install:
+    project: xsky-xdc
+    branch: master
+- ceph:
+    conf:
+      client:
+        rbd cache: true
+        xdc_proxy_feature: true
+        xdc_proxy_process_name: qemu-kvm
