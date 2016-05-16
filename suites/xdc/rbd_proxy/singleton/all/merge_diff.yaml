@@ -1,0 +1,18 @@
+roles:
+- [mon.a, osd.0, osd.1, client.0]
+overrides:
+  ceph:
+    conf:
+      client:
+        rbd_cache: false
+        xdc_proxy_feature: true
+        xdc_proxy_process_name: qemu-kvm
+tasks:
+- install:
+- install:
+    project: xsky-xdc
+    branch: master
+- ceph:
+- workunit:
+    clients:
+      all: [rbd/merge_diff.sh]

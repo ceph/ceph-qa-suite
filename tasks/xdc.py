@@ -7,12 +7,21 @@ Assumptions made:
 """
 import logging
 import contextlib
+import socket
 
 from teuthology import misc as teuthology
 from teuthology import contextutil
 
 log = logging.getLogger(__name__)
 
+def _get_remote_ip(remotes):
+     """
+     Get remote name that is associated with the client specified.
+     """
+     rem_name = remotes.name
+     rem_name = rem_name[rem_name.find('@') + 1:]
+     ip = socket.gethostbyname(rem_name)
+     return ip
 
 @contextlib.contextmanager
 def start_xdc_remotes(ctx, start_xdcd):
@@ -26,7 +35,15 @@ def start_xdc_remotes(ctx, start_xdcd):
             if _id in start_xdcd:
                 if not rem in xdcd_list:
                     xdcd_list.append(rem)
+		    localIP = _get_remote_ip(rem)
+		    portal = localIP + ":3260"
                     size = ctx.config.get('image_size', 10240)
+		    rem.run(
+                        args=[
+                            'service',
+                            'xsky-xdc',
+                            'restart',
+                        ])
                     rem.run(
                         args=[
                             'rbd',
@@ -34,8 +51,8 @@ def start_xdc_remotes(ctx, start_xdcd):
                             'iscsi-image',
                             '--size',
                             str(size),
-                    ])
-					rem.run(
+                        ])
+		    rem.run(
                         args=[
                             'sudo',
                             'xdcadm',
@@ -49,7 +66,7 @@ def start_xdc_remotes(ctx, start_xdcd):
                             '1',
                             '--servernode',
                             'xdchost',
-							'--boardid',
+		  	    '--boardid',
                             '0',
                         ])
                     rem.run(
@@ -66,10 +83,10 @@ def start_xdc_remotes(ctx, start_xdcd):
                             '1',
                             '--iqn',
                             'iqn.2003-01.org',
-							'--iqn',
+			    '--type',
                             'iscsi',
                         ])
-					rem.run(
+		    rem.run(
                         args=[
                             'sudo',
                             'xdcadm',
@@ -83,8 +100,8 @@ def start_xdc_remotes(ctx, start_xdcd):
                             '1',
                             '--iqn',
                             'iqn.2003-01.org',
-							'--port',
-                            '127.0.0.1:3260',
+			    '--port',
+                            portal,
                         ])
                     rem.run(
                         args=[
@@ -100,9 +117,9 @@ def start_xdc_remotes(ctx, start_xdcd):
                             'iscsi-image',
                             '--lunsn',
                             '1134321edf',
-							'--lunsize',
+			    '--lunsize',
                             '10737418240',
-							'--luncfg',
+			    '--luncfg',
                             'ceph/rbd/iscsi-image',
                         ])
                     rem.run(
@@ -111,7 +128,7 @@ def start_xdc_remotes(ctx, start_xdcd):
                             'xdcadm',
                             '--lld',
                             'at',
-							'--mode',
+			    '--mode',
                             'lun',
                             '--op',
                             'add',                            
@@ -119,7 +136,7 @@ def start_xdc_remotes(ctx, start_xdcd):
                             '1',
                             '--lunname',
                             'iscsi-image',
-							'--lunid',
+			    '--lunid',
                             '0',
                         ])
     try:
@@ -128,80 +145,80 @@ def start_xdc_remotes(ctx, start_xdcd):
     finally:
         for rem in xdcd_list:
             rem.run(
-				args=[
-					'sudo',
-					'xdcadm',
-					'--lld',
-					'at',
-					'--mode',
-					'lun',
-					'--op',
-					'remove',                            
-					'--atid',
-					'1',
-					'--lunname',
-					'iscsi-image',
-					'--lunid',
-					'0',
-				])
-			rem.run(
-				args=[
-					'sudo',
-					'xdcadm',
-					'--lld',
-					'at',
-					'--mode',
-					'lun',
-					'--op',
-					'delete',
-					'--lunname',
-					'iscsi-image',
-				])
-			rem.run(
-				args=[
-					'sudo',
-					'xdcadm',
-					'--lld',
-					'at',
-					'--mode',
-					'target',
-					'--op',
-					'remove',
-					'--atid',
-					'1',
-					'--iqn',
-					'iqn.2003-01.org',
-					'--port',
-					'127.0.0.1:3260',
-				])
-			rem.run(
-				args=[
-					'sudo',
-					'xdcadm',
-					'--lld',
-					'at',
-					'--mode',
-					'target',
-					'--op',
-					'delete',
-					'--atid',
-					'1',
-					'--iqn',
-					'iqn.2003-01.org',
-				])
-			rem.run(
-				args=[
-					'sudo',
-					'xdcadm',
-					'--lld',
-					'at',
-					'--mode',
-					'at',
-					'--op',
-					'delete',
-					'--atid',
-					'1',
-				])
+		args=[
+		    'sudo',
+		    'xdcadm',
+		    '--lld',
+		    'at',
+		    '--mode',
+		    'lun',
+		    '--op',
+		    'remove',                            
+		    '--atid',
+		    '1',
+		    '--lunname',
+		    'iscsi-image',
+		    '--lunid',
+		    '0',
+		])
+	    rem.run(
+		args=[
+		    'sudo',
+		    'xdcadm',
+		    '--lld',
+		    'at',
+		    '--mode',
+		    'lun',
+		    '--op',
+		    'delete',
+		    '--lunname',
+		    'iscsi-image',
+		])
+	    rem.run(
+		args=[
+		    'sudo',
+		    'xdcadm',
+		    '--lld',
+		    'at',
+		    '--mode',
+		    'target',
+		    '--op',
+		    'remove',
+		    '--atid',
+		    '1',
+		    '--iqn',
+		    'iqn.2003-01.org',
+		    '--port',
+		    portal,
+		])
+	    rem.run(
+		args=[
+		    'sudo',
+		    'xdcadm',
+		    '--lld',
+		    'at',
+		    '--mode',
+		    'target',
+		    '--op',
+		    'delete',
+		    '--atid',
+		    '1',
+		    '--iqn',
+		    'iqn.2003-01.org',
+		])
+	    rem.run(
+		args=[
+		    'sudo',
+		    'xdcadm',
+		    '--lld',
+		    'at',
+		    '--mode',
+		    'at',
+		    '--op',
+		    'delete',
+		    '--atid',
+		    '1',
+		])
             rem.run(
                 args=[
                     'rbd',
