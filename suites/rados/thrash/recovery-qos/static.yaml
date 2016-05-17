@@ -1,0 +1,6 @@
+overrides:
+  ceph:
+    conf:
+      osd:
+        osd_recovery_throttle_mode: 1
+        osd_recovery_throttle_bw: 10485760
