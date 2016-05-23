@@ -42,35 +42,6 @@ def task(ctx, config):
 
     build_gsh="""
 git clone {repo} -b {branch}
-pushd nfs-ganesha
-git checkout ${commit} -b "working-{commit}"
-
-# the latest dev-2.3 still has the ntirpc submodule--this
-# shoudn't stop working, though
-git submodule update --init --recursive
-mkdir build
-pushd build
-
-CEPH_PREFIX="/cache/ceph-rgw"
-GANESHA_PREFIX="/opt/ganesha"
-
-# build ceph with only Ceph FSAL support--we won't be using VFS,
-# so save a few cycles
-cmake -DCMAKE_INSTALL_PREFIX="{gsh_prefix}"  \
-    -DUSE_FSAL_CEPH=ON \
-    -DUSE_FSAL_PROXY=OFF \
-    -DUSE_FSAL_GPFS=OFF \
-    -DUSE_FSAL_ZFS=OFF \
-    -DUSE_FSAL_LUSTRE=ON \
-    -DUSE_FSAL_XFS=OFF \
-    -DUSE_FSAL_VFS=OFF \
-    -DUSE_FSAL_PANFS=OFF \
-    -DUSE_FSAL_GLUSTER=OFF \
-    -DCEPH_PREFIX="{ceph_prefix}" \
-    -DCMAKE_C_FLAGS="-O2 -g -gdwarf-4" \
-    ../src
-
-make && make install
 """.format(repo=repo,branch=branch,commit=commit,gsh_prefix=gsh_prefix,ceph_prefix=ceph_prefix)
 
     clients = ctx.cluster.only(teuthology.is_type('client'))
