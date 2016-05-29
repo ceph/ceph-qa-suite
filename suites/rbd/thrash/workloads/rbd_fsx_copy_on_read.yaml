@@ -6,5 +6,5 @@ overrides:
   ceph:
     conf:
       client:
-        rbd cache: true
+        rbd cache: false
         rbd clone copy on read: true
