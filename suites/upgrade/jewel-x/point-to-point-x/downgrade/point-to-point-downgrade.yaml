@@ -3,7 +3,8 @@ meta:
    Run ceph on two nodes, using one of them as a client,
    with a separate client-only node. 
    Use xfs beneath the osds.
-   install ceph/jewel tip latest version
+   install -x latest version
+   expected -x must be a post-jewel branch, e.g. jewel or master
    run workload and upgrade-sequence in parallel
    install/downgrade to ceph/v10.2.0 point version
    run workload and upgrade-sequence in parallel
@@ -39,9 +40,10 @@ openstack:
     count: 3
     size: 30 # GB
 tasks:
-- print: "****  jewel tip about to install"
+- print: "****  -x about to install"
 - install:
-    branch: jewel
+    # install -x
+    #branch: jewel
 - print: "**** done jewel tip install"
 - ceph:
    fs: xfs
@@ -61,6 +63,7 @@ tasks:
 - install.upgrade:
     client.1:
        tag: v10.2.0
+- print: "**** install.upgrade v10.2.0 on client.1"
 - workunit:
     clients:
       client.1:
@@ -74,11 +77,11 @@ workload:
        clients:
          client.0:
            - suites/blogbench.sh
-   - print: "**** done initial workload"
+   - print: "**** done initial workload test"
 workload_v10.2.0:
    full_sequential:
    - workunit:
-       branch: jewel
+       tag: v10.2.0
        clients:
          client.1:
          - rados/test.sh
