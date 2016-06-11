@@ -40,9 +40,10 @@ def task(ctx, config):
     if config.get('commit-sha') is not None:
         commit = config.get('commit-sha')
 
-    build_gsh="""
-git clone {repo} -b {branch}
-""".format(repo=repo,branch=branch,commit=commit,gsh_prefix=gsh_prefix,ceph_prefix=ceph_prefix)
+    build_gsh = ['git', 'clone', repo, , '-b', branch]
+    
+#"""git clone {repo} -b {branch}
+#""".format(repo=repo,branch=branch,commit=commit,gsh_prefix=gsh_prefix,ceph_prefix=ceph_prefix)
 
     clients = ctx.cluster.only(teuthology.is_type('client'))
     log.debug('clients is %r', clients)
