@@ -24,6 +24,7 @@ def task(ctx, config):
     :param ctx: Context
     :param config: Configuration
     """
+    testdir = teuthology.get_testdir(ctx)
     assert isinstance(config, dict)
 
     # cons up a build script and run it
@@ -40,10 +41,32 @@ def task(ctx, config):
     if config.get('commit-sha') is not None:
         commit = config.get('commit-sha')
 
-    build_gsh = ['git', 'clone', repo, , '-b', branch]
+    build_gsh = ['cd', testdir, '&&', 'git', 'clone', repo, , '-b', branch]
+    go_to_nfsdir = ['pushd', 'nfs-ganesha']
+    git_checkout_cmd = ['git', 'checkout', '${commit}', '-b', '"working-{commit}"']
     
-#"""git clone {repo} -b {branch}
-#""".format(repo=repo,branch=branch,commit=commit,gsh_prefix=gsh_prefix,ceph_prefix=ceph_prefix)
+    # the latest dev-2.3 still has the ntirpc submodule--this
+    # shoudn't stop working, though
+    git_submodule_cmd = ['git', 'submodule', 'update', '--init', '--recursive']
+    go_to_builddir = ['mkdir', 'build', '&&', 'pushd', 'build']
+    
+    # build ceph with only Ceph FSAL support--we won't be using VFS,
+    # so save a few cycles
+    cmake_command = ['cmake', 
+        '-DCMAKE_INSTALL_PREFIX="{gsh_prefix}"',
+        '-DUSE_FSAL_CEPH=ON',
+        '-DUSE_FSAL_PROXY=OFF',
+        '-DUSE_FSAL_GPFS=OFF',
+        '-DUSE_FSAL_ZFS=OFF',
+        '-DUSE_FSAL_LUSTRE=ON',
+        '-DUSE_FSAL_XFS=OFF',
+        '-DUSE_FSAL_VFS=OFF',
+        '-DUSE_FSAL_PANFS=OFF',
+        '-DUSE_FSAL_GLUSTER=OFF',
+        '-DCEPH_PREFIX="{ceph_prefix}"',
+        '-DCMAKE_C_FLAGS=\"-O2', '-g', '-gdwarf-4"',
+        '../src']
+    make_cmd = ['make', '&&', 'make', 'install']
 
     clients = ctx.cluster.only(teuthology.is_type('client'))
     log.debug('clients is %r', clients)
@@ -57,4 +80,10 @@ def task(ctx, config):
            )
 
         finally:
+            remote[0].run(
+                logger=log.getChild(role),
+                args=[
+                    'rm', '-rf', '--', 'testdir/next',
+                ],
+            )
             pass
