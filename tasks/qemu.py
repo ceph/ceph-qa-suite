@@ -182,7 +182,7 @@ def _setup_nfs_mount(remote, client, mount_dir):
     )
     remote.run(args=[
         'echo', export, run.Raw("|"),
-        'sudo', 'tee', '-a', "/etc/exports",
+        'sudo', 'tee', "/etc/exports",
     ])
     log.info("Restarting NFS...")
     if remote.os.package_type == "deb":
