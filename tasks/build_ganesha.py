@@ -41,7 +41,6 @@ def task(ctx, config):
     if config.get('commit-sha') is not None:
         commit = config.get('commit-sha')
 
-    build_gsh = ['cd', testdir, '&&', 'git', 'clone', repo, '-b', branch]
     go_to_nfsdir = ['pushd', 'nfs-ganesha']
     git_checkout_cmd = ['git', 'checkout', '${commit}', '-b', '"working-{commit}"']
     
@@ -70,19 +69,22 @@ def task(ctx, config):
 
     clients = ctx.cluster.only(teuthology.is_type('client'))
     log.debug('clients is %r', clients)
+    #build_gsh = ['cd', testdir, '&&', 'git', 'clone', repo, '-b', branch]
+
     for remote in clients.remotes.iteritems():
         log.debug('remote is %r', remote)
         try:
            remote[0].run(
                args=[
-                   build_gsh,
+                   'cd', '{tdir}'.format(tdir=testdir), run.Raw('&&'), 
+                   'git', 'clone', repo, '-b', 'next', 'next_branch'
                ],
            )
 
         finally:
-            remote[0].run(
-                args=[
-                    'rm', '-rf', '--', 'testdir/next',
-                ],
-            )
+            #remote[0].run(
+            #    args=[
+            #        'rm', '-rf', '--', 'testdir/next',
+            #    ],
+            #)
             pass
