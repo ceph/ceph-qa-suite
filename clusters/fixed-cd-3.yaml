@@ -1,0 +1,24 @@
+overrides:
+  ceph-deploy:
+    fs: xfs
+    conf:
+      client:
+        log file: /var/log/ceph/ceph-$name.$pid.log
+      mon:
+        debug mon: 1
+        debug ms: 20
+        debug paxos: 20
+      osd:
+        debug filestore: 20
+        debug journal: 20
+        debug ms: 1
+        debug osd: 20
+        osd op thread timeout: 60
+        osd sloppy crc: true
+      global:
+        mon pg warn min per osd: 2
+        osd pool default size: 2
+roles:
+- [mon.a, osd.0, osd.1, osd.2]
+- [mon.b, osd.3, osd.4, osd.5]
+- [client.0]
