@@ -1066,7 +1066,7 @@ class CephManager:
             '0')
 
     def wait_run_admin_socket(self, service_type,
-                              service_id, args=['version'], timeout=100):
+                              service_id, args=['version'], timeout=75):
         """
         If osd_admin_socket call suceeds, return.  Otherwise wait
         five seconds and try again.
@@ -1080,12 +1080,6 @@ class CephManager:
             else:
                 tries += 1
                 if (tries * 5) > timeout:
-                    while True:
-                        self.log("timed out waiting for \
-                                {type}.{id}".format(type=service_type,
-			                            id=service_id))
-	                self.log("Sleep until further debug")
-	                time.sleep(900)
                     raise Exception('timed out waiting for admin_socket '
                                     'to appear after {type}.{id} restart'.
                                     format(type=service_type,
