@@ -81,7 +81,6 @@ def task(ctx, config):
 
         finally:
             remote[0].run(
-                logger=log.getChild(role),
                 args=[
                     'rm', '-rf', '--', 'testdir/next',
                 ],
