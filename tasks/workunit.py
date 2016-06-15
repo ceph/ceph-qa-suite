@@ -290,8 +290,9 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
     srcdir = '{tdir}/workunit.{role}'.format(tdir=testdir, role=role)
     clonedir = '{tdir}/clone'.format(tdir=testdir)
 
-    git_url = teuth_config.get_ceph_git_url()
-    if 'github.com/ceph/ceph' in git_url:
+    # git_url = teuth_config.get_ceph_git_url()
+    # if 'github.com/ceph/ceph' in git_url:
+    if True:
         remote.run(
             logger=log.getChild(role),
             args=[
