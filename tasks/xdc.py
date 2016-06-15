@@ -40,6 +40,7 @@ def start_xdc_remotes(ctx, start_xdcd):
                     size = ctx.config.get('image_size', 10240)
 		    rem.run(
                         args=[
+                            'sudo',
                             'service',
                             'xsky-xdc',
                             'restart',
@@ -131,7 +132,7 @@ def start_xdc_remotes(ctx, start_xdcd):
 			    '--mode',
                             'lun',
                             '--op',
-                            'add',                            
+                            'add',
                             '--atid',
                             '1',
                             '--lunname',
@@ -153,7 +154,7 @@ def start_xdc_remotes(ctx, start_xdcd):
 		    '--mode',
 		    'lun',
 		    '--op',
-		    'remove',                            
+		    'remove',
 		    '--atid',
 		    '1',
 		    '--lunname',
@@ -261,7 +262,7 @@ def task(ctx, config):
             client.3:
 
     An image blocksize size can also be specified::
-        
+
         tasks:
         - ceph:
         - xdc:
