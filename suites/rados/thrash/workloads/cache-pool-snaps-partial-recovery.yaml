@@ -1,0 +1,37 @@
+overrides:
+  ceph:
+    log-whitelist:
+      - must scrub before tier agent can activate
+    conf:
+      global:
+        osd_recovery_max_chunk: 8388608
+        osd_recover_unmodified_extents_limit: 1024
+tasks:
+- exec:
+    client.0:
+      - ceph osd pool create base 4
+      - ceph osd pool create cache 4
+      - ceph osd tier add base cache
+      - ceph osd tier cache-mode cache writeback
+      - ceph osd tier set-overlay base cache
+      - ceph osd pool set cache hit_set_type bloom
+      - ceph osd pool set cache hit_set_count 8
+      - ceph osd pool set cache hit_set_period 3600
+      - ceph osd pool set cache target_max_objects 250
+- rados:
+    clients: [client.0]
+    pools: [base]
+    ops: 5000
+    objects: 500
+    pool_snaps: true
+    op_weights:
+      read: 100
+      write: 100
+      delete: 3
+      copy_from: 3
+      flush: 3
+      try_flush: 3
+      evict: 3
+      snap_create: 3
+      snap_remove: 3
+      rollback: 3
