@@ -1,5 +1,5 @@
 tasks:
 - qemu:
     all:
-      test: http://git.ceph.com/?p=ceph.git;a=blob_plain;f=qa/workunits/suites/bonnie.sh
+      test: http://gitlab.xsky.com/infrastructure/ceph-qa-test/raw/xsky-master/qa/workunits/suites/bonnie.sh
 exclude_arch: armv7l
