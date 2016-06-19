@@ -16,4 +16,4 @@ tasks:
 - cram:
     clients:
       client.0:
-      - http://git.ceph.com/?p=ceph.git;a=blob_plain;hb=hammer;f=src/test/cli-integration/rbd/formatted-output.t
+      - http://gitlab.xsky.com/infrastructure/ceph-qa-test/raw/xsky-master/test/cli-integration/rbd/formatted-output.t
