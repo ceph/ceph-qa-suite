@@ -1,0 +1,21 @@
+overrides:
+  ceph:
+    crush_tunables: optimal
+    conf:
+      global:
+        osd_recovery_max_chunk: 8388608
+        osd_recover_unmodified_extents_limit: 1024
+tasks:
+- rados:
+    clients: [client.0]
+    ops: 4000
+    objects: 500
+    pool_snaps: true
+    op_weights:
+      read: 100
+      write: 100
+      delete: 3
+      snap_create: 3
+      snap_remove: 3
+      rollback: 3
+      copy_from: 3
