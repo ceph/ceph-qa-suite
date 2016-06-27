@@ -27,6 +27,7 @@ codename=$2
 git_ceph_url=$3
 sha1=$4
 flavor=$5
+arch=$6
 
 sudo apt-get update
 sudo apt-get install -y git
@@ -68,10 +69,17 @@ function build_package() {
     # options (otherwise parts of the source tree will be left out).
     #
     ./autogen.sh
+    # Building with LTTNG on Ubuntu Precise is not possible.
+    # It fails the LTTNG-is-sane check (it misses headers)
+    # And the Debian rules files leave it out anyway
+    case $codename in
+	precise) lttng_opt="--without-lttng" ;;
+	*) lttng_opt="--with-lttng" ;;
+    esac
     ./configure $(flavor2configure $flavor) \
         --with-rocksdb --with-ocf \
         --with-nss --with-debug --enable-cephfs-java \
-        --with-lttng --with-babeltrace
+        $lttng_opt --with-babeltrace
     #
     # use distdir= to set the name of the top level directory of the
     # tarbal to match the desired version
@@ -102,15 +110,11 @@ function build_package() {
         DEBEMAIL="contact@ceph.com" dch -D $codename --force-distribution -b -v "$dvers" "new version"
     fi
     #
-    # create the packages
-    # a) with ccache to speed things up when building repeatedly
-    # b) do not sign the packages
-    # c) use half of the available processors
+    # create the packages (with ccache)
     #
-    if test $NPROC -gt 1 ; then
-        j=-j${NPROC}
-    fi
-    PATH=/usr/lib/ccache:$PATH dpkg-buildpackage $j -uc -us
+    export CEPH_EXTRA_CONFIGURE_ARGS=$(flavor2configure $flavor)
+    j=$(maybe_parallel $NPROC $vers)
+    PATH=/usr/lib/ccache:$PATH dpkg-buildpackage $j -uc -us -sa
 }
 
 function build_repo() {
@@ -122,7 +126,6 @@ function build_repo() {
     # Create a repository in a directory with a name structured
     # as
     #
-    arch=x86_64
     base=ceph-deb-$codename-$arch-$flavor
     sha1_dir=$codename/$base/sha1/$sha1
     mkdir -p $sha1_dir/conf
@@ -130,19 +133,15 @@ function build_repo() {
 Codename: $codename
 Suite: stable
 Components: main
-Architectures: i386 amd64 source
+Architectures: i386 amd64 arm64 source
 EOF
     reprepro --basedir $sha1_dir include $codename WORKDIR/*.changes
     echo $dvers > $sha1_dir/version
     echo $sha1 > $sha1_dir/sha1
-    ref_dir=$codename/$base/ref
-    mkdir -p $ref_dir
-    ( cd ${ceph_dir} ; git for-each-ref refs/tags/** refs/remotes/origin/** ) | grep $sha1 | while read sha1 type ref ; do
-        base_ref=$(basename $ref)
-        ( cd $ref_dir ; ln -sf ../sha1/$sha1 $base_ref )
-    done
+    link_same $codename/$base/ref $ceph_dir $sha1
     if test "$gitbuilder_host" ; then
         cd $codename
+        sudo apt-get install -y rsync
         RSYNC_RSH='ssh -o StrictHostKeyChecking=false' rsync -av $base/ $gitbuilder_host:/usr/share/nginx/html/$base/
     fi
 }

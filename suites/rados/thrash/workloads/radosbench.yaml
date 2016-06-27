@@ -8,5 +8,5 @@ overrides:
 tasks:
 - radosbench:
     clients: [client.0]
-    time: 1800
+    time: 300
     objects: 6000
