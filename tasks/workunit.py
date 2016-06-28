@@ -6,7 +6,6 @@ import pipes
 import os
 
 from teuthology import misc
-from teuthology.config import config as teuth_config
 from teuthology.orchestra.run import CommandFailedError
 from teuthology.parallel import parallel
 from teuthology.orchestra import run
@@ -71,9 +70,9 @@ def task(ctx, config):
 
     refspec = config.get('branch')
     if refspec is None:
-        refspec = config.get('tag')
-    if refspec is None:
         refspec = config.get('sha1')
+    if refspec is None:
+        refspec = config.get('tag')
     if refspec is None:
         refspec = 'HEAD'
 
@@ -288,43 +287,6 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
     else:
         scratch_tmp = os.path.join(mnt, subdir)
     srcdir = '{tdir}/workunit.{role}'.format(tdir=testdir, role=role)
-    clonedir = '{tdir}/clone'.format(tdir=testdir)
-
-    # git_url = teuth_config.get_ceph_git_url()
-    # if 'github.com/ceph/ceph' in git_url:
-    if True:
-        remote.run(
-            logger=log.getChild(role),
-            args=[
-                'mkdir', '--', srcdir,
-                run.Raw('&&'),
-                'git',
-                'archive',
-                '--remote=git://git.ceph.com/ceph.git',
-                '%s:qa/workunits' % refspec,
-                run.Raw('|'),
-                'tar',
-                '-C', srcdir,
-                '-x',
-                '-f-',
-            ],
-        )
-    else:
-        remote.run(
-            logger=log.getChild(role),
-            args=[
-                'git',
-                'clone',
-                git_url,
-                clonedir,
-                run.Raw(';'),
-                'cd', '--', clonedir,
-                run.Raw('&&'),
-                'git', 'checkout', refspec,
-                run.Raw('&&'),
-                'mv', 'qa/workunits', srcdir,
-            ],
-        )
 
     remote.run(
         logger=log.getChild(role),
@@ -350,8 +312,9 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
         ],
     )
 
-    workunits_file = '{tdir}/workunits.list.{role}'.format(tdir=testdir, role=role)
-    workunits = sorted(misc.get_file(remote, workunits_file).split('\0'))
+    workunits = sorted(misc.get_file(
+        remote,
+        '{tdir}/workunits.list.{role}'.format(tdir=testdir, role=role)).split('\0'))
     assert workunits
 
     try:
@@ -406,6 +369,6 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
         remote.run(
             logger=log.getChild(role),
             args=[
-                'rm', '-rf', '--', workunits_file, srcdir, clonedir,
+                'rm', '-rf', '--', '{tdir}/workunits.list.{role}'.format(tdir=testdir, role=role), srcdir,
             ],
         )

@@ -3,9 +3,6 @@ roles:
 tasks:
 - install:
 - ceph:
-    conf:
-      client:
-        rbd validate pool: false
 - workunit:
     clients:
       all:

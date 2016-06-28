@@ -28,7 +28,6 @@ codename=$2
 git_ceph_url=$3
 sha1=$4
 flavor=$5
-arch=$6
 
 sudo yum install -y git
 
@@ -47,13 +46,15 @@ releasedir=$base/$(lsb_release -si)/WORKDIR
 # c) compares higher than any previous commit
 # d) contains the short hash of the commit
 #
-vers=$(git describe --match "v*" | sed s/^v//)
+vers=$(git describe --long --match "v*" | sed s/^v//)
+: ${NPROC:=$(nproc)}
 ceph_dir=$(pwd)
 
 #
 # Create a repository in a directory with a name structured
 # as
 #
+arch=x86_64
 base=ceph-rpm-$codename-$arch-$flavor
 
 function setup_rpmmacros() {
@@ -104,7 +105,7 @@ function build_package() {
         ccache=$(echo /usr/lib*/ccache)
         # Build RPMs
         buildarea=`readlink -fn ${releasedir}`   ### rpm wants absolute path
-        PATH=$ccache:$PATH rpmbuild -ba --define "_unpackaged_files_terminate_build 0" --define "_topdir ${buildarea}" ceph.spec
+        PATH=$ccache:$PATH rpmbuild -ba --define "_topdir ${buildarea}" ceph.spec
     )
 }
 
@@ -230,7 +231,12 @@ function build_rpm_repo() {
         cp -fla ${dir} $sha1_dir
     done
 
-    link_same ${buildarea}/../$codename/$base/ref $ceph_dir $sha1
+    ref_dir=${buildarea}/../$codename/$base/ref
+    mkdir -p $ref_dir
+    ( cd ${ceph_dir} ; git for-each-ref refs/tags/** refs/remotes/origin/** ) | grep $sha1 | while read sha1 type ref ; do
+        base_ref=$(basename $ref)
+        ( cd $ref_dir ; ln -sf ../sha1/$sha1 $base_ref )
+    done
     if test "$gitbuilder_host" ; then
         (
             cd ${buildarea}/../$codename
