@@ -4,9 +4,6 @@ overrides:
     - scrub
     - scrub mismatch
     - ScrubResult
-    - failed to encode
-    - soft lockup
-    - detected stalls on CPUs
     fs: xfs
 roles:
 - - mon.a
@@ -20,4 +17,4 @@ roles:
   - osd.4
   - osd.5
   - client.0
-- - client.1
+  - client.1

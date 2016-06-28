@@ -1,9 +1,8 @@
 tasks:
 - sequential:
-  - rgw: [client.2]
-  - print: "**** done rgw: [client.2] 4-workload"
+  - rgw: [client.1]
+  - print: "**** done rgw: [client.1] 4-workload"
   - s3tests:
-      client.2:
-         force-branch: hammer
-         rgw_server: client.2
+      client.1:
+         rgw_server: client.1
   - print: "**** done s3tests 4-workload"

@@ -2,7 +2,7 @@ workload:
    sequential:
    - workunit:
        clients:
-         client.1:
+         client.0:
            - rbd/import_export.sh
        env:
          RBD_CREATE_ARGS: --new-format

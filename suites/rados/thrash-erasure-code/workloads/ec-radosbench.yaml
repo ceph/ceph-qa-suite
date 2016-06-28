@@ -1,7 +1,7 @@
 tasks:
 - radosbench:
     clients: [client.0]
-    time: 300
+    time: 1800
     objects: 6000
     unique_pool: true
     ec_pool: true

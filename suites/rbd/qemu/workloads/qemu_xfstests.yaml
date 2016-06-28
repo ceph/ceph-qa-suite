@@ -1,7 +1,6 @@
 tasks:
 - qemu:
     all:
-      clone: true
       type: block
       num_rbd: 2
       test: http://gitlab.xsky.com/infrastructure/ceph-qa-test/raw/xsky-master/qa/run_xfstests_qemu.sh

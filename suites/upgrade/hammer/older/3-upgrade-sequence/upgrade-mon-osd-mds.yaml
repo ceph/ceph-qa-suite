@@ -1,8 +1,7 @@
 upgrade-sequence:
    sequential:
    - install.upgrade:
-       mon.a:
-       mon.b:
+      all:
    - print: "**** done install.upgrade hammer"
    - ceph.restart: [mon.a]
    - sleep:

@@ -1,6 +1,5 @@
 tasks:
 - qemu:
     all:
-      clone: true
       test: http://gitlab.xsky.com/infrastructure/ceph-qa-test/raw/xsky-master/qa/workunits/suites/bonnie.sh
 exclude_arch: armv7l
