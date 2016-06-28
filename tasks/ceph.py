@@ -153,8 +153,7 @@ def ceph_log(ctx, config):
                 not (ctx.config.get('archive-on-error') and ctx.summary['success']):
             # and logs
             log.info('Compressing logs...')
-            run.wait(
-                ctx.cluster.run(
+            ctx.cluster.run(
                     args=[
                         'sudo',
                         'find',
@@ -171,9 +170,8 @@ def ceph_log(ctx, config):
                         'gzip',
                         '--',
                     ],
-                    wait=False,
-                ),
-            )
+                    check_status=False,
+                )
 
             log.info('Archiving logs...')
             path = os.path.join(ctx.archive, 'remote')
