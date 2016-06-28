@@ -709,12 +709,34 @@ def restart(ctx, config):
         for remote, roles in remotes_and_roles.iteritems():
             log.info("Restarting service on %s", remote.shortname)
             if remote.os.package_type == 'rpm':
-                remote.run(args=['sudo', '/etc/init.d/ceph', 'stop'], check_status=False)
-                remote.run(args=['sudo', 'systemctl', 'stop', 'ceph.service'])
-                log.info("Fix directory permission to be owned by ceph")
-                remote.run(args=['sudo', 'chmod', '-R', '/var/lib/ceph'])
-                remote.run(args=['sudo', 'systemctl', 'start', 'ceph.service'])
+                remote.run(args=['sudo', '/etc/init.d/ceph', 'restart'], check_status=False)
+                remote.run(args=['sudo', 'systemctl', 'restart', 'ceph.target'], check_status=False)
     yield
+
+
+def chowntoceph(remote):
+    if remote.os.package_type == 'rpm':
+        log.info("Fix directory permission to be owned by ceph")
+        remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/lib/ceph'])
+        remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/log/ceph'])
+        remote.run(args=['sudo', '/etc/init.d/ceph', 'stop'], check_status=False)
+        remote.run(args=['sudo', 'systemctl', 'stop', 'ceph.target'], check_status=False)
+
+
+def enable_restart_systemd(remote):
+    if remote.os.package_type == 'rpm':
+        log.info("Enable systemd files")
+        remote.run(args=['sudo', 'systemctl', 'stop', 'firewalld'])
+        remote.run(args=['sudo', 'systemctl', 'enable', 'ceph-osd.target'])
+        remote.run(args=['sudo', 'systemctl', 'enable', 'ceph-mon.target'])
+        remote.run(args=['sudo', 'systemctl', 'enable', 'ceph-radosgw.target'])
+        remote.run(args=['sudo', 'systemctl', 'enable', 'ceph.target'])
+        remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/lib/ceph'])
+        remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/log/ceph'])
+        remote.run(args=['sudo', 'systemctl', 'stop', 'ceph.target'])
+        time.sleep(5)
+        remote.run(args=['sudo', 'systemctl', 'start', 'ceph.target'])
+        time.sleep(5)
 
 
 @contextlib.contextmanager
@@ -725,9 +747,21 @@ def upgrade(ctx, config):
         for remote, roles in remotes_and_roles.iteritems():
             config['rhbuild-latest'] = ctx.config.get('rhbuild-latest')
             set_repo_simple(remote, config)
+            chowntoceph(remote)
             nodename = remote.shortname
             log.info("Upgrading ceph on  %s", nodename)
-            remote.run(args=['sudo', 'yum', 'install', '-y', 'ceph'])
+            remote.run(args=['sudo', 'yum', 'install', '-y', 'ceph-mon', 'ceph-osd', 'ceph-radosgw'])
+            log.info("Initiate auto relabel after reboot")
+            remote.run(args=['sudo', 'touch', run.Raw('/.autorelabel')])
+            log.info("Rebooting node %s", nodename)
+            try:
+                remote.run(args=['sudo', 'reboot'], wait=False)
+            except Exception:
+                log.info("Ignoring exceptions in reboot")
+            remote.reconnect(timeout=300)
+            time.sleep(30) # wait for sometime for services to start
+            remote.reconnect(timeout=60)
+            enable_restart_systemd(remote)
     yield
 
 
