@@ -1,6 +1,9 @@
 overrides:
   ceph:
     crush_tunables: legacy
+    config:
+      osd:
+        osd recovery max omap entries per chunk: 5
 tasks:
 - rados:
     clients: [client.0]
