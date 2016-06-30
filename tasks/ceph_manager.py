@@ -341,6 +341,16 @@ class Thrasher:
         self.dead_osds.append(osd)
         self.ceph_manager.blackhole_kill_osd(osd)
 
+    def network_blackhole_osd(self, osd=None, timeout=30):
+        """
+        If all else fails, blackhole the osd.
+        :param osd: Osd to be killed.
+        """
+        if osd is None:
+            osd = random.choice(self.live_osds)
+        self.log("Inject network blackholing osd %s" % str(osd))
+        self.ceph_manager.network_blackhole_osd(osd, timeout)
+
     def revive_osd(self, osd=None):
         """
         Revive the osd.
@@ -1673,6 +1683,13 @@ class CephManager:
                              'injectargs', '--filestore-blackhole')
         time.sleep(2)
         self.ctx.daemons.get_daemon('osd', osd).stop()
+
+    def network_blackhole_osd(self, osd, timeout):
+        """
+        Stop osd if nothing else works.
+        """
+        self.raw_cluster_cmd('--', 'tell', 'osd.%d' % osd,
+                             'injectargs', '--ms_blackhole_all=%d' % timeout)
 
     def revive_osd(self, osd, timeout=150):
         """
