@@ -384,6 +384,9 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
                 if env is not None:
                     for var, val in env.iteritems():
                         quoted_val = pipes.quote(val)
+                        if var == 'PYTHON':
+                            PYTHON=quoted_val
+                            continue
                         env_arg = '{var}={val}'.format(var=var, val=quoted_val)
                         args.append(run.Raw(env_arg))
                 args.extend([
@@ -392,6 +395,9 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
                     '{tdir}/archive/coverage'.format(tdir=testdir)])
                 if timeout and timeout != '0':
                     args.extend(['timeout', timeout])
+
+                args.extend(['env', '--', PYTHON])
+
                 args.extend([
                     '{srcdir}/{workunit}'.format(
                         srcdir=srcdir,

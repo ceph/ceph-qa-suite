@@ -22,6 +22,8 @@ tasks:
         debug rados: 20
 - rest-api: [client.0]
 - workunit:
+    env:
+      PYTHON: python2
     clients:
       client.0:
          - rest/test.py
