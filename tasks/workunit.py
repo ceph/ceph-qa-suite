@@ -7,7 +7,7 @@ import os
 
 from util import get_remote_for_role
 
-from teuthology import misc, get_system_type
+from teuthology import misc
 from teuthology.config import config as teuth_config
 from teuthology.orchestra.run import CommandFailedError
 from teuthology.parallel import parallel
@@ -304,7 +304,7 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
     PYTHON = env.get('PYTHON')
     if PYTHON:
         pip = 'pip3' if PYTHON == 'python3' else 'pip'
-        system_type = teuthology.get_system_type(remote)
+        system_type = misc.get_system_type(remote)
         sn = remote.shortname
         if system_type == 'rpm':
             log.info("Installing {python} package on {sn}".format(python=PYTHON,sn=sn))
@@ -316,7 +316,7 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
 
             remote.run(args=args)
 
-        else:
+        elif system_type == 'deb':
             log.info("Installing {python} package on {sn}".format(python=PYTHON, sn=sn))
             args = [
                 'sudo',
