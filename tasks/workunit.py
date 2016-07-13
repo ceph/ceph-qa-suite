@@ -7,7 +7,7 @@ import os
 
 from util import get_remote_for_role
 
-from teuthology import misc
+from teuthology import misc, get_system_type
 from teuthology.config import config as teuth_config
 from teuthology.orchestra.run import CommandFailedError
 from teuthology.parallel import parallel
@@ -300,6 +300,55 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
     assert type_ == 'client'
     remote = get_remote_for_role(ctx, role)
     mnt = _client_mountpoint(ctx, cluster, id_)
+
+    PYTHON = env.get('PYTHON')
+    if PYTHON:
+        pip = 'pip3' if PYTHON == 'python3' else 'pip'
+        system_type = teuthology.get_system_type(remote)
+        sn = remote.shortname
+        if system_type == 'rpm':
+            log.info("Installing {python} package on {sn}".format(python=PYTHON,sn=sn))
+            args = ['sudo', 'yum', 'install', '-y']
+            if PYTHON == 'python3':
+                args.extend(['python34'])
+            else:
+                args.extend(['python27'])
+
+            remote.run(args=args)
+
+        else:
+            log.info("Installing {python} package on {sn}".format(python=PYTHON, sn=sn))
+            args = [
+                'sudo',
+                'apt-get',
+                '-y',
+                '--force-yes',
+                'install', PYTHON
+            ]
+
+            remote.run(args=args)
+
+        log.info("Installing pip for {python} on {sn}".format(python=PYTHON, sn=sn))
+        args = [
+            'wget',
+            'https://bootstrap.pypa.io/get-pip.py',
+            run.Raw('&&'),
+            'sudo',
+            PYTHON,
+            'get-pip.py'
+        ]
+        remote.run(args=args)
+
+        log.info("Installing pip packages for {python} on {sn}".format(python=PYTHON, sn=sn))
+        args = [
+            'sudo',
+            pip,
+            'install',
+            '--upgrade',
+            'requests'
+        ]
+        remote.run(args=args)
+
     # subdir so we can remove and recreate this a lot without sudo
     if subdir is None:
         scratch_tmp = os.path.join(mnt, 'client.{id}'.format(id=id_), 'tmp')
