@@ -323,8 +323,11 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
                 'apt-get',
                 '-y',
                 '--force-yes',
-                'install', PYTHON
+                'install'
             ]
+
+            if PYTHON == 'python2':
+                args.extend(['python2.7'])
 
             remote.run(args=args)
 
@@ -334,6 +337,8 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
             'https://bootstrap.pypa.io/get-pip.py',
             run.Raw('&&'),
             'sudo',
+            '-H',
+            '--',
             PYTHON,
             'get-pip.py'
         ]
@@ -342,6 +347,8 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
         log.info("Installing pip packages for {python} on {sn}".format(python=PYTHON, sn=sn))
         args = [
             'sudo',
+            '-H',
+            '--',
             pip,
             'install',
             '--upgrade',
