@@ -1,0 +1,4 @@
+tasks:
+- exec:
+    all:
+      - 'sudo sed -i -e "1s,^\(#!/usr/bin.*python\)[0-9]*$,\12," /usr/bin/ceph'
