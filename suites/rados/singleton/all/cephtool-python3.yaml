@@ -12,9 +12,10 @@ openstack:
       size: 10 # GB
 tasks:
 - install:
+    extra_packages: [python3-cephfs, python3-rados, python3-rbd]
 - exec:
     all:
-      - 'sudo sed -i -e "1s,^\(#!/usr/bin.*python\)[0-9]*$,\12," /usr/bin/ceph'
+      - 'sudo sed -i -e "1s,^\(#!/usr/bin.*python\)[0-9]*$,\13," /usr/bin/ceph'
 - ceph:
     log-whitelist:
     - wrongly marked me down
