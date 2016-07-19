@@ -4,7 +4,7 @@ roles:
   - mon.c
   - osd.0
   - osd.1
-  - osd.2
+- - osd.2
   - osd.3
 openstack:
   - volumes: # attached to each instance
@@ -13,6 +13,7 @@ openstack:
 tasks:
 - install:
 - ceph:
+    fs: xfs
     log-whitelist:
     - objects unfound and apparently lost
 - ec_lost_unfound:
