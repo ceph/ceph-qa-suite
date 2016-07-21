@@ -463,7 +463,8 @@ def build_ceph_cluster(ctx, config):
         ctx.cluster.run(args=['sudo', 'ps', 'aux', run.Raw('|'),
                               'grep', '-v', 'grep', run.Raw('|'),
                               'grep', 'ceph'], check_status=False)
-
+        if 'modified_remotes' in ctx.config:
+            del ctx.config['modified_remotes'] 
         if ctx.archive is not None:
             # archive mon data, too
             log.info('Archiving mon data...')
