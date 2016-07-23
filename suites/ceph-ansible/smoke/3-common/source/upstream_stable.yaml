@@ -4,4 +4,8 @@ overrides:
   ceph_ansible:
     vars:
       ceph_origin: upstream
-      ceph_stable: true
+      ceph_conf_overrides:
+          global: 
+             osd default pool size: 2
+             osd pool default pg num: 128
+             osd pool default pgp num: 128
