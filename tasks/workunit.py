@@ -300,8 +300,11 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
     assert type_ == 'client'
     remote = get_remote_for_role(ctx, role)
     mnt = _client_mountpoint(ctx, cluster, id_)
+    PYTHON = None
 
-    PYTHON = env.get('PYTHON')
+    if env and isinstance(env, dict):
+        PYTHON = env.get('PYTHON')
+
     if PYTHON:
         pip = 'pip3' if PYTHON == 'python3' else 'pip'
         system_type = misc.get_system_type(remote)
