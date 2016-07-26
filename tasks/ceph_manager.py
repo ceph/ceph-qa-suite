@@ -396,17 +396,34 @@ class Thrasher:
         self.ceph_manager.mark_in_osd(osd)
         self.log("Added osd %s" % (str(osd),))
 
-    def reweight_osd(self, osd=None):
+    def reweight_osd_or_by_util(self, osd=None):
         """
         Reweight an osd that is in
         :param osd: Osd to be marked.
         """
-        if osd is None:
-            osd = random.choice(self.in_osds)
-        val = random.uniform(.1, 1.0)
-        self.log("Reweighting osd %s to %s" % (str(osd), str(val)))
-        self.ceph_manager.raw_cluster_cmd('osd', 'reweight',
-                                          str(osd), str(val))
+        if osd is not None or random.choice([True, False]):
+            if osd is None:
+                osd = random.choice(self.in_osds)
+            val = random.uniform(.1, 1.0)
+            self.log("Reweighting osd %s to %s" % (str(osd), str(val)))
+            self.ceph_manager.raw_cluster_cmd('osd', 'reweight',
+                                              str(osd), str(val))
+        else:
+            # do it several times, the option space is large
+            for i in range(5):
+                options = {
+                    'max_change': random.choice(['0.05', '1.0', '3.0']),
+                    'overage': random.choice(['110', '1000']),
+                    'type': random.choice([
+                        'reweight-by-utilization',
+                        'test-reweight-by-utilization']),
+                }
+                self.log("Reweighting by: %s"%(str(options),))
+                self.ceph_manager.raw_cluster_cmd(
+                    'osd',
+                    options['type'],
+                    options['overage'],
+                    options['max_change'])
 
     def primary_affinity(self, osd=None):
         if osd is None:
@@ -623,7 +640,7 @@ class Thrasher:
             actions.append((self.revive_osd, 1.0,))
         if self.config.get('thrash_primary_affinity', True):
             actions.append((self.primary_affinity, 1.0,))
-        actions.append((self.reweight_osd,
+        actions.append((self.reweight_osd_or_by_util,
                         self.config.get('reweight_osd', .5),))
         actions.append((self.grow_pool,
                         self.config.get('chance_pgnum_grow', 0),))
@@ -1258,7 +1275,8 @@ class CephManager:
             self.raw_cluster_cmd(*args)
 
     def create_pool_with_unique_name(self, pg_num=16,
-                                     erasure_code_profile_name=None):
+                                     erasure_code_profile_name=None,
+                                     min_size=None):
         """
         Create a pool named unique_pool_X where X is unique.
         """
@@ -1269,7 +1287,8 @@ class CephManager:
             self.create_pool(
                 name,
                 pg_num,
-                erasure_code_profile_name=erasure_code_profile_name)
+                erasure_code_profile_name=erasure_code_profile_name,
+                min_size=min_size)
         return name
 
     @contextlib.contextmanager
@@ -1279,7 +1298,8 @@ class CephManager:
         self.remove_pool(pool_name)
 
     def create_pool(self, pool_name, pg_num=16,
-                    erasure_code_profile_name=None):
+                    erasure_code_profile_name=None,
+                    min_size=None):
         """
         Create a pool named from the pool_name parameter.
         :param pool_name: name of the pool being created.
@@ -1299,6 +1319,11 @@ class CephManager:
             else:
                 self.raw_cluster_cmd('osd', 'pool', 'create',
                                      pool_name, str(pg_num))
+            if min_size is not None:
+                self.raw_cluster_cmd(
+                    'osd', 'pool', 'set', pool_name,
+                    'min_size',
+                    str(min_size))
             self.pools[pool_name] = pg_num
         time.sleep(1)
 
