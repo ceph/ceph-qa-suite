@@ -763,7 +763,7 @@ def upgrade(ctx, config):
             except Exception:
                 log.info("Ignoring exceptions in reboot")
             remote.reconnect(timeout=300)
-            time.sleep(30) # wait for sometime for services to start
+            time.sleep(120) # wait for sometime for services to start
             remote.reconnect(timeout=60)
             enable_restart_systemd(remote)
             if 'mon' in role:
