@@ -37,5 +37,13 @@ tasks:
     latest: true
     roles:
      - osd.3
-- crush-setup:
+- ceph.crush-setup:
     cluster: ceph
+- rbd_fio:
+    client.0:
+       fio-io-size: 90%
+       formats: [2]
+       features: [[layering]]
+       io-engine: sync
+       rw: randrw
+       runtime: 900
