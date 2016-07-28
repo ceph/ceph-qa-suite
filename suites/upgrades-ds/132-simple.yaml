@@ -40,7 +40,7 @@ tasks:
 - ceph.crush_setup:
     cluster: ceph
 - rbd_fio:
-    client.0:
+    client.1:
        fio-io-size: 90%
        formats: [2]
        features: [[layering]]
