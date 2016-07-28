@@ -47,7 +47,7 @@ tasks:
     latest: true
     roles:
      - osd.5
-- ceph.crush-setup:
+- ceph.crush_setup:
     cluster: ceph
 - rbd_fio:
     client.0:
