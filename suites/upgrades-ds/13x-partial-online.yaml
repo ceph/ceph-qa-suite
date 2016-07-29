@@ -42,9 +42,9 @@ upgrade-mon-osd:
   - sleep:
       duration: 60
   - ceph-deploy.upgrade:
-    latest: true
-    roles:
-     - osd.2
+      latest: true
+      roles:
+       - osd.2
 run-client-io:
   sequential:
   - rbd_fio:

@@ -54,17 +54,17 @@ tasks:
 upgrade-first-half:
   sequential:
   - ceph-deploy.upgrade:
-    latest: true
-    roles:
-     - mon.a
+      latest: true
+      roles:
+       - mon.a
   - sleep:
       duration: 60
 upgrade-second-half:
   sequential:
   - ceph-deploy.upgrade:
-    latest: true
-    roles:
-     - osd.2
+      latest: true
+      roles:
+       - osd.2
 upgrade-sequence:
   sequential:
   - upgrade-first-half
