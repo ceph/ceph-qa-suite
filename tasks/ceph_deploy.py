@@ -790,17 +790,17 @@ def upgrade(ctx, config):
                 remote.run(args=['sudo', 'systemctl', 'start', run.Raw('ceph-mon@`hostname`.service')])
                 time.sleep(5)
                 remote.run(args=['sudo', 'systemctl', 'status', run.Raw('ceph-mon@`hostname`.service')])
-                #remote.run(args=['sudo', 'ceph', 'osd', 'crush', 'tunables', 'optimal'])
             remote.run(args=['ps', run.Raw('-eaf'), run.Raw('|'), 'grep', 'ceph'])
-            with contextutil.safe_while(sleep=10, tries=6,
+    (remote,) = ctx.cluster.only('mon.a').remotes
+    with contextutil.safe_while(sleep=20, tries=6,
                                 action='check health') as proceed:
-                while proceed():
-                    r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
-                    out = r.stdout.getvalue()
-                    if (out.split(None, 1)[0] == 'HEALTH_OK'):
-                        break
-                    elif (out.split(None, 1)[0] == 'HEALTH_WARN'):
-                        break
+        while proceed():
+            r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
+            out = r.stdout.getvalue()
+            if (out.split(None, 1)[0] == 'HEALTH_OK'):
+                break
+            elif (out.split(None, 1)[0] == 'HEALTH_WARN'):
+                break
     yield
 
 
