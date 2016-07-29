@@ -47,12 +47,15 @@ upgrade-mon-osd:
        - osd.2
 run-client-io:
   sequential:
-  - rbd_fio:
-      client.0:
-        fio-io-size: 80%
-        formats: [2]
-        features: [1, 13]
-        io-engine: rbd
-        test-clone-io: 1
-        rw: randrw
-        runtime: 2400
+  - radosbench:
+      clients: [client.0]
+      time: 600
+  - radosbench:
+      clients: [client.0]
+      time: 600
+  - radosbench:
+      clients: [client.0]
+      time: 600
+  - radosbench:
+      clients: [client.0]
+      time: 600
