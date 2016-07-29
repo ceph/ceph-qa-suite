@@ -18,6 +18,7 @@ from teuthology.task import install as install_fn
 from teuthology.orchestra import run
 from tasks.cephfs.filesystem import Filesystem
 from tasks import set_repo
+from ceph_manager import CephManager
 from tasks.set_repo import set_repo_simple
 
 log = logging.getLogger(__name__)
@@ -433,6 +434,15 @@ def build_ceph_cluster(ctx, config):
         elif not config.get('only_mon'):
             raise RuntimeError(
                 "The cluster is NOT operational due to insufficient OSDs")
+        if not hasattr(ctx, 'managers'):
+            ctx.managers = {} 
+        (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
+        ctx.managers['ceph'] = CephManager(
+                mon,
+                ctx=ctx,
+                logger=log.getChild('ceph_manager.ceph'),
+                cluster='ceph',
+            )
         yield
 
     except Exception:
@@ -641,6 +651,15 @@ def cli_test(ctx, config):
     execute_cdeploy(admin, rgw_install, path)
     execute_cdeploy(admin, rgw_create, path)
     log.info('All ceph-deploy cli tests passed')
+    if not hasattr(ctx, 'managers'):
+        ctx.managers = {} 
+    (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
+    ctx.managers['ceph'] = CephManager(
+                mon,
+                ctx=ctx,
+                logger=log.getChild('ceph_manager.ceph'),
+                cluster='ceph',
+            )
     try:
         yield
     finally:
@@ -774,6 +793,15 @@ def upgrade(ctx, config):
                 remote.run(args=['sudo', 'systemctl', 'status', run.Raw('ceph-mon@`hostname`.service')])
                 #remote.run(args=['sudo', 'ceph', 'osd', 'crush', 'tunables', 'optimal'])
             remote.run(args=['ps', run.Raw('-eaf'), run.Raw('|'), 'grep', 'ceph'])
+            with contextutil.safe_while(sleep=10, tries=6,
+                                action='check health') as proceed:
+                while proceed():
+                    r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
+                    out = r.stdout.getvalue()
+                    if (out.split(None, 1)[0] == 'HEALTH_OK'):
+                        break
+                    elif (out.split(None, 1)[0] == 'HEALTH_WARN'):
+                        break
     yield
 
 
