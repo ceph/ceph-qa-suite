@@ -36,9 +36,9 @@ tasks:
 upgrade-mon-osd:
   sequential:
   - ceph-deploy.upgrade:
-    latest: true
-    roles:
-     - mon.a
+      latest: true
+      roles:
+       - mon.a
   - sleep:
       duration: 60
   - ceph-deploy.upgrade:
