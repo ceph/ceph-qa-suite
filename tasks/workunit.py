@@ -455,7 +455,8 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
                 if timeout and timeout != '0':
                     args.extend(['timeout', timeout])
 
-                args.extend(['env', '--', PYTHON])
+                if PYTHON:
+                    args.extend(['env', '--', PYTHON])
 
                 args.extend([
                     '{srcdir}/{workunit}'.format(
