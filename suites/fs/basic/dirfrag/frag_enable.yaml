@@ -2,10 +2,14 @@
 overrides:
   ceph:
     conf:
+      client:
+        client cache size: 500
       mds:
         mds bal frag: true
         mds bal fragment size max: 10000
-        mds bal split size: 100
-        mds bal merge size: 5
-        mds bal split bits: 3
+        mds bal split size: 20
+        mds bal merge size: 3
+        mds bal split bits: 1
+
+        mds cache size: 1000
 
