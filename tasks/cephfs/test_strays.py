@@ -794,3 +794,63 @@ class TestStrays(CephFSTestCase):
         path=self.mount_a.mountpoint,
         file_count=LOW_LIMIT
         )))
+
+
+class TestStraysStandby(CephFSTestCase):
+    MDSS_REQUIRED = 2
+    REQUIRE_FILESYSTEM = False
+
+    def test_standby_trim(self):
+        """
+        That where a standby replay exists for a rank, the standby
+        does not keep dentries around for purged strays (#16919)
+        """
+
+        use_daemons = sorted(self.mds_cluster.mds_ids[0:2])
+        mds_a, mds_b = use_daemons
+
+        self.set_conf("mds.{0}".format(mds_b),
+                      "mds_standby_for_name", mds_a)
+        self.set_conf("mds.{0}".format(mds_b), "mds_standby_replay", "true")
+
+        fs = self.mds_cluster.get_filesystem("alpha")
+        fs.create()
+        self.mds_cluster.mds_restart(mds_a)
+        fs.wait_for_daemons()
+
+        self.mds_cluster.mds_restart(mds_b)
+        self.wait_for_daemon_start([mds_b])
+
+        def get_stats():
+            dns_a = self.fs.mds_asok(['perf', 'dump', 'mds'], mds_a)['mds']['inodes']
+            dns_b = self.fs.mds_asok(['perf', 'dump', 'mds'], mds_b)['mds']['inodes']
+
+            return dns_a, dns_b
+
+        # Active has 10 stray dir dentries, standby has none
+        self.assertTupleEqual((10, 0), get_stats())
+
+        self.mount_a.mount()
+        self.mount_a.run_shell(["mkdir", "subdir"])
+        self.mount_a.run_shell(["touch", "subdir/one"])
+        self.mount_a.run_shell(["touch", "subdir/two"])
+
+        # Three more dentries in both active and standby
+        self.wait_until_equal(
+            get_stats,
+            (13, 3),
+            30
+        )
+
+        self.mount_a.run_shell(["rm", "-rf", "subdir"])
+        self.mount_a.umount_wait()
+
+        # Double flush to get the files then the dir
+        fs.mds_asok(["flush", "journal"], mds_a)
+        fs.mds_asok(["flush", "journal"], mds_a)
+
+        self.wait_until_equal(
+            get_stats,
+            (10, 0),
+            30
+        )
