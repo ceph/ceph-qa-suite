@@ -21,6 +21,10 @@ class FuseMount(CephFSMount):
         self.client_config = client_config if client_config else {}
         self.fuse_daemon = None
         self._fuse_conn = None
+        self.client_mds_namespace = None
+
+    def set_client_mds_namespace(self, cmn):
+        self.client_mds_namespace = cmn
 
     def mount(self, mount_path=None):
         log.info("Client client.%s config is %s" % (self.client_id, self.client_config))
@@ -59,6 +63,9 @@ class FuseMount(CephFSMount):
             # TODO ceph-fuse doesn't understand dash dash '--',
             self.mountpoint,
         ]
+
+        if self.client_mds_namespace:
+            fuse_cmd += ["--client-mds-namespace=" + self.client_mds_namespace]
 
         if self.client_config.get('valgrind') is not None:
             run_cmd = misc.get_valgrind_args(
