@@ -142,9 +142,15 @@ class MDSCluster(object):
                                              fs['metadata_pool'],
                                              '--yes-i-really-really-mean-it')
             for data_pool in fs['data_pools']:
-                self.mon_manager.raw_cluster_cmd('osd', 'pool', 'delete',
-                                                 data_pool, data_pool,
-                                                 '--yes-i-really-really-mean-it')
+                try:
+                    self.mon_manager.raw_cluster_cmd('osd', 'pool', 'delete',
+                                                     data_pool, data_pool,
+                                                     '--yes-i-really-really-mean-it')
+                except CommandFailedError as e:
+                    if e.exitstatus == 16:  # EBUSY, this data pool is used by
+                        pass                # two metadata pools, let the 2nd
+                    else:                   # pass delete it
+                        raise
 
     def get_standby_daemons(self):
         return set([s['name'] for s in self.get_fs_map()['standbys']])

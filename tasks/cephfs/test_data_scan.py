@@ -306,16 +306,17 @@ class NonDefaultLayout(Workload):
 
 class TestDataScan(CephFSTestCase):
     MDSS_REQUIRED = 2
-
     def is_marked_damaged(self, rank):
         mds_map = self.fs.get_mds_map()
         return rank in mds_map['damaged']
 
-    def _rebuild_metadata(self, workload, workers=1):
+    def _rebuild_metadata(self, workload, other_pool=None, workers=1):
         """
         That when all objects in metadata pool are removed, we can rebuild a metadata pool
         based on the contents of a data pool, and a client can see and read our files.
         """
+
+        other_fs = other_pool + '-fs' if other_pool else None
 
         # First, inject some files
         workload.write()
@@ -342,6 +343,25 @@ class TestDataScan(CephFSTestCase):
         self.fs.mon_manager.raw_cluster_cmd('fs', 'reset', self.fs.name,
                 '--yes-i-really-mean-it')
 
+        # Create the alternate pool if requested
+        if other_pool:
+            self.fs.rados(['mkpool', other_pool])
+            self.fs.mon_manager.raw_cluster_cmd('fs', 'flag', 'set',
+                                                'enable_multiple', 'true',
+                                                '--yes-i-really-mean-it')
+            self.fs.mon_manager.raw_cluster_cmd('fs', 'new', other_fs,
+                                                 other_pool,
+                                                 self.fs.get_data_pool_name(),
+                                                 '--allow-dangerous-metadata-overlay')
+            self.fs.data_scan(['init', '--force-init', '--filesystem',
+                               other_fs, '--alternate-pool', other_pool])
+            self.fs.mon_manager.raw_cluster_cmd('-s')
+            self.fs.mon_manager.raw_cluster_cmd('fs', 'reset', other_fs,
+                                                 '--yes-i-really-mean-it')
+            self.fs.table_tool([other_fs + ":0", "reset", "session"])
+            self.fs.table_tool([other_fs + ":0", "reset", "snap"])
+            self.fs.table_tool([other_fs + ":0", "reset", "inode"])
+
         # Attempt to start an MDS, see that it goes into damaged state
         self.fs.mds_restart()
 
@@ -357,17 +377,43 @@ class TestDataScan(CephFSTestCase):
                     timeout=60)
 
         # Run the recovery procedure
-        self.fs.table_tool(["0", "reset", "session"])
-        self.fs.table_tool(["0", "reset", "snap"])
-        self.fs.table_tool(["0", "reset", "inode"])
+        self.fs.table_tool([self.fs.name + ":0", "reset", "session"])
+        self.fs.table_tool([self.fs.name + ":0", "reset", "snap"])
+        self.fs.table_tool([self.fs.name + ":0", "reset", "inode"])
+
         if False:
             with self.assertRaises(CommandFailedError):
                 # Normal reset should fail when no objects are present, we'll use --force instead
                 self.fs.journal_tool(["journal", "reset"])
-        self.fs.journal_tool(["journal", "reset", "--force"])
-        self.fs.data_scan(["init"])
-        self.fs.data_scan(["scan_extents", self.fs.get_data_pool_name()], worker_count=workers)
-        self.fs.data_scan(["scan_inodes", self.fs.get_data_pool_name()], worker_count=workers)
+
+        if other_pool:
+            self.fs.data_scan(['scan_extents', '--alternate-pool',
+                               other_pool, '--filesystem', self.fs.name,
+                               self.fs.get_data_pool_name()])
+            self.fs.data_scan(['scan_inodes', '--alternate-pool',
+                               other_pool, '--filesystem', self.fs.name,
+                               '--force-corrupt', '--force-init',
+                               self.fs.get_data_pool_name()])
+            self.fs.journal_tool(['--rank=' + self.fs.name + ":0", 'event',
+                                  'recover_dentries', 'list',
+                                  '--alternate-pool', other_pool])
+            self.fs.journal_tool(['--rank=' + other_fs + ":0", 'journal',
+                                  'reset', '--force'])
+            self.fs.mon_manager.raw_cluster_cmd('daemon', 'mds.a',
+                                                'scrub_path', '/',
+                                                'recursive', 'repair')
+            self.fs.mon_manager.raw_cluster_cmd('daemon', 'mds.b',
+                                                'scrub_path', '/',
+                                                'recursive', 'repair')
+            self.fs.mon_manager.raw_cluster_cmd('mds', 'repaired',
+                                                other_fs + ":0")
+
+        self.fs.journal_tool(["--rank=" + self.fs.name + ":0", "journal", "reset", "--force"])
+        self.fs.data_scan(["init", "--filesystem", self.fs.name])
+        self.fs.data_scan(["scan_extents", "--filesystem", self.fs.name,
+                           self.fs.get_data_pool_name()], worker_count=workers)
+        self.fs.data_scan(["scan_inodes", "--filesystem", self.fs.name,
+                           self.fs.get_data_pool_name()], worker_count=workers)
 
         # Mark the MDS repaired
         self.fs.mon_manager.raw_cluster_cmd('mds', 'repaired', '0')
@@ -379,6 +425,9 @@ class TestDataScan(CephFSTestCase):
         log.info(json.dumps(self.mds_cluster.get_fs_map(), indent=2))
 
         # Mount a client
+        if other_pool:
+            self.mount_a.set_client_mds_namespace(other_fs)
+
         self.mount_a.mount()
         self.mount_a.wait_until_mounted()
 
@@ -397,7 +446,7 @@ class TestDataScan(CephFSTestCase):
         self._rebuild_metadata(SimpleWorkload(self.fs, self.mount_a))
 
     def test_rebuild_moved_file(self):
-        self._rebuild_metadata(MovedFile(self.fs, self.mount_a))
+       self._rebuild_metadata(MovedFile(self.fs, self.mount_a))
 
     def test_rebuild_backtraceless(self):
         self._rebuild_metadata(BacktracelessFile(self.fs, self.mount_a))
@@ -414,7 +463,13 @@ class TestDataScan(CephFSTestCase):
     def test_stashed_layout(self):
         self._rebuild_metadata(StripedStashedLayout(self.fs, self.mount_a))
 
+    def test_rebuild_simple_altpool(self):
+        self._rebuild_metadata(SimpleWorkload(self.fs, self.mount_a),
+                               'recovery')
+
     def _dirfrag_keys(self, object_id):
+        self.other_pool = 'recovery'
+        self.other_fs = self.other_pool + '-fs'
         keys_str = self.fs.rados(["listomapkeys", object_id])
         if keys_str:
             return keys_str.split("\n")
