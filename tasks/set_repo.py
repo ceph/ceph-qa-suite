@@ -8,6 +8,11 @@ log = logging.getLogger(__name__)
 supported_repos = {'1.3.1': 'https://paste.fedoraproject.org/350766/14600017/raw/',
                    '1.3.2': 'http://paste.fedoraproject.org/354418/4224131/raw/',
                    }
+repos_13x = ['rhel-7-server-rhceph-1.3-mon-rpms',
+             'rhel-7-server-rhceph-1.3-osd-rpms',
+             'rhel-7-server-rhceph-1.3-calamari-rpms',
+             'rhel-7-server-rhceph-1.3-installer-rpms',
+             'rhel-7-server-rhceph-1.3-tools-rpms']
 
 
 @contextlib.contextmanager
@@ -46,15 +51,18 @@ def task(ctx, config):
     log.info("Setting the repo for build %s", build)
     for remote in ctx.cluster.remotes.iterkeys():
         if remote.os.package_type == 'rpm':
-            remote.run(
-                args=[
-                    'sudo',
-                    'wget',
-                    '-nv',
-                    '-O',
-                    '/etc/yum.repos.d/rh_ceph.repo',
-                    repo_url])
-            remote.run(args=['sudo', 'yum', 'clean', 'metadata'])
+            if build == '1.3.2':
+                enable_cdn_repo(remote, repos_13x)
+            else:
+                remote.run(
+                    args=[
+                        'sudo',
+                        'wget',
+                        '-nv',
+                        '-O',
+                        '/etc/yum.repos.d/rh_ceph.repo',
+                        repo_url])
+                remote.run(args=['sudo', 'yum', 'clean', 'metadata'])
 
     try:
         yield
@@ -63,9 +71,23 @@ def task(ctx, config):
         for remote in ctx.cluster.remotes.iterkeys():
             if remote.os.package_type == 'rpm':
                 remote.run(args=['sudo', 'cp', run.Raw('repo/*'), '/etc/yum.repos.d/'])
-                remote.run(args=['sudo', 'rm', '/etc/yum.repos.d/rh_ceph.repo'])
+                remote.run(args=['sudo', 'rm', '/etc/yum.repos.d/rh_ceph.repo'], check_status=False)
                 remote.run(args=['sudo', 'yum', 'clean', 'metadata'])
                 remote.run(args=['sudo', 'rm', '-rf', 'repo'])
+                if build == '1.3.2':
+                    disable_cdn_repo(remote, repos_13x)
+
+
+def enable_cdn_repo(remote, repos):
+    for repo in repos:
+        remote.run(args=['sudo', 'subscription-manager', 'repos', '--enable={r}'.format(r=repo)])
+    remote.run(args=['sudo', 'subscription-manager', 'refresh'])
+
+
+def disable_cdn_repo(remote, repos):
+    for repo in repos:
+        remote.run(args=['sudo', 'subscription-manager', 'repos', '--disable={r}'.format(r=repo)])
+    remote.run(args=['sudo', 'subscription-manager', 'refresh'])
 
 
 def set_repo_simple(remote, config):
