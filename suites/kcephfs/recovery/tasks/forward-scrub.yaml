@@ -1,0 +1,11 @@
+
+overrides:
+  ceph:
+    log-whitelist:
+      - inode wrongly marked free
+      - inode table repaired for inode
+
+tasks:
+  - cephfs_test_runner:
+      modules:
+        - tasks.cephfs.test_forward_scrub
