@@ -9,6 +9,7 @@ from teuthology import misc as teuthology
 
 log = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def task(ctx, config):
     """
@@ -80,10 +81,10 @@ def task(ctx, config):
                           'ceph-coverage',
                           '{tdir}/archive/coverage',
                           'rados',
-			  '--no-log-to-stderr',
+                          '--no-log-to-stderr',
                           '--name', role,
                           '-b', str(config.get('size', 4<<20)),
-                          '-p' , pool,
+                          '-p', pool,
                           'bench', str(config.get('time', 360)), 'write',
                           ] + cleanup).format(tdir=testdir),
                 ],
@@ -99,6 +100,7 @@ def task(ctx, config):
         timeout = config.get('time', 360) * 5 + 180
         log.info('joining radosbench (timing out after %ss)', timeout)
         run.wait(radosbench.itervalues(), timeout=timeout)
-
-        if pool is not 'data' and create_pool:
+        if not config.get('cleanup', True):
+            log.info("Skip delete of pool")
+        elif pool is not 'data' and create_pool:
             manager.remove_pool(pool)
