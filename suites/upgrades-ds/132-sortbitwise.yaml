@@ -35,7 +35,7 @@ tasks:
 - sequential:
   - exec:
       client.0:
-        ceph osd pool create test-pool1 1024 1024
+      - ceph osd pool create test-pool1 1024 1024
   - radosbench:
       clients: [client.0]
       time: 600
@@ -61,13 +61,14 @@ radosbench2:
   sequential:
   - exec:
       client.0:
-        ceph osd pool create test-pool2 1024 1024
+      - ceph osd pool create test-pool2 1024 1024
   - radosbench:
       clients: [client.0]
       time: 600
       size: 1
       pool: test-pool2
 sortbitwise:
+  sequential:
   - exec:
       client.0:
       - sleep 60
