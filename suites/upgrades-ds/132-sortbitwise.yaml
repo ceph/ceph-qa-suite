@@ -67,6 +67,7 @@ radosbench2:
       time: 600
       size: 1
       pool: test-pool2
+      cleanup: false
 sortbitwise:
   sequential:
   - exec:
