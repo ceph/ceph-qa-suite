@@ -32,14 +32,19 @@ tasks:
 - ceph-deploy:
     rhbuild: '1.3.2' 
     fs: xfs
-- radosbench:
+- sequential:
+  - exec:
+      client.0:
+        ceph osd pool create test-pool1 1024 1024
+  - radosbench:
       clients: [client.0]
       time: 600
       size: 1
+      pool: test-pool1
       cleanup: false
 - exec:
     mon.a:
-    - sudo ceph osd set noout
+    - ceph osd set noout
 - ceph-deploy.upgrade:
     latest: true
     roles:
@@ -48,19 +53,22 @@ tasks:
       - client.0
 - exec:
     mon.a:
-    - sudo ceph osd set sortbitwise 
+    - ceph osd set sortbitwise 
 - parallel:
   - radosbench2
   - setsortbitwise
 radosbench2:
   sequential:
+  - exec:
+      client.0:
+        ceph osd pool create test-pool2 1024 1024
   - radosbench:
       clients: [client.0]
       time: 600
       size: 1
+      pool: test-pool2
 sortbitwise:
-  sequential:
   - exec:
       client.0:
-      - sleep 10
+      - sleep 60
       - ceph osd set sortbitwise
