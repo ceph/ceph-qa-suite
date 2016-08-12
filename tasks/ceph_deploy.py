@@ -748,19 +748,19 @@ def enable_restart_systemd(remote):
                       'ceph.target']
         for serv_file in serv_files:
             remote.run(args=['sudo', 'systemctl', 'enable', serv_file])
-        remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/lib/ceph'])
-        remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/log/ceph'])
+        remote.run(args=['sudo', 'systemctl', 'start', 'ceph.target'])
         time.sleep(5)
         remote.run(args=['sudo', 'systemctl', 'stop', 'ceph.target'])
-        time.sleep(5)
-        remote.run(args=['sudo', 'systemctl', 'start', 'ceph.target'])
+        remote.run(args=['sudo', 'mount'])
         time.sleep(5)
         for i in range(1, 3):
             # it takes 2 runs to ensure all permission are set due to pid locks
             remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/lib/ceph'])
             remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/log/ceph'])
+            remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/run/ceph'])
+            remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/etc/ceph'])
             time.sleep(5)
-            remote.run(args=['sudo', 'systemctl', 'stop', 'ceph.target'])
+            remote.run(args=['sudo', 'systemctl', 'enable', 'ceph.target'])
             time.sleep(5)
             remote.run(args=['sudo', 'systemctl', 'start', 'ceph.target'])
             time.sleep(5)
