@@ -760,6 +760,10 @@ def enable_restart_systemd(remote):
             remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/lib/ceph'])
             remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/log/ceph'])
             time.sleep(5)
+            remote.run(args=['sudo', 'systemctl', 'stop', 'ceph.target'])
+            time.sleep(5)
+            remote.run(args=['sudo', 'systemctl', 'start', 'ceph.target'])
+            time.sleep(5)
 
 
 @contextlib.contextmanager
@@ -773,7 +777,7 @@ def upgrade(ctx, config):
             stopceph(remote)
             nodename = remote.shortname
             log.info("Upgrading ceph on  %s", nodename)
-            remote.run(args=['sudo', 'yum', 'install', '-y', 'ceph-mon', 'ceph-osd', 'ceph-radosgw'])
+            remote.run(args=['sudo', 'yum', 'install', '-y', 'ceph-mon', 'ceph-osd', 'ceph-radosgw', 'ceph-test'])
             log.info("Initiate auto relabel after reboot")
             remote.run(args=['sudo', 'touch', run.Raw('/.autorelabel')])
             log.info("Rebooting node %s", nodename)
