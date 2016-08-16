@@ -8,16 +8,16 @@ import logging
 import os
 import time
 import errno
-import util.rgw as rgw_utils
+import tasks.util.rgw as rgw_utils
 
-from cStringIO import StringIO
+from tasks.util.compat import StringIO
 
 from teuthology.orchestra import run
 from teuthology import misc as teuthology
 from teuthology import contextutil
 from teuthology.orchestra.run import CommandFailedError
-from util.rgw import rgwadmin
-from util.rados import (rados, create_ec_pool,
+from tasks.util.rgw import rgwadmin
+from tasks.util.rados import (rados, create_ec_pool,
                                         create_replicated_pool,
                                         create_cache_pool)
 
@@ -26,20 +26,20 @@ log = logging.getLogger(__name__)
 def get_config_master_client(ctx, config, regions):
 
     role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
-                       for client, c_config in config.iteritems()])
+                       for client, c_config in config.items()])
     log.debug('roles_zones = %r', role_zones)
     region_info = dict([
         (region_name, extract_region_info(region_name, r_config))
-        for region_name, r_config in regions.iteritems()])
+        for region_name, r_config in regions.items()])
 
      # read master zonegroup and master_zone
-    for zonegroup, zg_info in region_info.iteritems():
+    for zonegroup, zg_info in region_info.items():
         if zg_info['is_master']:
             master_zonegroup = zonegroup
             master_zone = zg_info['master_zone']
             break
 
-    for client in config.iterkeys():
+    for client in config.keys():
         (zonegroup, zone, zone_info) = role_zones[client]
         if zonegroup == master_zonegroup and zone == master_zone:
             return client
@@ -171,9 +171,9 @@ def ship_apache_configs(ctx, config, role_endpoints, on_client = None,
         else:
             log.info("Apache is configured to use mod_proxy_fcgi with TCP")
 
-        with file(fcgi_config, 'rb') as f:
+        with open(fcgi_config, 'r') as f:
             fcgi_config = f.read()
-        with file(src, 'rb') as f:
+        with open(src, 'r') as f:
             conf = f.read() + fcgi_config
             conf = conf.format(
                 testdir=testdir,
@@ -267,7 +267,7 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
     for client in clients_to_run:
         if client == except_client:
             continue
-        (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+        (remote,) = ctx.cluster.only(client).remotes.keys()
         zone = rgw_utils.zone_for_client(ctx, client)
         log.debug('zone %s', zone)
         client_config = config.get(client)
@@ -357,7 +357,7 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         yield
     finally:
         teuthology.stop_daemons_of_type(ctx, 'rgw')
-        for client in config.iterkeys():
+        for client in config.keys():
             ctx.cluster.only(client).run(
                 args=[
                     'rm',
@@ -419,10 +419,10 @@ def start_apache(ctx, config, on_client = None, except_client = None):
         yield
     finally:
         log.info('Stopping apache...')
-        for client, proc in apaches.iteritems():
+        for client, proc in apaches.items():
             proc.stdin.close()
 
-        run.wait(apaches.itervalues())
+        run.wait(apaches.values())
 
 
 def extract_user_info(client_config):
@@ -538,7 +538,7 @@ def assign_ports(ctx, config):
     """
     port = 7280
     role_endpoints = {}
-    for remote, roles_for_host in ctx.cluster.remotes.iteritems():
+    for remote, roles_for_host in ctx.cluster.remotes.items():
         for role in roles_for_host:
             if role in config:
                 role_endpoints[role] = (remote.name.split('@')[1], port)
@@ -555,7 +555,7 @@ def fill_in_endpoints(region_info, role_zones, role_endpoints):
     :param role_zones: region and zone information.
     :param role_endpoints: endpoints being used
     """
-    for role, (host, port) in role_endpoints.iteritems():
+    for role, (host, port) in role_endpoints.items():
         region, zone, zone_info, _ = role_zones[role]
         host, port = role_endpoints[role]
         endpoint = 'http://{host}:{port}/'.format(host=host, port=port)
@@ -613,7 +613,7 @@ def configure_users_for_client(ctx, config, client, everywhere=False):
 
     # extract the user info and append it to the payload tuple for the given
     # client
-    for client, c_config in config.iteritems():
+    for client, c_config in config.items():
         if not c_config:
             continue
         user_info = extract_user_info(c_config)
@@ -646,7 +646,7 @@ def configure_users(ctx, config,  everywhere=False):
 
     # extract the user info and append it to the payload tuple for the given
     # client
-    for client, c_config in config.iteritems():
+    for client, c_config in config.items():
         if not c_config:
             continue
         user_info = extract_user_info(c_config)
@@ -686,7 +686,7 @@ def create_nonregion_pools(ctx, config, regions):
 
     log.info('creating data pools')
     for client in config.keys():
-        (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+        (remote,) = ctx.cluster.only(client).remotes.keys()
         data_pool = '.rgw.buckets'
         if ctx.rgw.ec_data_pool:
             create_ec_pool(remote, data_pool, client, 64,
@@ -725,12 +725,12 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
     log.debug('realm is %r', realm)
     # extract the zone info
     role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
-                       for client, c_config in config.iteritems()])
+                       for client, c_config in config.items()])
     log.debug('role_zones = %r', role_zones)
 
     # extract the user info and append it to the payload tuple for the given
     # client
-    for client, c_config in config.iteritems():
+    for client, c_config in config.items():
         if not c_config:
             user_info = None
         else:
@@ -741,16 +741,16 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
 
     region_info = dict([
         (region_name, extract_region_info(region_name, r_config))
-        for region_name, r_config in regions.iteritems()])
+        for region_name, r_config in regions.items()])
 
     fill_in_endpoints(region_info, role_zones, role_endpoints)
 
     # clear out the old defaults
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
 
     # read master zonegroup and master_zone
-    for zonegroup, zg_info in region_info.iteritems():
+    for zonegroup, zg_info in region_info.items():
         if zg_info['is_master']:
             master_zonegroup = zonegroup
             master_zone = zg_info['master_zone']
@@ -764,7 +764,7 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
              cmd=['realm', 'create', '--rgw-realm', realm, '--default'],
              check_status=True)
 
-    for region, info in region_info.iteritems():
+    for region, info in region_info.items():
         region_json = json.dumps(info)
         log.debug('region info is: %s', region_json)
         rgwadmin(ctx, master_client,
@@ -776,7 +776,7 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
              cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup],
              check_status=True)
 
-    for role, (zonegroup, zone, zone_info, user_info) in role_zones.iteritems():
+    for role, (zonegroup, zone, zone_info, user_info) in role_zones.items():
         (remote,) = ctx.cluster.only(role).remotes.keys()
         for pool_info in zone_info['placement_pools']:
             remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'create',
@@ -788,7 +788,10 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
                 create_replicated_pool(remote, pool_info['val']['data_pool'], 64)
 
     (zonegroup, zone, zone_info, user_info) = role_zones[master_client]
-    zone_json = json.dumps(dict(zone_info.items() + user_info.items()))
+    zone_json = json.dumps(
+        dict(list(zone_info.items()) + list(user_info.items()))
+    )
+
     log.debug("zone info is: %r", zone_json)
     rgwadmin(ctx, master_client,
              cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
@@ -833,12 +836,12 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     log.debug('realm is %r', realm)
     # extract the zone info
     role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
-                       for client, c_config in config.iteritems()])
+                       for client, c_config in config.items()])
     log.debug('roles_zones = %r', role_zones)
 
     # extract the user info and append it to the payload tuple for the given
     # client
-    for client, c_config in config.iteritems():
+    for client, c_config in config.items():
         if not c_config:
             user_info = None
         else:
@@ -849,13 +852,13 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
 
     region_info = dict([
         (region_name, extract_region_info(region_name, r_config))
-        for region_name, r_config in regions.iteritems()])
+        for region_name, r_config in regions.items()])
 
     fill_in_endpoints(region_info, role_zones, role_endpoints)
 
     # clear out the old defaults
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
     # removing these objects from .rgw.root and the per-zone root pools
     # may or may not matter
     rados(ctx, mon,
@@ -864,13 +867,13 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
           cmd=['-p', '.rgw.root', 'rm', 'zone_info.default'])
 
     # read master zonegroup and master_zone
-    for zonegroup, zg_info in region_info.iteritems():
+    for zonegroup, zg_info in region_info.items():
         if zg_info['is_master']:
             master_zonegroup = zonegroup
             master_zone = zg_info['master_zone']
             break
 
-    for client in config.iterkeys():
+    for client in config.keys():
         (zonegroup, zone, zone_info, user_info) = role_zones[client]
         if zonegroup == master_zonegroup and zone == master_zone:
             master_client = client
@@ -888,8 +891,8 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     if ret is -errno.EEXIST:
         log.debug('realm %r exists', realm)
 
-    for client in config.iterkeys():
-        for role, (zonegroup, zone, zone_info, user_info) in role_zones.iteritems():
+    for client in config.keys():
+        for role, (zonegroup, zone, zone_info, user_info) in role_zones.items():
             rados(ctx, mon,
                   cmd=['-p', zone_info['domain_root'],
                        'rm', 'region_info.default'])
@@ -908,7 +911,10 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
                     create_replicated_pool(
                         remote, pool_info['val']['data_pool'],
                         64)
-            zone_json = json.dumps(dict(zone_info.items() + user_info.items()))
+            zone_json = json.dumps(
+                dict(list(zone_info.items()) + list(user_info.items()))
+            )
+
             log.debug('zone info is: %r', zone_json)
             rgwadmin(ctx, client,
                  cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
@@ -916,7 +922,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
                  stdin=StringIO(zone_json),
                  check_status=True)
 
-        for region, info in region_info.iteritems():
+        for region, info in region_info.items():
             region_json = json.dumps(info)
             log.debug('region info is: %s', region_json)
             rgwadmin(ctx, client,
@@ -968,12 +974,12 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
 
     # extract the zone info
     role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
-                       for client, c_config in config.iteritems()])
+                       for client, c_config in config.items()])
     log.debug('roles_zones = %r', role_zones)
 
     # extract the user info and append it to the payload tuple for the given
     # client
-    for client, c_config in config.iteritems():
+    for client, c_config in config.items():
         if not c_config:
             user_info = None
         else:
@@ -984,11 +990,11 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
 
     region_info = dict([
         (region_name, extract_region_info(region_name, r_config))
-        for region_name, r_config in regions.iteritems()])
+        for region_name, r_config in regions.items()])
 
     fill_in_endpoints(region_info, role_zones, role_endpoints)
 
-    for client in config.iterkeys():
+    for client in config.keys():
         if client != master_client:
             host, port = role_endpoints[master_client]
             endpoint = 'http://{host}:{port}/'.format(host=host, port=port)
@@ -1001,7 +1007,10 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
                      check_status=True)
 
             (zonegroup, zone, zone_info, zone_user_info) = role_zones[client]
-            zone_json = json.dumps(dict(zone_info.items() + zone_user_info.items()))
+            zone_json = json.dumps(
+                dict(list(zone_info.items()) + list(user_info.items()))
+            )
+
             log.debug("zone info is: %r"), zone_json
             rgwadmin(ctx, client,
                      cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
@@ -1227,7 +1236,7 @@ def task(ctx, config):
     multisite = len(regions) > 1
 
     if not multisite:
-        for zonegroup, zonegroup_info in regions.iteritems():
+        for zonegroup, zonegroup_info in regions.items():
             log.debug("zonegroup_info =%r", zonegroup_info)
             if len(zonegroup_info['zones']) > 1:
                 multisite = True
