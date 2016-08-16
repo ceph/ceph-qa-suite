@@ -5,9 +5,9 @@ import logging
 import re
 import time
 
-import ceph_manager
 from teuthology import misc as teuthology
 
+from tasks.ceph_manager import CephManager
 
 log = logging.getLogger(__name__)
 
@@ -57,9 +57,9 @@ def task(ctx, config):
 
     timeout = 60
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
 
-    manager = ceph_manager.CephManager(
+    manager = CephManager(
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
