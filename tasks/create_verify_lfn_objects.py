@@ -4,6 +4,8 @@ Rados modle-based integration tests
 import contextlib
 import logging
 
+from tasks.util.compat import range
+
 log = logging.getLogger(__name__)
 
 @contextlib.contextmanager
