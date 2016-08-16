@@ -6,8 +6,9 @@ import logging
 import re
 import time
 
-from cStringIO import StringIO
 from teuthology.orchestra import run
+
+from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ def task(ctx, config):
     Test ceph systemd services can start, stop and restart and
     check for any failed services and report back errors
     """
-    for remote, roles in ctx.cluster.remotes.iteritems():
+    for remote, roles in ctx.cluster.remotes.items():
         remote.run(args=['sudo', 'ps', '-eaf', run.Raw('|'),
                          'grep', 'ceph'])
         r = remote.run(args=['sudo', 'systemctl', 'list-units', run.Raw('|'),
