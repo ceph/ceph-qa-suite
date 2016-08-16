@@ -2,10 +2,10 @@
 Osd backfill test
 """
 import logging
-import ceph_manager
 import time
 from teuthology import misc as teuthology
 
+from tasks.ceph_manager import CephManager
 
 log = logging.getLogger(__name__)
 
@@ -38,13 +38,13 @@ def task(ctx, config):
     assert isinstance(config, dict), \
         'thrashosds task only accepts a dict for configuration'
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
 
     num_osds = teuthology.num_instances_of_type(ctx.cluster, 'osd')
     log.info('num_osds is %s' % num_osds)
     assert num_osds == 3
 
-    manager = ceph_manager.CephManager(
+    manager = CephManager(
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
