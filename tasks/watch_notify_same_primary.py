@@ -2,12 +2,13 @@
 """
 watch_notify_same_primary task
 """
-from cStringIO import StringIO
 import contextlib
 import logging
 
-from teuthology.orchestra import run
 from teuthology.contextutil import safe_while
+from teuthology.orchestra import run
+
+from tasks.util.compat import StringIO, string, range
 
 log = logging.getLogger(__name__)
 
@@ -41,10 +42,10 @@ def task(ctx, config):
     clients = config.get('clients', ['client.0'])
     assert len(clients) == 1
     role = clients[0]
-    assert isinstance(role, basestring)
+    assert isinstance(role, string)
     PREFIX = 'client.'
     assert role.startswith(PREFIX)
-    (remote,) = ctx.cluster.only(role).remotes.iterkeys()
+    (remote,) = ctx.cluster.only(role).remotes.keys()
     manager = ctx.managers['ceph']
     manager.raw_cluster_cmd('osd', 'set', 'noout')
 
@@ -123,10 +124,8 @@ def task(ctx, config):
             got1 = False
             got2 = False
             for l in lines:
-                if 'notify1' in l:
-                    got1 = True
-                if 'notify2' in l:
-                    got2 = True
+                got1 = 'notify1' in l
+                got2 = 'notify2' in l
             log.info(lines)
             assert got1 and got2
 
