@@ -3,9 +3,10 @@ Thrash -- Simulate random osd failures.
 """
 import contextlib
 import logging
-import ceph_manager
+
 from teuthology import misc as teuthology
 
+from tasks.ceph_manager import Thrasher
 
 log = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ def task(ctx, config):
         ctx.cluster.run(args=['sync'])
 
         if 'ipmi_user' in ctx.teuthology_config:
-            for t, key in ctx.config['targets'].iteritems():
+            for t, key in ctx.config['targets'].items():
                 host = t.split('@')[-1]
                 shortname = host.split('.')[0]
                 from teuthology.orchestra import remote as oremote
@@ -176,7 +177,7 @@ def task(ctx, config):
 
             # check that all osd remotes have a valid console
             osds = ctx.cluster.only(teuthology.is_type('osd', cluster))
-            for remote, _ in osds.remotes.iteritems():
+            for remote, _ in osds.remotes.items():
                 if not remote.console:
                     raise Exception(
                         'IPMI console required for powercycling, '
@@ -185,7 +186,7 @@ def task(ctx, config):
 
     log.info('Beginning thrashosds...')
     cluster_manager = ctx.managers[cluster]
-    thrash_proc = ceph_manager.Thrasher(
+    thrash_proc = Thrasher(
         cluster_manager,
         config,
         logger=log.getChild('thrasher')
