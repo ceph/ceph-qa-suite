@@ -13,8 +13,8 @@ from teuthology.exceptions import CommandFailedError
 from teuthology import misc
 from teuthology.nuke import clear_firewall
 from teuthology.parallel import parallel
-from tasks.ceph_manager import write_conf
-from tasks import ceph_manager
+
+from tasks.ceph_manager import write_conf, CephManager
 
 
 log = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class MDSCluster(object):
         if len(self.mds_ids) == 0:
             raise RuntimeError("This task requires at least one MDS")
 
-        self.mon_manager = ceph_manager.CephManager(self.admin_remote, ctx=ctx, logger=log.getChild('ceph_manager'))
+        self.mon_manager = CephManager(self.admin_remote, ctx=ctx, logger=log.getChild('ceph_manager'))
         if hasattr(self._ctx, "daemons"):
             # Presence of 'daemons' attribute implies ceph task rather than ceph_deploy task
             self.mds_daemons = dict([(mds_id, self._ctx.daemons.get_daemon('mds', mds_id)) for mds_id in self.mds_ids])
