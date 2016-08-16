@@ -5,14 +5,15 @@ import contextlib
 import logging
 import os
 
-from cStringIO import StringIO
-from teuthology.orchestra import run
-from teuthology import misc as teuthology
 from teuthology import contextutil
+from teuthology import misc as teuthology
+from teuthology.orchestra import run
 from teuthology.parallel import parallel
+from teuthology.task.common_fs_utils import default_image_name
 from teuthology.task.common_fs_utils import generic_mkfs
 from teuthology.task.common_fs_utils import generic_mount
-from teuthology.task.common_fs_utils import default_image_name
+
+from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
@@ -577,7 +578,7 @@ def task(ctx, config):
         norm_config = teuthology.replace_all_with_clients(ctx.cluster, config)
     if isinstance(norm_config, dict):
         role_images = {}
-        for role, properties in norm_config.iteritems():
+        for role, properties in norm_config.items():
             if properties is None:
                 properties = {}
             role_images[role] = properties.get('image_name')
