@@ -2,13 +2,14 @@ import contextlib
 import logging
 import os
 import textwrap
-import yaml
 
-from cStringIO import StringIO
+import yaml
 from teuthology import contextutil
 from teuthology import misc
 from teuthology import packaging
 from teuthology.orchestra import run
+
+from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ EXTRA_NOSETEST_PKGS = [
 
 def find_client0(cluster):
     ''' Find remote that has client.0 role, or None '''
-    for rem, roles in cluster.remotes.iteritems():
+    for rem, roles in cluster.remotes.items():
         if 'client.0' in roles:
             return rem
     return None
@@ -138,8 +139,8 @@ def write_info_yaml(cluster, client):
         info = {
             'cluster': {
                 rem.name: {'roles': roles}
-                for rem, roles in cluster.remotes.iteritems()
-            }
+                for rem, roles in cluster.remotes.items()
+                }
         }
         misc.create_file(client, 'calamari/info.yaml',
                          data=yaml.safe_dump(info, default_flow_style=False))
