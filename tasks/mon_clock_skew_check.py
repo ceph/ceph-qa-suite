@@ -1,13 +1,14 @@
 """
 Handle clock skews in monitors.
 """
-import logging
 import contextlib
-import ceph_manager
+import logging
 import time
 import gevent
-from StringIO import StringIO
 from teuthology import misc as teuthology
+
+from tasks.ceph_manager import CephManager
+from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class ClockSkewCheck:
         self.check_interval = float(self.config.get('interval', 30.0))
 
         first_mon = teuthology.get_first_mon(ctx, config)
-        remote = ctx.cluster.only(first_mon).remotes.keys()[0]
+        (remote, ) = ctx.cluster.only(first_mon).remotes.keys()
         proc = remote.run(
             args=[
                 'sudo',
@@ -123,7 +124,7 @@ class ClockSkewCheck:
         total = len(skews)
         if total > 0:
             self.info('---------- found {n} skews ----------'.format(n=total))
-            for mon_id, values in skews.iteritems():
+            for mon_id, values in skews.items():
                 self.info('mon.{id}: {v}'.format(id=mon_id, v=values))
             self.info('-------------------------------------')
         else:
@@ -240,8 +241,8 @@ def task(ctx, config):
         'mon_clock_skew_check task only accepts a dict for configuration'
     log.info('Beginning mon_clock_skew_check...')
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
-    manager = ceph_manager.CephManager(
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
+    manager = CephManager(
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
