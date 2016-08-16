@@ -5,8 +5,10 @@ import logging
 import os
 
 from teuthology import misc as teuthology
-from teuthology.parallel import parallel
 from teuthology.orchestra import run
+from teuthology.parallel import parallel
+
+from tasks.util.compat import string
 
 log = logging.getLogger(__name__)
 
@@ -50,8 +52,8 @@ def task(ctx, config):
     testdir = teuthology.get_testdir(ctx)
 
     try:
-        for client, tests in clients.iteritems():
-            (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+        for client, tests in clients.items():
+            (remote,) = ctx.cluster.only(client).remotes.keys()
             client_dir = '{tdir}/archive/cram.{role}'.format(tdir=testdir, role=client)
             remote.run(
                 args=[
@@ -73,11 +75,11 @@ def task(ctx, config):
                     )
 
         with parallel() as p:
-            for role in clients.iterkeys():
+            for role in clients.keys():
                 p.spawn(_run_tests, ctx, role)
     finally:
-        for client, tests in clients.iteritems():
-            (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+        for client, tests in clients.items():
+            (remote,) = ctx.cluster.only(client).remotes.keys()
             client_dir = '{tdir}/archive/cram.{role}'.format(tdir=testdir, role=client)
             test_files = set([test.rsplit('/', 1)[1] for test in tests])
 
@@ -111,11 +113,11 @@ def _run_tests(ctx, role):
     :param ctx: Context
     :param role: Roles
     """
-    assert isinstance(role, basestring)
+    assert isinstance(role, string)
     PREFIX = 'client.'
     assert role.startswith(PREFIX)
     id_ = role[len(PREFIX):]
-    (remote,) = ctx.cluster.only(role).remotes.iterkeys()
+    (remote,) = ctx.cluster.only(role).remotes.keys()
     ceph_ref = ctx.summary.get('ceph-sha1', 'master')
 
     testdir = teuthology.get_testdir(ctx)
