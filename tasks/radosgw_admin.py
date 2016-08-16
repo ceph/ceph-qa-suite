@@ -8,23 +8,20 @@ Rgw admin testing against a running instance
 #
 
 import copy
+import datetime
 import json
 import logging
 import time
-import datetime
-
-from cStringIO import StringIO
 
 import boto.exception
-import boto.s3.connection
 import boto.s3.acl
-
+import boto.s3.connection
 import httplib2
-
-import util.rgw as rgw_utils
-
 from teuthology import misc as teuthology
-from util.rgw import rgwadmin, get_user_summary, get_user_successful_ops
+
+from tasks.util import rgw as rgw_utils
+from tasks.util.compat import StringIO, range, str
+from tasks.util.rgw import rgwadmin, get_user_summary, get_user_successful_ops
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +35,7 @@ def create_presigned_url(conn, method, bucket_name, key_name, expiration):
 
 def send_raw_http_request(conn, method, bucket_name, key_name, follow_redirects = False):
     url = create_presigned_url(conn, method, bucket_name, key_name, 3600)
-    print url
+    print(url)
     h = httplib2.Http()
     h.follow_redirects = follow_redirects
     return h.request(url, method)
@@ -78,7 +75,7 @@ def task(ctx, config):
         config = all_clients
     if isinstance(config, list):
         config = dict.fromkeys(config)
-    clients = config.keys()
+    clients = list(config.keys())
 
     multi_region_run = rgw_utils.multi_region_enabled(ctx)
 
@@ -171,7 +168,7 @@ def task(ctx, config):
     if multi_region_run:
         rgw_utils.radosgw_agent_sync_all(ctx)
         # post-sync, validate that user1 exists on the sync destination host
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             dest_client = c_config['dest']
             (err, out) = rgwadmin(ctx, dest_client, ['metadata', 'list', 'user'])
             (err, out) = rgwadmin(ctx, dest_client, ['user', 'info', '--uid', user1], check_status=True)
@@ -185,7 +182,7 @@ def task(ctx, config):
 
         # compare the metadata between different regions, make sure it matches
         log.debug('compare the metadata between different regions, make sure it matches')
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client,
@@ -196,7 +193,7 @@ def task(ctx, config):
 
         # suspend a user on the master, then check the status on the destination
         log.debug('suspend a user on the master, then check the status on the destination')
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err, out) = rgwadmin(ctx, source_client, ['user', 'suspend', '--uid', user1])
@@ -205,8 +202,8 @@ def task(ctx, config):
             assert out['suspended']
 
         # delete a user on the master, then check that it's gone on the destination
-        log.debug('delete a user on the master, then check that it\'s gone on the destination')
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        log.debug("delete a user on the master, then check that it's gone on the destination")
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err, out) = rgwadmin(ctx, source_client, ['user', 'rm', '--uid', user1], check_status=True)
@@ -253,7 +250,7 @@ def task(ctx, config):
 
         # compare the metadata for the bucket between different regions, make sure it matches
         log.debug('compare the metadata for the bucket between different regions, make sure it matches')
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client,
@@ -284,7 +281,7 @@ def task(ctx, config):
             assert out1 == out2
 
         same_region = 0
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
 
@@ -326,7 +323,7 @@ def task(ctx, config):
 
         # make sure that the bucket no longer exists in either region
         log.debug('make sure that the bucket no longer exists in either region')
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client, ['metadata', 'get',
@@ -345,7 +342,7 @@ def task(ctx, config):
 
         # compare the metadata for the bucket between different regions, make sure it matches
         log.debug('compare the metadata for the bucket between different regions, make sure it matches')
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client,
@@ -366,7 +363,7 @@ def task(ctx, config):
         # compare the metadata for the bucket between different regions, make sure it matches
         log.debug('compare the metadata for the bucket between different regions, make sure it matches')
         # user2 should own the bucket in both regions
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client,
@@ -380,8 +377,8 @@ def task(ctx, config):
             assert out1['data']['owner'] != user1
 
         # now we're going to use this bucket to test meta-data update propagation
-        log.debug('now we\'re going to use this bucket to test meta-data update propagation')
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        log.debug("now we're going to use this bucket to test meta-data update propagation")
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
 
@@ -395,7 +392,7 @@ def task(ctx, config):
             log.debug('manually edit mtime for this bucket to be 300 seconds in the past')
             new_data = copy.deepcopy(orig_data)
             mtime = datetime.datetime.strptime(orig_data['mtime'], "%Y-%m-%d %H:%M:%S.%fZ") - datetime.timedelta(300)
-            new_data['mtime'] =  unicode(mtime.strftime("%Y-%m-%d %H:%M:%S.%fZ"))
+            new_data['mtime'] = str(mtime.strftime("%Y-%m-%d %H:%M:%S.%fZ"))
             log.debug("new mtime ", mtime)
             assert new_data != orig_data
             (err, out) = rgwadmin(ctx, source_client,
@@ -436,7 +433,7 @@ def task(ctx, config):
 
         # Delete user2 as later tests do not expect it to exist.
         # Verify that it is gone on both regions
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err, out) = rgwadmin(ctx, source_client,
@@ -455,7 +452,7 @@ def task(ctx, config):
         bucket = connection.create_bucket(bucket_name + 'data')
 
         # Create a tiny file and check if in sync
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             if c_config.get('metadata-only'):
                 continue
 
@@ -488,13 +485,13 @@ def task(ctx, config):
 
                 dest_bucket = dest_connection.get_bucket(bucket_name + 'data')
                 dest_k = dest_bucket.get_key('tiny_file')
-                assert dest_k == None, 'object not deleted from destination zone'
+                assert dest_k is None, 'object not deleted from destination zone'
 
         # finally we delete the bucket
         bucket.delete()
 
         bucket = connection.create_bucket(bucket_name + 'data2')
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             if c_config.get('metadata-only'):
                 continue
 
@@ -534,7 +531,7 @@ def task(ctx, config):
                 for i in range(20):
                     dest_bucket = dest_connection.get_bucket(bucket_name + 'data2')
                     dest_k = dest_bucket.get_key('tiny_file_' + str(i))
-                    assert dest_k == None, 'object %d not deleted from destination zone' % i
+                    assert dest_k is None, 'object %d not deleted from destination zone' % i
         bucket.delete()
 
     # end of 'if multi_region_run:'
