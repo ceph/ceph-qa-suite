@@ -1,10 +1,11 @@
-
-import logging
 import contextlib
+import logging
 import time
-import ceph_manager
+
 from teuthology import misc
 from teuthology.orchestra.run import CommandFailedError, Raw
+
+from tasks.ceph_manager import CephManager
 
 log = logging.getLogger(__name__)
 
@@ -23,8 +24,8 @@ def task(ctx, config):
         raise RuntimeError("This task requires exactly one MDS")
 
     mds_id = mdslist[0]
-    (mds_remote,) = ctx.cluster.only('mds.{_id}'.format(_id=mds_id)).remotes.iterkeys()
-    manager = ceph_manager.CephManager(
+    (mds_remote,) = ctx.cluster.only('mds.{_id}'.format(_id=mds_id)).remotes.keys()
+    manager = CephManager(
         mds_remote, ctx=ctx, logger=log.getChild('ceph_manager'),
     )
 
