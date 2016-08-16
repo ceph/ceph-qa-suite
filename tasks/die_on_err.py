@@ -4,10 +4,12 @@ Raise exceptions on osd coredumps or test err directories
 import contextlib
 import logging
 import time
+
+from teuthology import misc as teuthology
 from teuthology.orchestra import run
 
-import ceph_manager
-from teuthology import misc as teuthology
+from tasks.ceph_manager import CephManager
+from tasks.util.compat import range
 
 log = logging.getLogger(__name__)
 
@@ -20,16 +22,16 @@ def task(ctx, config):
         config = {}
 
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
 
     num_osds = teuthology.num_instances_of_type(ctx.cluster, 'osd')
     log.info('num_osds is %s' % num_osds)
 
-    manager = ceph_manager.CephManager(
+    manager = CephManager(
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     while len(manager.get_osd_status()['up']) < num_osds:
         time.sleep(10)
@@ -38,7 +40,7 @@ def task(ctx, config):
 
     while True:
         for i in range(num_osds):
-            (osd_remote,) = ctx.cluster.only('osd.%d' % i).remotes.iterkeys()
+            (osd_remote,) = ctx.cluster.only('osd.%d' % i).remotes.keys()
             p = osd_remote.run(
                 args = [ 'test', '-e', '{tdir}/err'.format(tdir=testdir) ],
                 wait=True,
