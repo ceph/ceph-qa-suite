@@ -1,16 +1,16 @@
 """
 Qemu task
 """
-from cStringIO import StringIO
-
 import contextlib
 import logging
 import os
 
-from teuthology import misc as teuthology
 from teuthology import contextutil
-from tasks import rbd
+from teuthology import misc as teuthology
 from teuthology.orchestra import run
+
+from tasks import rbd
+from tasks.util.compat import StringIO, range
 
 log = logging.getLogger(__name__)
 
@@ -19,11 +19,11 @@ DEFAULT_IMAGE_URL = 'http://ceph.com/qa/ubuntu-12.04.qcow2'
 DEFAULT_MEM = 4096 # in megabytes
 
 def create_images(ctx, config, managers):
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         num_rbd = client_config.get('num_rbd', 1)
         clone = client_config.get('clone', False)
         assert num_rbd > 0, 'at least one rbd device must be used'
-        for i in xrange(num_rbd):
+        for i in range(num_rbd):
             create_config = {
                 client: {
                     'image_name': '{client}.{num}'.format(client=client, num=i),
@@ -36,11 +36,11 @@ def create_images(ctx, config, managers):
                 )
 
 def create_clones(ctx, config, managers):
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         num_rbd = client_config.get('num_rbd', 1)
         clone = client_config.get('clone', False)
         if clone:
-            for i in xrange(num_rbd):
+            for i in range(num_rbd):
                 create_config = {
                     client: {
                         'image_name':
@@ -60,7 +60,7 @@ def create_dirs(ctx, config):
     Handle directory creation and cleanup
     """
     testdir = teuthology.get_testdir(ctx)
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         assert 'test' in client_config, 'You must specify a test to run'
         (remote,) = ctx.cluster.only(client).remotes.keys()
         remote.run(
@@ -68,33 +68,34 @@ def create_dirs(ctx, config):
                 'install', '-d', '-m0755', '--',
                 '{tdir}/qemu'.format(tdir=testdir),
                 '{tdir}/archive/qemu'.format(tdir=testdir),
-                ]
-            )
+            ]
+        )
     try:
         yield
     finally:
-        for client, client_config in config.iteritems():
+        for client, client_config in config.items():
             assert 'test' in client_config, 'You must specify a test to run'
             (remote,) = ctx.cluster.only(client).remotes.keys()
             remote.run(
                 args=[
                     'rmdir', '{tdir}/qemu'.format(tdir=testdir), run.Raw('||'), 'true',
-                    ]
-                )
+                ]
+            )
+
 
 @contextlib.contextmanager
 def generate_iso(ctx, config):
     """Execute system commands to generate iso"""
     log.info('generating iso...')
     testdir = teuthology.get_testdir(ctx)
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         assert 'test' in client_config, 'You must specify a test to run'
         (remote,) = ctx.cluster.only(client).remotes.keys()
         src_dir = os.path.dirname(__file__)
         userdata_path = os.path.join(testdir, 'qemu', 'userdata.' + client)
         metadata_path = os.path.join(testdir, 'qemu', 'metadata.' + client)
 
-        with file(os.path.join(src_dir, 'userdata_setup.yaml'), 'rb') as f:
+        with open(os.path.join(src_dir, 'userdata_setup.yaml'), 'r') as f:
             test_setup = ''.join(f.readlines())
             # configuring the commands to setup the nfs mount
             mnt_dir = "/export/{client}".format(client=client)
@@ -102,12 +103,12 @@ def generate_iso(ctx, config):
                 mnt_dir=mnt_dir
             )
 
-        with file(os.path.join(src_dir, 'userdata_teardown.yaml'), 'rb') as f:
+        with open(os.path.join(src_dir, 'userdata_teardown.yaml'), 'r') as f:
             test_teardown = ''.join(f.readlines())
 
         user_data = test_setup
         if client_config.get('type', 'filesystem') == 'filesystem':
-            for i in xrange(0, client_config.get('num_rbd', DEFAULT_NUM_RBD)):
+            for i in range(0, client_config.get('num_rbd', DEFAULT_NUM_RBD)):
                 dev_letter = chr(ord('b') + i)
                 user_data += """
 - |
@@ -128,7 +129,7 @@ def generate_iso(ctx, config):
 
         teuthology.write_file(remote, userdata_path, StringIO(user_data))
 
-        with file(os.path.join(src_dir, 'metadata.yaml'), 'rb') as f:
+        with open(os.path.join(src_dir, 'metadata.yaml'), 'rb') as f:
             teuthology.write_file(remote, metadata_path, f)
 
         test_file = '{tdir}/qemu/{client}.test.sh'.format(tdir=testdir, client=client)
@@ -149,12 +150,12 @@ def generate_iso(ctx, config):
                 'user-data={userdata}'.format(userdata=userdata_path),
                 'meta-data={metadata}'.format(metadata=metadata_path),
                 'test.sh={file}'.format(file=test_file),
-                ],
-            )
+            ],
+        )
     try:
         yield
     finally:
-        for client in config.iterkeys():
+        for client in config:
             (remote,) = ctx.cluster.only(client).remotes.keys()
             remote.run(
                 args=[
@@ -171,7 +172,7 @@ def download_image(ctx, config):
     """Downland base image, remove image file when done"""
     log.info('downloading base image')
     testdir = teuthology.get_testdir(ctx)
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         (remote,) = ctx.cluster.only(client).remotes.keys()
         base_file = '{tdir}/qemu/base.{client}.qcow2'.format(tdir=testdir, client=client)
         remote.run(
@@ -183,7 +184,7 @@ def download_image(ctx, config):
         yield
     finally:
         log.debug('cleaning up base image files')
-        for client in config.iterkeys():
+        for client in config:
             base_file = '{tdir}/qemu/base.{client}.qcow2'.format(
                 tdir=testdir,
                 client=client,
@@ -274,7 +275,7 @@ def run_qemu(ctx, config):
     """Setup kvm environment and start qemu"""
     procs = []
     testdir = teuthology.get_testdir(ctx)
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         (remote,) = ctx.cluster.only(client).remotes.keys()
         log_dir = '{tdir}/archive/qemu/{client}'.format(tdir=testdir, client=client)
         remote.run(
@@ -321,7 +322,7 @@ def run_qemu(ctx, config):
                 cachemode = 'writethrough'
 
         clone = client_config.get('clone', False)
-        for i in xrange(client_config.get('num_rbd', DEFAULT_NUM_RBD)):
+        for i in range(client_config.get('num_rbd', DEFAULT_NUM_RBD)):
             suffix = '-clone' if clone else ''
             args.extend([
                 '-drive',
@@ -350,7 +351,7 @@ def run_qemu(ctx, config):
         run.wait(procs)
 
         log.debug('checking that qemu tests succeeded...')
-        for client in config.iterkeys():
+        for client in config:
             (remote,) = ctx.cluster.only(client).remotes.keys()
             # teardown nfs mount
             _teardown_nfs_mount(remote, client)
