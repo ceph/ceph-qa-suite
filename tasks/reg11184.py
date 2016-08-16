@@ -7,13 +7,13 @@ This is accomplished by moving a pg that wasn't part of split and still include
 divergent priors.
 """
 import logging
+import os
 import time
-from cStringIO import StringIO
 
 from teuthology import misc as teuthology
-from util.rados import rados
-import os
 
+from tasks.util.compat import StringIO, range
+from tasks.util.rados import rados
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ def task(ctx, config):
 
     log.info('writing initial objects')
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
     # write 100 objects
     for i in range(100):
         rados(ctx, mon, ['-p', 'foo', 'put', 'existing_%d' % i, dummyfile])
@@ -156,8 +156,8 @@ def task(ctx, config):
     time.sleep(5)
 
     # Export a pg
-    (exp_remote,) = ctx.\
-        cluster.only('osd.{o}'.format(o=divergent)).remotes.iterkeys()
+    (exp_remote,) = ctx. \
+        cluster.only('osd.{o}'.format(o=divergent)).remotes.keys()
     FSPATH = manager.get_filepath()
     JPATH = os.path.join(FSPATH, "journal")
     prefix = ("sudo adjust-ulimits ceph-objectstore-tool "
@@ -228,8 +228,8 @@ def task(ctx, config):
                                        '/tmp/existing'])
         assert exit_status is 0
 
-    (remote,) = ctx.\
-        cluster.only('osd.{o}'.format(o=divergent)).remotes.iterkeys()
+    (remote,) = ctx. \
+        cluster.only('osd.{o}'.format(o=divergent)).remotes.keys()
     cmd = 'rm {file}'.format(file=expfile)
     remote.run(args=cmd, wait=True)
     log.info("success")
