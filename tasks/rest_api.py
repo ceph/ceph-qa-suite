@@ -4,7 +4,7 @@ Rest Api
 import logging
 import contextlib
 import time
-
+from tasks.util.compat import range
 from teuthology import misc as teuthology
 from teuthology import contextutil
 from teuthology.orchestra import run
@@ -21,7 +21,7 @@ def run_rest_api_daemon(ctx, api_clients):
     if not hasattr(ctx, 'daemons'):
         ctx.daemons = DaemonGroup()
     remotes = ctx.cluster.only(teuthology.is_type('client')).remotes
-    for rems, roles in remotes.iteritems():
+    for rems, roles in remotes.items():
         for whole_id_ in roles:
             if whole_id_ in api_clients:
                 id_ = whole_id_[len('clients'):]
@@ -111,7 +111,7 @@ def task(ctx, config):
     log.info(api_clients)
     testdir = teuthology.get_testdir(ctx)
     coverage_dir = '{tdir}/archive/coverage'.format(tdir=testdir)
-    for rems, roles in remotes.iteritems():
+    for rems, roles in remotes.items():
         for whole_id_ in roles:
             if whole_id_ in api_clients:
                 id_ = whole_id_[len('client.'):]
