@@ -8,7 +8,7 @@ import requests
 import shutil
 import webbrowser
 
-from cStringIO import StringIO
+from tasks.util.compat import StringIO
 from teuthology.orchestra import run
 from teuthology import contextutil
 from teuthology import misc
