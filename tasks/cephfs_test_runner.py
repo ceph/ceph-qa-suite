@@ -3,8 +3,11 @@ import logging
 import os
 import unittest
 from unittest import suite, loader, case
+
 from teuthology.task import interactive
+
 from tasks.cephfs.filesystem import Filesystem, MDSCluster
+from tasks.util.compat import cmp
 
 log = logging.getLogger(__name__)
 
