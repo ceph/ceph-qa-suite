@@ -1,7 +1,7 @@
 """
 Recovery system benchmarking
 """
-from cStringIO import StringIO
+from tasks.util.compat import StringIO
 
 import contextlib
 import gevent
@@ -10,7 +10,7 @@ import logging
 import random
 import time
 
-import ceph_manager
+from tasks.ceph_manager import CephManager
 from teuthology import misc as teuthology
 
 log = logging.getLogger(__name__)
@@ -48,9 +48,9 @@ def task(ctx, config):
     log.info('Beginning recovery bench...')
 
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
 
-    manager = ceph_manager.CephManager(
+    manager = CephManager(
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
@@ -90,7 +90,7 @@ class RecoveryBencher:
                 """
                 Local wrapper to print value.
                 """
-                print x
+                print(x)
             self.log = tmp
 
         log.info("spawning thread")
@@ -113,7 +113,7 @@ class RecoveryBencher:
         io_size = self.config.get("io_size", 4096)
 
         osd = str(random.choice(self.osds))
-        (osd_remote,) = self.ceph_manager.ctx.cluster.only('osd.%s' % osd).remotes.iterkeys()
+        (osd_remote,) = self.ceph_manager.ctx.cluster.only('osd.%s' % osd).remotes.keys()
 
         testdir = teuthology.get_testdir(self.ceph_manager.ctx)
 
@@ -198,9 +198,9 @@ class RecoveryBencher:
 
             # median
             if num & 1 == 1: # odd number of samples
-                median = samples[num / 2]
+                median = samples[num // 2]
             else:
-                median = (samples[num / 2] + samples[num / 2 - 1]) / 2
+                median = (samples[num // 2] + samples[num // 2 - 1]) / 2
 
             # 99%
             ninety_nine = samples[int(num * 0.99)]
