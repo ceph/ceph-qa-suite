@@ -1,20 +1,23 @@
 """
 Execute ceph-deploy as a task
 """
-from cStringIO import StringIO
+
+from __future__ import absolute_import
 
 import contextlib
+import logging
 import os
 import time
-import logging
 import traceback
 
-from teuthology import misc as teuthology
 from teuthology import contextutil
+from teuthology import misc as teuthology
 from teuthology.config import config as teuth_config
-from teuthology.task import install as install_fn
 from teuthology.orchestra import run
+from teuthology.task import install as install_fn
+
 from tasks.cephfs.filesystem import Filesystem
+from tasks.util.compat import StringIO, range
 
 log = logging.getLogger(__name__)
 
@@ -146,7 +149,7 @@ def get_nodes_using_role(ctx, target_role):
     # Prepare a modified version of cluster.remotes with ceph-deploy-ized names
     modified_remotes = {}
 
-    for _remote, roles_for_host in ctx.cluster.remotes.iteritems():
+    for _remote, roles_for_host in ctx.cluster.remotes.items():
         modified_remotes[_remote] = []
         for svc_id in roles_for_host:
             if svc_id.startswith("{0}.".format(target_role)):
@@ -170,7 +173,7 @@ def get_nodes_using_role(ctx, target_role):
 def get_dev_for_osd(ctx, config):
     """Get a list of all osd device names."""
     osd_devs = []
-    for remote, roles_for_host in ctx.cluster.remotes.iteritems():
+    for remote, roles_for_host in ctx.cluster.remotes.items():
         host = remote.name.split('@')[-1]
         shortname = host.split('.')[0]
         devs = teuthology.get_scratch_devices(remote)
@@ -198,7 +201,7 @@ def get_dev_for_osd(ctx, config):
 def get_all_nodes(ctx, config):
     """Return a string of node names separated by blanks"""
     nodelist = []
-    for t, k in ctx.config['targets'].iteritems():
+    for t, k in ctx.config['targets'].items():
         host = t.split('@')[-1]
         simple_host = host.split('.')[0]
         nodelist.append(simple_host)
@@ -214,7 +217,7 @@ def build_ceph_cluster(ctx, config):
     # puts it.  Remember this here, because subsequently IDs will change from those in
     # the test config to those that ceph-deploy invents.
     (ceph_admin,) = ctx.cluster.only(
-        teuthology.get_first_mon(ctx, config)).remotes.iterkeys()
+        teuthology.get_first_mon(ctx, config)).remotes.keys()
 
     def execute_ceph_deploy(cmd):
         """Remotely execute a ceph_deploy command"""
@@ -234,7 +237,7 @@ def build_ceph_cluster(ctx, config):
         ceph_branch = None
         if config.get('branch') is not None:
             cbranch = config.get('branch')
-            for var, val in cbranch.iteritems():
+            for var, val in cbranch.items():
                 ceph_branch = '--{var}={val}'.format(var=var, val=val)
         all_nodes = get_all_nodes(ctx, config)
         mds_nodes = get_nodes_using_role(ctx, 'mds')
@@ -261,11 +264,11 @@ def build_ceph_cluster(ctx, config):
 
         if config.get('conf') is not None:
             confp = config.get('conf')
-            for section, keys in confp.iteritems():
+            for section, keys in confp.items():
                 lines = '[{section}]\n'.format(section=section)
                 teuthology.append_lines_to_file(ceph_admin, conf_path, lines,
                                                 sudo=True)
-                for key, value in keys.iteritems():
+                for key, value in keys.items():
                     log.info("[%s] %s = %s" % (section, key, value))
                     lines = '{key} = {value}\n'.format(key=key, value=value)
                     teuthology.append_lines_to_file(
@@ -358,7 +361,7 @@ def build_ceph_cluster(ctx, config):
             )
 
             clients = ctx.cluster.only(teuthology.is_type('client'))
-            for remot, roles_for_host in clients.remotes.iteritems():
+            for remot, roles_for_host in clients.remotes.items():
                 for id_ in teuthology.roles_of_type(roles_for_host, 'client'):
                     client_keyring = \
                         '/etc/ceph/ceph.client.{id}.keyring'.format(id=id_)
@@ -449,7 +452,7 @@ def build_ceph_cluster(ctx, config):
             path = os.path.join(ctx.archive, 'data')
             os.makedirs(path)
             mons = ctx.cluster.only(teuthology.is_type('mon'))
-            for remote, roles in mons.remotes.iteritems():
+            for remote, roles in mons.remotes.items():
                 for role in roles:
                     if role.startswith('mon.'):
                         teuthology.pull_directory_tarball(
@@ -483,7 +486,7 @@ def build_ceph_cluster(ctx, config):
             log.info('Archiving logs...')
             path = os.path.join(ctx.archive, 'remote')
             os.makedirs(path)
-            for remote in ctx.cluster.remotes.iterkeys():
+            for remote in ctx.cluster.remotes.keys():
                 sub = os.path.join(path, remote.shortname)
                 os.makedirs(sub)
                 teuthology.pull_directory(remote, '/var/log/ceph',
@@ -537,7 +540,7 @@ def cli_test(ctx, config):
             branch = ctx.config.get('branch')
             test_branch = ' --dev={branch} '.format(branch=branch)
     mons = ctx.cluster.only(teuthology.is_type('mon'))
-    for node, role in mons.remotes.iteritems():
+    for node, role in mons.remotes.items():
         admin = node
         admin.run(args=['mkdir', conf_dir], check_status=False)
         nodename = admin.shortname
@@ -547,7 +550,7 @@ def cli_test(ctx, config):
     log.info('system type is %s', system_type)
     osds = ctx.cluster.only(teuthology.is_type('osd'))
 
-    for remote, roles in osds.remotes.iteritems():
+    for remote, roles in osds.remotes.items():
         devs = teuthology.get_scratch_devices(remote)
         log.info("roles %s", roles)
         if (len(devs) < 3):
@@ -561,11 +564,11 @@ def cli_test(ctx, config):
     execute_cdeploy(admin, new_cmd, path)
     if config.get('conf') is not None:
         confp = config.get('conf')
-        for section, keys in confp.iteritems():
+        for section, keys in confp.items():
             lines = '[{section}]\n'.format(section=section)
             teuthology.append_lines_to_file(admin, conf_path, lines,
                                             sudo=True)
-            for key, value in keys.iteritems():
+            for key, value in keys.items():
                 log.info("[%s] %s = %s" % (section, key, value))
                 lines = '{key} = {value}\n'.format(key=key, value=value)
                 teuthology.append_lines_to_file(admin, conf_path, lines,
