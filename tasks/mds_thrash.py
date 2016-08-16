@@ -3,7 +3,7 @@ Thrash mds by simulating failures
 """
 import logging
 import contextlib
-import ceph_manager
+from tasks.ceph_manager import CephManager
 import random
 import time
 
@@ -133,7 +133,7 @@ class MDSThrasher(Greenlet):
     def kill_mds(self, mds):
         if self.config.get('powercycle'):
             (remote,) = (self.ctx.cluster.only('mds.{m}'.format(m=mds)).
-                         remotes.iterkeys())
+                         remotes.keys())
             self.log('kill_mds on mds.{m} doing powercycle of {s}'.
                      format(m=mds, s=remote.name))
             assert remote.console is not None, ("powercycling requested "
@@ -158,7 +158,7 @@ class MDSThrasher(Greenlet):
         """
         if self.config.get('powercycle'):
             (remote,) = (self.ctx.cluster.only('mds.{m}'.format(m=mds)).
-                         remotes.iterkeys())
+                         remotes.keys())
             self.log('revive_mds on mds.{m} doing powercycle of {s}'.
                      format(m=mds, s=remote.name))
             assert remote.console is not None, ("powercycling requested "
@@ -208,7 +208,7 @@ class MDSThrasher(Greenlet):
 
             # find the active mds in the failure group
             statuses = [self.mds_cluster.get_mds_info(m) for m in self.failure_group]
-            actives = filter(lambda s: s and s['state'] == 'up:active', statuses)
+            actives = [s for s in statuses if s and s['state'] == 'up:active']
             assert len(actives) == 1, 'Can only have one active in a failure group'
 
             active_mds = actives[0]['name']
@@ -249,7 +249,7 @@ class MDSThrasher(Greenlet):
             itercount = 0
             while True:
                 statuses = [self.mds_cluster.get_mds_info(m) for m in self.failure_group]
-                actives = filter(lambda s: s and s['state'] == 'up:active', statuses)
+                actives = [s for s in statuses if s and s['state'] == 'up:active']
                 if len(actives) > 0:
                     assert len(actives) == 1, 'Can only have one active in failure group'
                     takeover_mds = actives[0]['name']
@@ -339,8 +339,8 @@ def task(ctx, config):
     max_thrashers = config.get('max_thrash', 1)
     thrashers = {}
 
-    (first,) = ctx.cluster.only('mds.{_id}'.format(_id=mdslist[0])).remotes.iterkeys()
-    manager = ceph_manager.CephManager(
+    (first,) = ctx.cluster.only('mds.{_id}'.format(_id=mdslist[0])).remotes.keys()
+    manager = CephManager(
         first, ctx=ctx, logger=log.getChild('ceph_manager'),
     )
 
@@ -351,14 +351,12 @@ def task(ctx, config):
     while True:
         statuses = {m: mds_cluster.get_mds_info(m) for m in mdslist}
         statuses_by_rank = {}
-        for _, s in statuses.iteritems():
+        for s in statuses.values():
             if isinstance(s, dict):
                 statuses_by_rank[s['rank']] = s
 
-        ready = filter(lambda (_, s): s is not None and (s['state'] == 'up:active'
-                                                         or s['state'] == 'up:standby'
-                                                         or s['state'] == 'up:standby-replay'),
-                       statuses.items())
+        ready = [s for s in statuses.values() if s and s['state'] in ('up:active', 'up:standby', 'up:standby-replay')]
+
         if len(ready) == len(statuses):
             break
         time.sleep(2)
@@ -366,19 +364,19 @@ def task(ctx, config):
 
     # setup failure groups
     failure_groups = {}
-    actives = {s['name']: s for (_, s) in statuses.iteritems() if s['state'] == 'up:active'}
+    actives = {s['name']: s for (_, s) in statuses.items() if s['state'] == 'up:active'}
     log.info('Actives is: {d}'.format(d=actives))
     log.info('Statuses is: {d}'.format(d=statuses_by_rank))
     for active in actives:
-        for (r, s) in statuses.iteritems():
+        for (r, s) in statuses.items():
             if s['standby_for_name'] == active:
-                if not active in failure_groups:
+                if active not in failure_groups:
                     failure_groups[active] = []
                 log.info('Assigning mds rank {r} to failure group {g}'.format(r=r, g=active))
                 failure_groups[active].append(r)
 
     manager.wait_for_clean()
-    for (active, standbys) in failure_groups.iteritems():
+    for (active, standbys) in failure_groups.items():
         weight = 1.0
         if 'thrash_weights' in config:
             weight = int(config['thrash_weights'].get('mds.{_id}'.format(_id=active), '0.0'))
