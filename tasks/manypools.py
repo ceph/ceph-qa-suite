@@ -1,9 +1,10 @@
 """
 Force pg creation on all osds
 """
+import logging
+
 from teuthology import misc as teuthology
 from teuthology.orchestra import run
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ def task(ctx, config):
     log.info('got client_roles={client_roles_}'.format(client_roles_=client_roles))
     for role in client_roles:
         log.info('role={role_}'.format(role_=role))
-        (creator_remote, ) = ctx.cluster.only('client.{id}'.format(id=role)).remotes.iterkeys()
+        (creator_remote,) = ctx.cluster.only('client.{id}'.format(id=role)).remotes.keys()
         creator_remotes.append((creator_remote, 'client.{id}'.format(id=role)))
 
     remaining_pools = poolnum
@@ -68,6 +69,6 @@ def task(ctx, config):
             log.info('waiting for pool and object creates')
 	    poolprocs[remote] = proc
         
-        run.wait(poolprocs.itervalues())
     
+        run.wait(poolprocs.values())
     log.info('created all {n} pools and wrote 16 objects to each'.format(n=poolnum))
