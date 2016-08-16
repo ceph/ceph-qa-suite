@@ -7,13 +7,14 @@
 """
 import contextlib
 import logging
-import StringIO
 import re
-
-from teuthology.parallel import parallel
-from teuthology import misc as teuthology
 from tempfile import NamedTemporaryFile
+
+from teuthology import misc as teuthology
 from teuthology.orchestra import run
+from teuthology.parallel import parallel
+
+from tasks.util.compat import StringIO, map
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ or
         client_config = config['all']
     clients = ctx.cluster.only(teuthology.is_type('client'))
     rbd_test_dir = teuthology.get_testdir(ctx) + "/rbd_fio_test"
-    for remote,role in clients.remotes.iteritems():
+    for remote,role in clients.remotes.items():
         if 'client_config' in locals():
            with parallel() as p:
                p.spawn(run_fio, remote, client_config, rbd_test_dir)
@@ -141,7 +142,7 @@ def run_fio(remote, config, rbd_test_dir):
            remote.run(args=create_args)
            remote.run(args=['sudo', 'rbd', 'info', rbd_name])
            if ioengine != 'rbd':
-               out=StringIO.StringIO()
+               out=StringIO()
                remote.run(args=['sudo', 'rbd', 'map', rbd_name ],stdout=out)
                dev=re.search(r'(/dev/rbd\d+)',out.getvalue())
                rbd_dev=dev.group(1)
