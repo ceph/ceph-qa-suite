@@ -1,26 +1,28 @@
 """
 ceph manager -- Thrasher and CephManager objects
 """
-from cStringIO import StringIO
-from functools import wraps
-import contextlib
-import random
-import signal
-import time
-import gevent
 import base64
+import contextlib
 import json
 import logging
-import threading
-import traceback
 import os
+import random
+import signal
+import threading
+import time
+import traceback
+from functools import wraps
+
+import gevent
 from teuthology import misc as teuthology
-from tasks.scrub import Scrubber
-from util.rados import cmd_erasure_code_profile
-from util import get_remote
-from teuthology.orchestra.remote import Remote
-from teuthology.orchestra import run
 from teuthology.exceptions import CommandFailedError
+from teuthology.orchestra import run
+from teuthology.orchestra.remote import Remote
+
+from tasks.scrub import Scrubber
+from tasks.util import get_remote
+from tasks.util.compat import StringIO, range, map, string
+from tasks.util.rados import cmd_erasure_code_profile
 
 try:
     from subprocess import DEVNULL # py3k
@@ -130,7 +132,8 @@ class Thrasher:
                 """
                 Implement log behavior
                 """
-                print x
+                print(x)
+
             self.log = tmp
         if self.config is None:
             self.config = dict()
@@ -541,7 +544,7 @@ class Thrasher:
         assert the_one in status['down']
         time.sleep(duration - check_after + 20)
         status = self.ceph_manager.get_osd_status()
-        assert not the_one in status['down']
+        assert the_one not in status['down']
 
     def test_backfill_full(self):
         """
@@ -820,8 +823,7 @@ class ObjectStoreTool:
             self.pgid = self.manager.get_object_pg_with_shard(self.pool,
                                                               self.object_name,
                                                               self.osd)
-        self.remote = self.manager.ctx.\
-            cluster.only('osd.{o}'.format(o=self.osd)).remotes.keys()[0]
+        self.remote = list(self.manager.ctx.cluster.only('osd.{o}'.format(o=self.osd)).remotes.keys())[0]
         path = self.manager.get_filepath().format(id=self.osd)
         self.paths = ("--data-path {path} --journal-path {path}/journal".
                       format(path=path))
@@ -842,8 +844,9 @@ class ObjectStoreTool:
                       args=args,
                       options=options))
         if stdin:
+            stdin = stdin if isinstance(stdin, bytes) else stdin.encode()
             cmd = ("echo {payload} | base64 --decode | {cmd}".
-                   format(payload=base64.encode(stdin),
+                   format(payload=base64.encodestring(stdin).decode(),
                           cmd=cmd))
         lines.append(cmd)
         return "\n".join(lines)
@@ -890,7 +893,8 @@ class CephManager:
                 """
                 implement log behavior.
                 """
-                print x
+                print(x)
+
             self.log = tmp
         if self.config is None:
             self.config = dict()
@@ -1213,7 +1217,7 @@ class CephManager:
         :param osdnum: osd number
         :param argdict: dictionary containing values to set.
         """
-        for k, v in argdict.iteritems():
+        for k, v in argdict.items():
             self.wait_run_admin_socket(
                 'osd', osdnum,
                 ['config', 'set', str(k), str(v)])
@@ -1235,28 +1239,22 @@ class CephManager:
         """
         Get osd statuses sorted by states that the osds are in.
         """
-        osd_lines = filter(
-            lambda x: x.startswith('osd.') and (("up" in x) or ("down" in x)),
-            self.raw_osd_status().split('\n'))
+        osd_lines = [x for x in self.raw_osd_status().split('\n') if
+                     x.startswith('osd.') and (("up" in x) or ("down" in x))]
         self.log(osd_lines)
-        in_osds = [int(i[4:].split()[0])
-                   for i in filter(lambda x: " in " in x, osd_lines)]
-        out_osds = [int(i[4:].split()[0])
-                    for i in filter(lambda x: " out " in x, osd_lines)]
-        up_osds = [int(i[4:].split()[0])
-                   for i in filter(lambda x: " up " in x, osd_lines)]
-        down_osds = [int(i[4:].split()[0])
-                     for i in filter(lambda x: " down " in x, osd_lines)]
-        dead_osds = [int(x.id_)
-                     for x in filter(lambda x:
-                                     not x.running(),
-                                     self.ctx.daemons.
-                                     iter_daemons_of_role('osd', self.cluster))]
-        live_osds = [int(x.id_) for x in
-                     filter(lambda x:
-                            x.running(),
-                            self.ctx.daemons.iter_daemons_of_role('osd',
-                                                                  self.cluster))]
+
+        in_osds = [int(x[4:].split()[0]) for x in osd_lines if " in " in x]
+
+        out_osds = [int(x[4:].split()[0]) for x in osd_lines if " out " in x]
+
+        up_osds = [int(x[4:].split()[0]) for x in osd_lines if " up " in x]
+
+        down_osds = [int(x[4:].split()[0]) for x in osd_lines if " down " in x]
+
+        dead_osds = [int(x.id_) for x in self.ctx.daemons.iter_daemons_of_role('osd', self.cluster) if not x.running()]
+
+        live_osds = [int(x.id_) for x in self.ctx.daemons.iter_daemons_of_role('osd', self.cluster) if x.running()]
+
         return {'in': in_osds, 'out': out_osds, 'up': up_osds,
                 'down': down_osds, 'dead': dead_osds, 'live': live_osds,
                 'raw': osd_lines}
@@ -1312,7 +1310,7 @@ class CephManager:
                                           erasure coded pool using the profile
         """
         with self.lock:
-            assert isinstance(pool_name, basestring)
+            assert isinstance(pool_name, string)
             assert isinstance(pg_num, int)
             assert pool_name not in self.pools
             self.log("creating pool_name %s" % (pool_name,))
@@ -1355,7 +1353,7 @@ class CephManager:
         :param pool_name: Pool to be removed
         """
         with self.lock:
-            assert isinstance(pool_name, basestring)
+            assert isinstance(pool_name, string)
             assert pool_name in self.pools
             self.log("removing pool_name %s" % (pool_name,))
             del self.pools[pool_name]
@@ -1368,14 +1366,14 @@ class CephManager:
         Pick a random pool
         """
         with self.lock:
-            return random.choice(self.pools.keys())
+            return random.choice(list(self.pools.keys()))
 
     def get_pool_pg_num(self, pool_name):
         """
         Return the number of pgs in the pool specified.
         """
         with self.lock:
-            assert isinstance(pool_name, basestring)
+            assert isinstance(pool_name, string)
             if pool_name in self.pools:
                 return self.pools[pool_name]
             return 0
@@ -1387,8 +1385,8 @@ class CephManager:
         :returns: property as an int value.
         """
         with self.lock:
-            assert isinstance(pool_name, basestring)
-            assert isinstance(prop, basestring)
+            assert isinstance(pool_name, string)
+            assert isinstance(prop, string)
             output = self.raw_cluster_cmd(
                 'osd',
                 'pool',
@@ -1406,8 +1404,8 @@ class CephManager:
         This routine retries if set operation fails.
         """
         with self.lock:
-            assert isinstance(pool_name, basestring)
-            assert isinstance(prop, basestring)
+            assert isinstance(pool_name, string)
+            assert isinstance(prop, string)
             assert isinstance(val, int)
             tries = 0
             while True:
@@ -1434,7 +1432,7 @@ class CephManager:
         Increase the number of pgs in a pool
         """
         with self.lock:
-            assert isinstance(pool_name, basestring)
+            assert isinstance(pool_name, string)
             assert isinstance(by, int)
             assert pool_name in self.pools
             if self.get_num_creating() > 0:
@@ -1451,7 +1449,7 @@ class CephManager:
         Set pgpnum property of pool_name pool.
         """
         with self.lock:
-            assert isinstance(pool_name, basestring)
+            assert isinstance(pool_name, string)
             assert pool_name in self.pools
             if self.get_num_creating() > 0:
                 return
@@ -1471,7 +1469,7 @@ class CephManager:
                 r = j
             else:
                 r['objects'].extend(j['objects'])
-            if not 'more' in j:
+            if 'more' not in j:
                 break
             if j['more'] == 0:
                 break
@@ -2058,7 +2056,7 @@ class CephManager:
         out = self.raw_cluster_cmd('mds', 'dump', '--format=json')
         j = json.loads(' '.join(out.splitlines()[1:]))
         # collate; for dup ids, larger gid wins.
-        for info in j['info'].itervalues():
+        for info in j['info'].values():
             if info['name'] == mds:
                 return info
         return None
