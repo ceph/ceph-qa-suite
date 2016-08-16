@@ -1,8 +1,6 @@
 """
 Run a set of s3 tests on rgw.
 """
-from cStringIO import StringIO
-from configobj import ConfigObj
 import base64
 import contextlib
 import logging
@@ -10,13 +8,15 @@ import os
 import random
 import string
 
-import util.rgw as rgw_utils
-
-from teuthology import misc as teuthology
+from configobj import ConfigObj
 from teuthology import contextutil
+from teuthology import misc as teuthology
 from teuthology.config import config as teuth_config
 from teuthology.orchestra import run
 from teuthology.orchestra.connection import split_user
+
+from tasks.util import rgw as rgw_utils
+from tasks.util.compat import zip, StringIO
 
 log = logging.getLogger(__name__)
 
@@ -179,7 +179,7 @@ def _config_user(s3tests_conf, section, user):
     s3tests_conf[section].setdefault('user_id', user)
     s3tests_conf[section].setdefault('email', '{user}+test@test.test'.format(user=user))
     s3tests_conf[section].setdefault('display_name', 'Mr. {user}'.format(user=user))
-    s3tests_conf[section].setdefault('access_key', ''.join(random.choice(string.uppercase) for i in xrange(20)))
+    s3tests_conf[section].setdefault('access_key', ''.join(random.sample(string.ascii_uppercase, 20)))
     s3tests_conf[section].setdefault('secret_key', base64.b64encode(os.urandom(40)))
 
 
@@ -196,7 +196,7 @@ def create_users(ctx, config):
         s3tests_conf = config['s3tests_conf'][client]
         s3tests_conf.setdefault('fixtures', {})
         s3tests_conf['fixtures'].setdefault('bucket prefix', 'test-' + client + '-{random}-')
-        for section, user in users.iteritems():
+        for section, user in users.items():
             _config_user(s3tests_conf, section, '{user}.{client}'.format(user=user, client=client))
             log.debug('Creating user {user} on {host}'.format(user=s3tests_conf[section]['user_id'], host=client))
             ctx.cluster.only(client).run(
@@ -218,7 +218,7 @@ def create_users(ctx, config):
         yield
     finally:
         for client in config['clients']:
-            for user in users.itervalues():
+            for user in users.values():
                 uid = '{user}.{client}'.format(user=user, client=client)
                 ctx.cluster.only(client).run(
                     args=[
@@ -243,11 +243,11 @@ def configure(ctx, config):
     assert isinstance(config, dict)
     log.info('Configuring s3-tests...')
     testdir = teuthology.get_testdir(ctx)
-    for client, properties in config['clients'].iteritems():
+    for client, properties in config['clients'].items():
         s3tests_conf = config['s3tests_conf'][client]
         if properties is not None and 'rgw_server' in properties:
             host = None
-            for target, roles in zip(ctx.config['targets'].iterkeys(), ctx.config['roles']):
+            for target, roles in zip(ctx.config['targets'].keys(), ctx.config['roles']):
                 log.info('roles: ' + str(roles))
                 log.info('target: ' + str(target))
                 if properties['rgw_server'] in roles:
@@ -279,10 +279,10 @@ def configure(ctx, config):
 
     log.info('Configuring boto...')
     boto_src = os.path.join(os.path.dirname(__file__), 'boto.cfg.template')
-    for client, properties in config['clients'].iteritems():
-        with file(boto_src, 'rb') as f:
+    for client, properties in config['clients'].items():
+        with open(boto_src, 'rb') as f:
             (remote,) = ctx.cluster.only(client).remotes.keys()
-            conf = f.read().format(
+            conf = f.read().decode().format(
                 idle_timeout=config.get('idle_timeout', 30)
                 )
             teuthology.write_file(
@@ -296,7 +296,7 @@ def configure(ctx, config):
 
     finally:
         log.info('Cleaning up boto...')
-        for client, properties in config['clients'].iteritems():
+        for client, properties in config['clients'].items():
             (remote,) = ctx.cluster.only(client).remotes.keys()
             remote.run(
                 args=[
@@ -333,7 +333,7 @@ def run_tests(ctx, config):
     attrs = ["!fails_on_rgw"]
     if not ctx.rgw.use_fastcgi:
         attrs.append("!fails_on_mod_proxy_fcgi")
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         args = [
             'S3TEST_CONF={tdir}/archive/s3-tests.{client}.conf'.format(tdir=testdir, client=client),
             'BOTO_CONFIG={tdir}/boto.cfg'.format(tdir=testdir),
@@ -405,7 +405,7 @@ def task(ctx, config):
 
     overrides = ctx.config.get('overrides', {})
     # merge each client section, not the top level.
-    for client in config.iterkeys():
+    for client in config.keys():
         if not config[client]:
             config[client] = {}
         teuthology.deep_merge(config[client], overrides.get('s3tests', {}))
