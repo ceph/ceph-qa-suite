@@ -4,6 +4,8 @@ Populate rbd pools
 import contextlib
 import logging
 
+from tasks.util.compat import range
+
 log = logging.getLogger(__name__)
 
 @contextlib.contextmanager
@@ -34,7 +36,7 @@ def task(ctx, config):
     write_threads = config.get("write_threads", 10)
     write_total_per_snap = config.get("write_total_per_snap", 1024*1024*30)
 
-    (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+    (remote,) = ctx.cluster.only(client).remotes.keys()
 
     for poolid in range(num_pools):
         poolname = "%s-%s" % (pool_prefix, str(poolid))
