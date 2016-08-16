@@ -2,10 +2,10 @@
 Filestore/filejournal handler
 """
 import logging
-from teuthology.orchestra import run
 import random
 
 from teuthology import misc as teuthology
+from teuthology.orchestra import run
 
 log = logging.getLogger(__name__)
 
@@ -28,11 +28,11 @@ def task(ctx, config):
         config = all_clients
     if isinstance(config, list):
         config = dict.fromkeys(config)
-    clients = config.keys()
+    clients = list(config.keys())
 
     # just use the first client...
-    client = clients[0];
-    (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+    client = clients[0]
+    (remote,) = ctx.cluster.only(client).remotes.keys()
 
     testdir = teuthology.get_testdir(ctx)
 
