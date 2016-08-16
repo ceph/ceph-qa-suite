@@ -1,11 +1,11 @@
 """
 rgw s3tests logging wrappers
 """
-from cStringIO import StringIO
+from tasks.util.compat import StringIO
 from configobj import ConfigObj
 import contextlib
 import logging
-import s3tests
+from tasks import s3tests
 
 from teuthology import misc as teuthology
 from teuthology import contextutil
@@ -47,7 +47,7 @@ def run_tests(ctx, config):
     """
     assert isinstance(config, dict)
     testdir = teuthology.get_testdir(ctx)
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         client_config['extra_args'] = [
             's3tests.functional.test_s3:test_bucket_list_return_data',
         ]
@@ -70,7 +70,7 @@ def run_tests(ctx, config):
 
     netcat_out = StringIO()
 
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         ctx.cluster.only(client).run(
             args = [
                 'netcat',
@@ -125,7 +125,7 @@ def task(ctx, config):
 
     overrides = ctx.config.get('overrides', {})
     # merge each client section, not the top level.
-    for (client, cconf) in config.iteritems():
+    for (client, cconf) in config.items():
         teuthology.deep_merge(cconf, overrides.get('rgw-logsocket', {}))
 
     log.debug('config is %s', config)
