@@ -1,20 +1,21 @@
 """
 Run rgw roundtrip message tests
 """
-from cStringIO import StringIO
 import base64
 import contextlib
 import logging
 import os
 import random
 import string
-import yaml
 
-from teuthology import misc as teuthology
+import yaml
 from teuthology import contextutil
+from teuthology import misc as teuthology
 from teuthology.config import config as teuth_config
 from teuthology.orchestra import run
 from teuthology.orchestra.connection import split_user
+
+from tasks.util.compat import StringIO, zip
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def download(ctx, config):
     assert isinstance(config, dict)
     log.info('Downloading s3-tests...')
     testdir = teuthology.get_testdir(ctx)
-    for (client, cconf) in config.iteritems():
+    for (client, cconf) in config.items():
         branch = cconf.get('force-branch', None)
         if not branch:
             branch = cconf.get('branch', 'master')
@@ -64,7 +65,7 @@ def _config_user(s3tests_conf, section, user):
     s3tests_conf[section].setdefault('user_id', user)
     s3tests_conf[section].setdefault('email', '{user}+test@test.test'.format(user=user))
     s3tests_conf[section].setdefault('display_name', 'Mr. {user}'.format(user=user))
-    s3tests_conf[section].setdefault('access_key', ''.join(random.choice(string.uppercase) for i in xrange(20)))
+    s3tests_conf[section].setdefault('access_key', ''.join(random.sample(string.ascii_uppercase, 20)))
     s3tests_conf[section].setdefault('secret_key', base64.b64encode(os.urandom(40)))
 
 @contextlib.contextmanager
@@ -109,7 +110,7 @@ def create_users(ctx, config):
         yield
     finally:
         for client in config['clients']:
-            for user in users.itervalues():
+            for user in users.values():
                 uid = '{user}.{client}'.format(user=user, client=client)
                 ctx.cluster.only(client).run(
                     args=[
@@ -133,11 +134,11 @@ def configure(ctx, config):
     assert isinstance(config, dict)
     log.info('Configuring s3-roundtrip-tests...')
     testdir = teuthology.get_testdir(ctx)
-    for client, properties in config['clients'].iteritems():
+    for client, properties in config['clients'].items():
         s3tests_conf = config['s3tests_conf'][client]
         if properties is not None and 'rgw_server' in properties:
             host = None
-            for target, roles in zip(ctx.config['targets'].iterkeys(), ctx.config['roles']):
+            for target, roles in zip(ctx.config['targets'].keys(), ctx.config['roles']):
                 log.info('roles: ' + str(roles))
                 log.info('target: ' + str(target))
                 if properties['rgw_server'] in roles:
@@ -184,7 +185,7 @@ def run_tests(ctx, config):
     """
     assert isinstance(config, dict)
     testdir = teuthology.get_testdir(ctx)
-    for client, client_config in config.iteritems():
+    for client, client_config in config.items():
         (remote,) = ctx.cluster.only(client).remotes.keys()
         conf = teuthology.get_file(remote, '{tdir}/archive/s3roundtrip.{client}.config.yaml'.format(tdir=testdir, client=client))
         args = [
