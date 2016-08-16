@@ -1,13 +1,15 @@
 """
 Peer test (Single test, not much configurable here)
 """
-import logging
 import json
+import logging
 import time
 
-import ceph_manager
 from teuthology import misc as teuthology
-from util.rados import rados
+
+from tasks.ceph_manager import CephManager
+from tasks.util.compat import range
+from tasks.util.rados import rados
 
 log = logging.getLogger(__name__)
 
@@ -20,9 +22,9 @@ def task(ctx, config):
     assert isinstance(config, dict), \
         'peer task only accepts a dict for configuration'
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
 
-    manager = ceph_manager.CephManager(
+    manager = CephManager(
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
