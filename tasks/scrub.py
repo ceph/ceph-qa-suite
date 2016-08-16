@@ -2,13 +2,19 @@
 Scrub osds
 """
 import contextlib
-import gevent
 import logging
 import random
 import time
 
-import ceph_manager
+import gevent
 from teuthology import misc as teuthology
+
+from tasks.util.compat import PY2
+
+if PY2:
+    import ceph_manager
+else:
+    from tasks import ceph_manager
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +45,7 @@ def task(ctx, config):
     log.info('Beginning scrub...')
 
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
 
     manager = ceph_manager.CephManager(
         mon,
@@ -82,7 +88,8 @@ class Scrubber:
         else:
             def tmp(x):
                 """Local display"""
-                print x
+                print(x)
+
             self.log = tmp
 
         self.stopping = False
