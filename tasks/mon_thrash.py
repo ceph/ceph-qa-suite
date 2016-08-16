@@ -1,15 +1,16 @@
 """
 Monitor thrash
 """
-import logging
 import contextlib
-import ceph_manager
+import json
+import logging
+import math
 import random
 import time
 import gevent
-import json
-import math
 from teuthology import misc as teuthology
+
+from tasks.ceph_manager import CephManager
 
 log = logging.getLogger(__name__)
 
@@ -324,8 +325,8 @@ def task(ctx, config):
         'mon_thrash task requires at least 3 monitors'
     log.info('Beginning mon_thrash...')
     first_mon = teuthology.get_first_mon(ctx, config)
-    (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
-    manager = ceph_manager.CephManager(
+    (mon,) = ctx.cluster.only(first_mon).remotes.keys()
+    manager = CephManager(
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
