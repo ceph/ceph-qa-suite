@@ -675,7 +675,9 @@ class Thrasher:
                 osd_state = "false"
             else:
                 osd_state = "true"
-            self.ceph_manager.raw_cluster_cmd_result('tell', 'osd.*',
+            for osd in self.live_osds:
+                osdname = "osd.{o}".format(o=osd)
+                self.ceph_manager.raw_cluster_cmd_result('tell', osdname,
                              'injectargs', '--osd_enable_op_tracker=%s' % osd_state)
             gevent.sleep(delay)
 
