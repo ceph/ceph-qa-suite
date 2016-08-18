@@ -10,6 +10,7 @@ PY3 = sys.version_info[0] == 3
 if PY2:
     from itertools import izip, imap
     from cStringIO import StringIO
+    from urlparse import urlparse
 
     string = basestring
     str = unicode
@@ -21,6 +22,7 @@ if PY2:
 
 elif PY3:
     from io import StringIO
+    from urllib.parse import urlparse
 
     string = str
     str = str

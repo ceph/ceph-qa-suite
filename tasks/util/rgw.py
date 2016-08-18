@@ -1,8 +1,7 @@
-from cStringIO import StringIO
 import logging
 import json
 import requests
-from urlparse import urlparse
+from tasks.util.compat import StringIO, zip, urlparse
 
 from teuthology.orchestra.connection import split_user
 from teuthology import misc as teuthology
@@ -30,7 +29,7 @@ def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
         ]
     pre.extend(cmd)
     log.info('rgwadmin: cmd=%s' % pre)
-    (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+    (remote,) = ctx.cluster.only(client).remotes.keys()
     proc = remote.run(
         args=pre,
         check_status=check_status,
@@ -148,7 +147,7 @@ def radosgw_agent_sync_metadata(ctx, agent_host, agent_port, full=False):
 
 def radosgw_agent_sync_all(ctx, full=False, data=False):
     if ctx.radosgw_agent.procs:
-        for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+        for agent_client, c_config in ctx.radosgw_agent.config.items():
             zone_for_client(ctx, agent_client)
             sync_host, sync_port = get_sync_agent(ctx, agent_client)
             log.debug('doing a sync via {host1}'.format(host1=sync_host))
@@ -157,7 +156,7 @@ def radosgw_agent_sync_all(ctx, full=False, data=False):
                 radosgw_agent_sync_data(ctx, sync_host, sync_port, full)
 
 def host_for_role(ctx, role):
-    for target, roles in zip(ctx.config['targets'].iterkeys(), ctx.config['roles']):
+    for target, roles in zip(ctx.config['targets'].keys(), ctx.config['roles']):
         if role in roles:
             _, host = split_user(target)
             return host
@@ -166,7 +165,7 @@ def get_sync_agent(ctx, source):
     for task in ctx.config['tasks']:
         if 'radosgw-agent' not in task:
             continue
-        for client, conf in task['radosgw-agent'].iteritems():
+        for client, conf in task['radosgw-agent'].items():
             if conf['src'] == source:
                 return host_for_role(ctx, source), conf.get('port', 8000)
     return None, None
