@@ -4,6 +4,7 @@ Handle clock skews in monitors.
 import contextlib
 import logging
 import time
+
 import gevent
 from teuthology import misc as teuthology
 
@@ -11,6 +12,7 @@ from tasks.ceph_manager import CephManager
 from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
+
 
 class ClockSkewCheck:
     """
@@ -74,8 +76,8 @@ class ClockSkewCheck:
                 'ceph-mon',
                 '-i', first_mon[4:],
                 '--show-config-value', 'mon_clock_drift_allowed'
-                ], stdout=StringIO(), wait=True
-                )
+            ], stdout=StringIO(), wait=True
+        )
         self.max_skew = self.config.get('max-skew', float(proc.stdout.getvalue()))
 
         self.expect_skew = self.config.get('expect-skew', False)
@@ -137,7 +139,7 @@ class ClockSkewCheck:
         self.info('start checking for clock skews')
         skews = dict()
         ran_once = False
-        
+
         started_on = None
 
         while not self.stopping or (self.at_least_once and not ran_once):
@@ -166,9 +168,9 @@ class ClockSkewCheck:
                 clean_check = True
             else:
                 assert timechecks['round_status'] == 'on-going', \
-                        'timecheck status expected \'on-going\' ' \
-                        'but found \'{s}\' instead'.format(
-                            s=timechecks['round_status'])
+                    'timecheck status expected \'on-going\' ' \
+                    'but found \'{s}\' instead'.format(
+                        s=timechecks['round_status'])
                 if 'mons' in timechecks.keys() and len(timechecks['mons']) > 1:
                     self.info('round still on-going, but there are available reports')
                 else:
@@ -187,10 +189,10 @@ class ClockSkewCheck:
                 if abs(mon_skew) > self.max_skew:
                     assert mon_health == 'HEALTH_WARN', \
                         'mon.{id} health is \'{health}\' but skew {s} > max {ms}'.format(
-                            id=mon_id,health=mon_health,s=abs(mon_skew),ms=self.max_skew)
+                            id=mon_id, health=mon_health, s=abs(mon_skew), ms=self.max_skew)
 
                     log_str = 'mon.{id} with skew {s} > max {ms}'.format(
-                        id=mon_id,s=abs(mon_skew),ms=self.max_skew)
+                        id=mon_id, s=abs(mon_skew), ms=self.max_skew)
 
                     """ add to skew list """
                     details = check['details']
@@ -226,6 +228,7 @@ class ClockSkewCheck:
             if not self.never_fail:
                 assert False, error_str
 
+
 @contextlib.contextmanager
 def task(ctx, config):
     """
@@ -246,11 +249,11 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     skew_check = ClockSkewCheck(ctx,
-        manager, config,
-        logger=log.getChild('mon_clock_skew_check'))
+                                manager, config,
+                                logger=log.getChild('mon_clock_skew_check'))
     skew_check_thread = gevent.spawn(skew_check.do_check)
     try:
         yield
@@ -258,5 +261,3 @@ def task(ctx, config):
         log.info('joining mon_clock_skew_check')
         skew_check.finish()
         skew_check_thread.get()
-
-

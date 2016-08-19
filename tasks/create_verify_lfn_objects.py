@@ -8,6 +8,7 @@ from tasks.util.compat import range
 
 log = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def task(ctx, config):
     """
@@ -42,8 +43,9 @@ def task(ctx, config):
                 numstr = str(i)
                 fillerlen = l - nslength - len(prefix) - len(numstr)
                 assert fillerlen >= 0
-                return prefix + ('a'*fillerlen) + numstr
-            objects += [(ns, object_name(i)) for i in  range(num_objects)]
+                return prefix + ('a' * fillerlen) + numstr
+
+            objects += [(ns, object_name(i)) for i in range(num_objects)]
 
     for ns, name in objects:
         err = manager.do_put(

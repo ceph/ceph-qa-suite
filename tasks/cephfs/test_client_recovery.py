@@ -1,23 +1,21 @@
-
 """
 Teuthology task for exercising CephFS client recovery
 """
 
-import logging
-from textwrap import dedent
-import time
 import distutils.version as version
-import re
+import logging
 import os
+import re
+import time
+from textwrap import dedent
 
 from teuthology.orchestra.run import CommandFailedError, ConnectionLostError
-from tasks.cephfs.cephfs_test_case import CephFSTestCase
 from teuthology.packaging import get_package_version
 
+from tasks.cephfs.cephfs_test_case import CephFSTestCase
 from tasks.util.compat import range
 
 log = logging.getLogger(__name__)
-
 
 # Arbitrary timeouts for operations involving restarting
 # an MDS or waiting for it to come up
@@ -342,15 +340,15 @@ class TestClientRecovery(CephFSTestCase):
         self.assertTrue(b_result)
         a_version = version.StrictVersion(a_result.group())
         b_version = version.StrictVersion(b_result.group())
-        flock_version=version.StrictVersion(flock_version_str)
+        flock_version = version.StrictVersion(flock_version_str)
 
         flockable = False
-        if (a_version >= flock_version and b_version >= flock_version):
+        if a_version >= flock_version and b_version >= flock_version:
             log.info("testing flock locks")
             flockable = True
         else:
             log.info("not testing flock locks, machines have versions {av} and {bv}".format(
-                av=a_version_str,bv=b_version_str))
+                av=a_version_str, bv=b_version_str))
 
         lock_holder = self.mount_a.lock_background(do_flock=flockable)
 
@@ -371,10 +369,10 @@ class TestClientRecovery(CephFSTestCase):
             pass
 
     def test_dir_fsync(self):
-	self._test_fsync(True);
+        self._test_fsync(True)
 
     def test_create_fsync(self):
-	self._test_fsync(False);
+        self._test_fsync(False)
 
     def _test_fsync(self, dirfsync):
         """
@@ -410,7 +408,7 @@ class TestClientRecovery(CephFSTestCase):
                 else:
                     os.fsync(fd)
                 print "Finished fsync in {{0}}s".format(time.time() - start)
-            """.format(path=path,dirfsync=str(dirfsync)))
+            """.format(path=path, dirfsync=str(dirfsync)))
         )
 
         # Immediately kill the MDS and then client A

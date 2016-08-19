@@ -6,10 +6,12 @@ import pipes
 
 from teuthology import misc as teuthology
 from teuthology.orchestra import run as tor
+from teuthology.orchestra import run
+
 from tasks.util.compat import zip
 
-from teuthology.orchestra import run
 log = logging.getLogger(__name__)
+
 
 def restart_daemon(ctx, config, role, id_, *args):
     """
@@ -23,12 +25,13 @@ def restart_daemon(ctx, config, role, id_, *args):
     except tor.CommandFailedError as e:
         log.debug('Command Failed: {e}'.format(e=e))
     if len(args) > 0:
-        confargs = ['--{k}={v}'.format(k=k, v=v) for k,v in zip(args[0::2], args[1::2])]
+        confargs = ['--{k}={v}'.format(k=k, v=v) for k, v in zip(args[0::2], args[1::2])]
         log.debug('Doing restart of {r}.{i} daemon with args: {a}...'.format(r=role, i=id_, a=confargs))
         daemon.restart_with_args(confargs)
     else:
         log.debug('Doing restart of {r}.{i} daemon...'.format(r=role, i=id_))
         daemon.restart()
+
 
 def get_tests(ctx, config, role, remote, testdir):
     """Download restart tests"""
@@ -64,12 +67,13 @@ def get_tests(ctx, config, role, remote, testdir):
             run.Raw('&&'),
             'find', '-executable', '-type', 'f', '-printf', r'%P\0'.format(srcdir=srcdir),
             run.Raw('>{tdir}/restarts.list'.format(tdir=testdir)),
-            ],
-        )
+        ],
+    )
     restarts = sorted(teuthology.get_file(
-                        remote,
-                        '{tdir}/restarts.list'.format(tdir=testdir)).split('\0'))
-    return (srcdir, restarts)
+        remote,
+        '{tdir}/restarts.list'.format(tdir=testdir)).split('\0'))
+    return srcdir, restarts
+
 
 def task(ctx, config):
     """
@@ -111,7 +115,7 @@ def task(ctx, config):
                 log.info('Running restart script %s...', c)
                 args = [
                     run.Raw('TESTDIR="{tdir}"'.format(tdir=testdir)),
-                    ]
+                ]
                 env = config.get('env')
                 if env is not None:
                     for var, val in env.items():
@@ -119,21 +123,21 @@ def task(ctx, config):
                         env_arg = '{var}={val}'.format(var=var, val=quoted_val)
                         args.append(run.Raw(env_arg))
                 args.extend([
-                            'adjust-ulimits',
-                            'ceph-coverage',
-                            '{tdir}/archive/coverage'.format(tdir=testdir),
-                            '{srcdir}/{c}'.format(
-                                srcdir=srcdir,
-                                c=c,
-                                ),
-                            ])
+                    'adjust-ulimits',
+                    'ceph-coverage',
+                    '{tdir}/archive/coverage'.format(tdir=testdir),
+                    '{srcdir}/{c}'.format(
+                        srcdir=srcdir,
+                        c=c,
+                    ),
+                ])
                 proc = remote.run(
                     args=args,
                     stdout=tor.PIPE,
                     stdin=tor.PIPE,
                     stderr=log,
                     wait=False,
-                    )
+                )
                 log.info('waiting for a command from script')
                 while True:
                     l = proc.stdout.readline()
@@ -160,5 +164,5 @@ def task(ctx, config):
             logger=log.getChild(role),
             args=[
                 'rm', '-rf', '--', '{tdir}/restarts.list'.format(tdir=testdir), srcdir,
-                ],
-            )
+            ],
+        )

@@ -301,7 +301,7 @@ def build_ceph_cluster(ctx, config):
         estatus_gather = execute_ceph_deploy(gather_keys)
         max_gather_tries = 90
         gather_tries = 0
-        while (estatus_gather != 0):
+        while estatus_gather != 0:
             gather_tries += 1
             if gather_tries >= max_gather_tries:
                 msg = 'ceph-deploy was not able to gatherkeys after 15 minutes'
@@ -317,7 +317,7 @@ def build_ceph_cluster(ctx, config):
         if config.get('test_mon_destroy') is not None:
             for d in range(1, len(mon_node)):
                 mon_destroy_nodes = './ceph-deploy mon destroy' + \
-                    " " + mon_node[d]
+                                    " " + mon_node[d]
                 estatus_mon_d = execute_ceph_deploy(mon_destroy_nodes)
                 if estatus_mon_d != 0:
                     raise RuntimeError("ceph-deploy: Failed to delete monitor")
@@ -521,7 +521,7 @@ def cli_test(ctx, config):
         """Either use git path or repo path """
         args = ['cd', conf_dir, run.Raw(';')]
         if path:
-            args.append('{path}/ceph-deploy/ceph-deploy'.format(path=path));
+            args.append('{path}/ceph-deploy/ceph-deploy'.format(path=path))
         else:
             args.append('ceph-deploy')
         args.append(run.Raw(cmd))
@@ -553,7 +553,7 @@ def cli_test(ctx, config):
     for remote, roles in osds.remotes.items():
         devs = teuthology.get_scratch_devices(remote)
         log.info("roles %s", roles)
-        if (len(devs) < 3):
+        if len(devs) < 3:
             log.error(
                 'Test needs minimum of 3 devices, only found %s',
                 str(devs))
@@ -599,11 +599,11 @@ def cli_test(ctx, config):
     log.info("Waiting for cluster to become healthy")
     with contextutil.safe_while(sleep=10, tries=6,
                                 action='check health') as proceed:
-       while proceed():
-           r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
-           out = r.stdout.getvalue()
-           if (out.split(None,1)[0] == 'HEALTH_OK'):
-               break
+        while proceed():
+            r = remote.run(args=['sudo', 'ceph', 'health'], stdout=StringIO())
+            out = r.stdout.getvalue()
+            if (out.split(None, 1)[0] == 'HEALTH_OK'):
+                break
     rgw_install = 'install {branch} --rgw {node}'.format(
         branch=test_branch,
         node=nodename,
@@ -658,14 +658,14 @@ def single_node_test(ctx, config):
     if config.get('rhbuild'):
         log.info("RH Build, Skip Download")
         with contextutil.nested(
-            lambda: cli_test(ctx=ctx, config=config),
+                lambda: cli_test(ctx=ctx, config=config),
         ):
             yield
     else:
         with contextutil.nested(
-            lambda: install_fn.ship_utilities(ctx=ctx, config=None),
-            lambda: download_ceph_deploy(ctx=ctx, config=config),
-            lambda: cli_test(ctx=ctx, config=config),
+                lambda: install_fn.ship_utilities(ctx=ctx, config=None),
+                lambda: download_ceph_deploy(ctx=ctx, config=config),
+                lambda: cli_test(ctx=ctx, config=config),
         ):
             yield
 
@@ -726,8 +726,8 @@ def task(ctx, config):
     log.info('task ceph-deploy with config ' + str(config))
 
     with contextutil.nested(
-        lambda: install_fn.ship_utilities(ctx=ctx, config=None),
-        lambda: download_ceph_deploy(ctx=ctx, config=config),
-        lambda: build_ceph_cluster(ctx=ctx, config=config),
+            lambda: install_fn.ship_utilities(ctx=ctx, config=None),
+            lambda: download_ceph_deploy(ctx=ctx, config=config),
+            lambda: build_ceph_cluster(ctx=ctx, config=config),
     ):
         yield

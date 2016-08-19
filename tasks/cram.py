@@ -12,6 +12,7 @@ from tasks.util.compat import string
 
 log = logging.getLogger(__name__)
 
+
 def task(ctx, config):
     """
     Run all cram tests from the specified urls on the specified
@@ -45,7 +46,7 @@ def task(ctx, config):
     """
     assert isinstance(config, dict)
     assert 'clients' in config and isinstance(config['clients'], dict), \
-           'configuration must contain a dictionary of clients'
+        'configuration must contain a dictionary of clients'
 
     clients = teuthology.replace_all_with_clients(ctx.cluster,
                                                   config['clients'])
@@ -63,16 +64,16 @@ def task(ctx, config):
                     run.Raw('&&'),
                     '{tdir}/virtualenv/bin/pip'.format(tdir=testdir),
                     'install', 'cram==0.6',
-                    ],
-                )
+                ],
+            )
             for test in tests:
                 log.info('fetching test %s for %s', test, client)
                 assert test.endswith('.t'), 'tests must end in .t'
                 remote.run(
                     args=[
                         'wget', '-nc', '-nv', '-P', client_dir, '--', test,
-                        ],
-                    )
+                    ],
+                )
 
         with parallel() as p:
             for role in clients.keys():
@@ -91,8 +92,8 @@ def task(ctx, config):
                         'test', '-f', abs_file + '.err',
                         run.Raw('||'),
                         'rm', '-f', '--', abs_file,
-                        ],
-                    )
+                    ],
+                )
 
             # ignore failure since more than one client may
             # be run on a host, and the client dir should be
@@ -103,8 +104,9 @@ def task(ctx, config):
                     '{tdir}/virtualenv'.format(tdir=testdir),
                     run.Raw(';'),
                     'rmdir', '--ignore-fail-on-non-empty', client_dir,
-                    ],
-                )
+                ],
+            )
+
 
 def _run_tests(ctx, role):
     """
@@ -132,6 +134,6 @@ def _run_tests(ctx, role):
             '{tdir}/virtualenv/bin/cram'.format(tdir=testdir),
             '-v', '--',
             run.Raw('{tdir}/archive/cram.{role}/*.t'.format(tdir=testdir, role=role)),
-            ],
+        ],
         logger=log.getChild(role),
-        )
+    )

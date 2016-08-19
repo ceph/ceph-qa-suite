@@ -13,6 +13,7 @@ from tasks.util.rados import rados
 
 log = logging.getLogger(__name__)
 
+
 def task(ctx, config):
     """
     Test peering.
@@ -28,7 +29,7 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     while len(manager.get_osd_status()['up']) < 3:
         time.sleep(10)
@@ -40,7 +41,8 @@ def task(ctx, config):
     for i in range(3):
         manager.set_config(
             i,
-            osd_recovery_delay_start=120)
+            osd_recovery_delay_start=120
+        )
 
     # take on osd down
     manager.kill_osd(2)
@@ -72,7 +74,7 @@ def task(ctx, config):
     pgs = manager.get_pg_stats()
     for pg in pgs:
         out = manager.raw_cluster_cmd('pg', pg['pgid'], 'query')
-	log.debug("out string %s",out)
+        log.debug("out string %s", out)
         j = json.loads(out)
         log.info("pg is %s, query json is %s", pg, j)
 

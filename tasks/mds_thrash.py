@@ -100,7 +100,7 @@ class MDSThrasher(Greenlet):
         self.randomize = bool(self.config.get('randomize', True))
         self.max_thrash_delay = float(self.config.get('thrash_delay', 30.0))
         self.thrash_in_replay = float(self.config.get('thrash_in_replay', False))
-        assert self.thrash_in_replay >= 0.0 and self.thrash_in_replay <= 1.0, 'thrash_in_replay ({v}) must be between [0.0, 1.0]'.format(
+        assert 0.0 <= self.thrash_in_replay <= 1.0, 'thrash_in_replay ({v}) must be between [0.0, 1.0]'.format(
             v=self.thrash_in_replay)
 
         self.max_replay_thrash_delay = float(self.config.get('max_replay_thrash_delay', 4.0))
@@ -233,7 +233,7 @@ class MDSThrasher(Greenlet):
                 self.log(
                     'waiting till mds map indicates mds.{_id} is laggy/crashed, in failed state, or mds.{_id} is removed from mdsmap'.format(
                         _id=active_mds))
-                itercount = itercount + 1
+                itercount += 1
                 if itercount > 10:
                     self.log('mds map: {status}'.format(status=self.mds_cluster.get_fs_map()))
                 time.sleep(2)
@@ -255,7 +255,7 @@ class MDSThrasher(Greenlet):
                     takeover_mds = actives[0]['name']
                     takeover_rank = actives[0]['rank']
                     break
-                itercount = itercount + 1
+                itercount += 1
                 if itercount > 10:
                     self.log('mds map: {status}'.format(status=self.mds_cluster.get_fs_map()))
 

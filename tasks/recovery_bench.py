@@ -1,19 +1,20 @@
 """
 Recovery system benchmarking
 """
-from tasks.util.compat import StringIO
-
 import contextlib
-import gevent
 import json
 import logging
 import random
 import time
 
-from tasks.ceph_manager import CephManager
+import gevent
 from teuthology import misc as teuthology
 
+from tasks.ceph_manager import CephManager
+from tasks.util.compat import StringIO
+
 log = logging.getLogger(__name__)
+
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -54,7 +55,7 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     num_osds = teuthology.num_instances_of_type(ctx.cluster, 'osd')
     while len(manager.get_osd_status()['up']) < num_osds:
@@ -63,17 +64,19 @@ def task(ctx, config):
     bench_proc = RecoveryBencher(
         manager,
         config,
-        )
+    )
     try:
         yield
     finally:
         log.info('joining recovery bencher')
         bench_proc.do_join()
 
+
 class RecoveryBencher:
     """
     RecoveryBencher
     """
+
     def __init__(self, manager, config):
         self.ceph_manager = manager
         self.ceph_manager.wait_for_clean()
@@ -91,6 +94,7 @@ class RecoveryBencher:
                 Local wrapper to print value.
                 """
                 print(x)
+
             self.log = tmp
 
         log.info("spawning thread")
@@ -128,7 +132,7 @@ class RecoveryBencher:
                 '--init-only', '1',
                 '--num-objects', str(num_objects),
                 '--io-size', str(io_size),
-                ],
+            ],
             wait=True,
         )
 
@@ -144,7 +148,7 @@ class RecoveryBencher:
                 '--do-not-init', '1',
                 '--duration', str(duration),
                 '--io-size', str(io_size),
-                ],
+            ],
             stdout=StringIO(),
             stderr=StringIO(),
             wait=True,
@@ -166,7 +170,7 @@ class RecoveryBencher:
                 '--do-not-init', '1',
                 '--duration', str(duration),
                 '--io-size', str(io_size),
-                ],
+            ],
             stdout=StringIO(),
             stderr=StringIO(),
             wait=True,
@@ -197,7 +201,7 @@ class RecoveryBencher:
             num = len(samples)
 
             # median
-            if num & 1 == 1: # odd number of samples
+            if num & 1 == 1:  # odd number of samples
                 median = samples[num // 2]
             else:
                 median = (samples[num // 2] + samples[num // 2 - 1]) / 2

@@ -61,7 +61,7 @@ def omaperr(manager, osd, pool, obj):
     """
     log.info("injecting omap err on object")
     return manager.osd_admin_socket(osd, ['setomapval', pool, obj,
-                                              'badkey', 'badval'])
+                                          'badkey', 'badval'])
 
 
 def repair_test_1(manager, corrupter, chooser, scrub_type):
@@ -78,7 +78,6 @@ def repair_test_1(manager, corrupter, chooser, scrub_type):
     pool = "repair_pool_1"
     manager.wait_for_clean()
     with manager.pool(pool, 1):
-
         log.info("starting repair test type 1")
         victim_osd = chooser(manager, pool, 0)
 
@@ -130,13 +129,13 @@ def repair_test_2(ctx, manager, config, chooser):
         log.info("doing put and setomapval")
         manager.do_put(pool, 'file1', '/etc/hosts')
         manager.do_rados(mon, ['-p', pool, 'setomapval', 'file1',
-                                   'key', 'val'])
+                               'key', 'val'])
         manager.do_put(pool, 'file2', '/etc/hosts')
         manager.do_put(pool, 'file3', '/etc/hosts')
         manager.do_put(pool, 'file4', '/etc/hosts')
         manager.do_put(pool, 'file5', '/etc/hosts')
         manager.do_rados(mon, ['-p', pool, 'setomapval', 'file5',
-                                   'key', 'val'])
+                               'key', 'val'])
         manager.do_put(pool, 'file6', '/etc/hosts')
 
         # corrupt object
@@ -214,8 +213,7 @@ def repair_test_erasure_code(manager, corrupter, victim, scrub_type):
     pool = "repair_pool_3"
     manager.wait_for_clean()
     with manager.pool(pool_name=pool, pg_num=1,
-                          erasure_code_profile_name='default'):
-
+                      erasure_code_profile_name='default'):
         log.info("starting repair test for erasure code")
 
         # create object

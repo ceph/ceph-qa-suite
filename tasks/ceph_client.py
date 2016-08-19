@@ -8,6 +8,7 @@ from teuthology.orchestra import run
 
 log = logging.getLogger(__name__)
 
+
 def create_keyring(ctx, cluster_name):
     """
     Set up key ring on remote sites
@@ -38,5 +39,5 @@ def create_keyring(ctx, cluster_name):
                     'chmod',
                     '0644',
                     client_keyring,
-                    ],
-                )
+                ],
+            )

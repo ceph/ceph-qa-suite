@@ -1,16 +1,16 @@
-
 """
 Test our tools for recovering the content of damaged journals
 """
 
 import json
 import logging
-from textwrap import dedent
 import time
+from textwrap import dedent
 
 from teuthology.orchestra.run import CommandFailedError
-from tasks.cephfs.filesystem import ObjectNotFound, ROOT_INO
+
 from tasks.cephfs.cephfs_test_case import CephFSTestCase, for_teuthology
+from tasks.cephfs.filesystem import ObjectNotFound, ROOT_INO
 from tasks.util.compat import range
 from tasks.workunit import task as workunit
 
@@ -81,7 +81,8 @@ class TestJournalRepair(CephFSTestCase):
         self.fs.journal_tool(['event', 'recover_dentries', 'list'])
 
         # Dentries in ROOT_INO are present
-        self.assertEqual(sorted(self.fs.list_dirfrag(ROOT_INO)), sorted(['rootfile_head', 'subdir_head', 'linkdir_head']))
+        self.assertEqual(sorted(self.fs.list_dirfrag(ROOT_INO)),
+                         sorted(['rootfile_head', 'subdir_head', 'linkdir_head']))
         self.assertEqual(self.fs.list_dirfrag(subdir_ino), ['subdirfile_head', 'subsubdir_head'])
         self.assertEqual(sorted(self.fs.list_dirfrag(linkdir_ino)),
                          sorted(['link0_head', 'link1_head', 'link2_head', 'link3_head']))
@@ -148,7 +149,7 @@ class TestJournalRepair(CephFSTestCase):
         # Check that we can do metadata ops in the recovered directory
         self.mount_a.run_shell(["touch", "subdir/subsubdir/subsubdirfile"])
 
-    @for_teuthology # 308s
+    @for_teuthology  # 308s
     def test_reset(self):
         """
         That after forcibly modifying the backing store, we can get back into
@@ -251,9 +252,9 @@ class TestJournalRepair(CephFSTestCase):
             return info['state'] if info is not None else None
 
         self.wait_until_equal(
-                get_state,
-                "up:standby",
-                timeout=60)
+            get_state,
+            "up:standby",
+            timeout=60)
 
         self.fs.mds_stop(damaged_id)
         self.fs.mds_fail(damaged_id)
@@ -268,7 +269,7 @@ class TestJournalRepair(CephFSTestCase):
         self.fs.journal_tool(["journal", "reset"], rank=0)
         self.fs.erase_mds_objects(1)
         self.fs.mon_manager.raw_cluster_cmd('fs', 'reset', self.fs.name,
-                '--yes-i-really-mean-it')
+                                            '--yes-i-really-mean-it')
 
         # Bring an MDS back online, mount a client, and see that we can walk the full
         # filesystem tree again
@@ -349,9 +350,9 @@ class TestJournalRepair(CephFSTestCase):
                             "inotable": {"projected_free": [
                                 {"start": 1099511627776,
                                  "len": 1099511627776}],
-                                 "free": [
+                                "free": [
                                     {"start": 1099511627776,
-                                    "len": 1099511627776}]}},
+                                     "len": 1099511627776}]}},
                    "result": 0}}
         )
 
@@ -422,8 +423,6 @@ class TestJournalRepair(CephFSTestCase):
             "timeout": "1h"
         })
 
-
-
         self.fs.mds_restart()
         self.fs.wait_for_daemons()
 
@@ -437,4 +436,3 @@ class TestJournalRepair(CephFSTestCase):
             },
             "timeout": "1h"
         })
-

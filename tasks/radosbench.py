@@ -11,6 +11,7 @@ from tasks.util.compat import string
 
 log = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def task(ctx, config):
     """
@@ -82,17 +83,17 @@ def task(ctx, config):
                           'ceph-coverage',
                           '{tdir}/archive/coverage',
                           'rados',
-			  '--no-log-to-stderr',
+                          '--no-log-to-stderr',
                           '--name', role,
-                          '-b', str(config.get('size', 4<<20)),
-                          '-p' , pool,
+                          '-b', str(config.get('size', 4 << 20)),
+                          '-p', pool,
                           'bench', str(config.get('time', 360)), 'write',
                           ] + cleanup).format(tdir=testdir),
-                ],
+            ],
             logger=log.getChild('radosbench.{id}'.format(id=id_)),
             stdin=run.PIPE,
             wait=False
-            )
+        )
         radosbench[id_] = proc
 
     try:

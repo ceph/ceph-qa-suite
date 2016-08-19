@@ -8,6 +8,7 @@ from tasks.util.compat import range
 
 log = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def task(ctx, config):
     """
@@ -32,9 +33,9 @@ def task(ctx, config):
     num_images = config.get("num_images", 20)
     num_snaps = config.get("num_snaps", 4)
     image_size = config.get("image_size", 100)
-    write_size = config.get("write_size", 1024*1024)
+    write_size = config.get("write_size", 1024 * 1024)
     write_threads = config.get("write_threads", 10)
-    write_total_per_snap = config.get("write_total_per_snap", 1024*1024*30)
+    write_total_per_snap = config.get("write_total_per_snap", 1024 * 1024 * 30)
 
     (remote,) = ctx.cluster.only(client).remotes.keys()
 
@@ -46,16 +47,17 @@ def task(ctx, config):
             imagename = "rbd-%s" % (str(imageid),)
             log.info("Creating imagename %s" % (imagename,))
             remote.run(
-                args = [
+                args=[
                     "rbd",
                     "create",
                     imagename,
                     "--image-format", "1",
                     "--size", str(image_size),
                     "--pool", str(poolname)])
+
             def bench_run():
                 remote.run(
-                    args = [
+                    args=[
                         "rbd",
                         "bench-write",
                         imagename,
@@ -64,18 +66,19 @@ def task(ctx, config):
                         "--io-threads", str(write_threads),
                         "--io-total", str(write_total_per_snap),
                         "--io-pattern", "rand"])
+
             log.info("imagename %s first bench" % (imagename,))
             bench_run()
             for snapid in range(num_snaps):
                 snapname = "snap-%s" % (str(snapid),)
                 log.info("imagename %s creating snap %s" % (imagename, snapname))
                 remote.run(
-                    args = [
+                    args=[
                         "rbd", "snap", "create",
                         "--pool", poolname,
                         "--snap", snapname,
                         imagename
-                        ])
+                    ])
                 bench_run()
 
     try:

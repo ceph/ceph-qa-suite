@@ -1,17 +1,16 @@
 import json
 import logging
-import unittest
-from unittest import case
-import time
 import os
 import re
-from tasks.util.compat import StringIO, range
-
-from tasks.cephfs.fuse_mount import FuseMount
+import time
+import unittest
+from unittest import case
 
 from teuthology.orchestra import run
 from teuthology.orchestra.run import CommandFailedError
 
+from tasks.cephfs.fuse_mount import FuseMount
+from tasks.util.compat import StringIO, range
 
 log = logging.getLogger(__name__)
 
@@ -132,7 +131,7 @@ class CephFSTestCase(unittest.TestCase):
         except CommandFailedError:
             # Fallback for older Ceph cluster
             blacklist = json.loads(self.fs.mon_manager.raw_cluster_cmd("osd",
-                                  "dump", "--format=json-pretty"))['blacklist']
+                                                                       "dump", "--format=json-pretty"))['blacklist']
             log.info("Removing {0} blacklist entries".format(len(blacklist)))
             for addr, blacklisted_at in blacklist.items():
                 self.fs.mon_manager.raw_cluster_cmd("osd", "blacklist", "rm", addr)
@@ -211,7 +210,7 @@ class CephFSTestCase(unittest.TestCase):
             expected, len(ls_data)
         ))
 
-    def assert_session_state(self, client_id,  expected_state):
+    def assert_session_state(self, client_id, expected_state):
         self.assertEqual(
             self._session_by_id(
                 self.fs.mds_asok(['session', 'ls'])).get(client_id, {'state': None})['state'],
@@ -276,6 +275,7 @@ class CephFSTestCase(unittest.TestCase):
         Wait until all the daemons appear in the FSMap, either assigned
         MDS ranks or in the list of standbys
         """
+
         def get_daemon_names():
             fs_map = self.mds_cluster.get_fs_map()
             names = [m['name'] for m in fs_map['standbys']]
@@ -396,6 +396,7 @@ class CephFSTestCase(unittest.TestCase):
         """
         Wait until 'ceph health' contains messages matching the pattern
         """
+
         def seen_health_warning():
             health = self.fs.mon_manager.get_mon_health()
             summary_strings = [s['summary'] for s in health['summary']]
@@ -405,7 +406,7 @@ class CephFSTestCase(unittest.TestCase):
             else:
                 for ss in summary_strings:
                     if pattern in ss:
-                         return True
+                        return True
 
             log.debug("Not found expected summary strings yet ({0})".format(summary_strings))
             return False
@@ -416,6 +417,7 @@ class CephFSTestCase(unittest.TestCase):
         """
         Wait until `ceph health` returns no messages
         """
+
         def is_clear():
             health = self.fs.mon_manager.get_mon_health()
             return len(health['summary']) == 0

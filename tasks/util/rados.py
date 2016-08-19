@@ -4,6 +4,7 @@ from teuthology import misc as teuthology
 
 log = logging.getLogger(__name__)
 
+
 def rados(ctx, remote, cmd, wait=True, check_status=False):
     testdir = teuthology.get_testdir(ctx)
     log.info("rados %s" % ' '.join(cmd))
@@ -12,30 +13,33 @@ def rados(ctx, remote, cmd, wait=True, check_status=False):
         'ceph-coverage',
         '{tdir}/archive/coverage'.format(tdir=testdir),
         'rados',
-        ];
+    ]
     pre.extend(cmd)
     proc = remote.run(
         args=pre,
         check_status=check_status,
         wait=wait,
-        )
+    )
     if wait:
         return proc.exitstatus
     else:
         return proc
 
+
 def create_ec_pool(remote, name, profile_name, pgnum, profile={}):
     remote.run(args=['sudo', 'ceph'] +
-               cmd_erasure_code_profile(profile_name, profile))
+                    cmd_erasure_code_profile(profile_name, profile))
     remote.run(args=[
         'sudo', 'ceph', 'osd', 'pool', 'create', name,
         str(pgnum), str(pgnum), 'erasure', profile_name,
-        ])
+    ])
+
 
 def create_replicated_pool(remote, name, pgnum):
     remote.run(args=[
         'sudo', 'ceph', 'osd', 'pool', 'create', name, str(pgnum), str(pgnum),
-        ])
+    ])
+
 
 def create_cache_pool(remote, base_name, cache_name, pgnum, size):
     remote.run(args=[
@@ -45,6 +49,7 @@ def create_cache_pool(remote, base_name, cache_name, pgnum, size):
         'sudo', 'ceph', 'osd', 'tier', 'add-cache', base_name, cache_name,
         str(size),
     ])
+
 
 def cmd_erasure_code_profile(profile_name, profile):
     """
@@ -74,6 +79,6 @@ def cmd_erasure_code_profile(profile_name, profile):
             'ruleset-failure-domain': 'osd'
         }
     return [
-        'osd', 'erasure-code-profile', 'set',
-        profile_name
-        ] + [ str(key) + '=' + str(value) for key, value in profile.items() ]
+               'osd', 'erasure-code-profile', 'set',
+               profile_name
+           ] + [str(key) + '=' + str(value) for key, value in profile.items()]

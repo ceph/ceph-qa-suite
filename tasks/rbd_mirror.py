@@ -4,11 +4,12 @@ Task for running rbd mirroring daemons and configuring mirroring
 
 import logging
 
-from teuthology.orchestra import run
 from teuthology import misc
 from teuthology.exceptions import ConfigError
+from teuthology.orchestra import run
 from teuthology.task import Task
-from util import get_remote_for_role
+
+from tasks.util import get_remote_for_role
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ class RBDMirror(Task):
         valgrind: [--tool=<valgrind tool>] - none by default
         coverage: bool - whether this run may be collecting coverage data
     """
+
     def __init__(self, ctx, config):
         super(RBDMirror, self).__init__(ctx, config)
         self.log = log
@@ -80,7 +82,7 @@ class RBDMirror(Task):
             '{tdir}/archive/coverage'.format(tdir=testdir),
             'daemon-helper',
             daemon_signal,
-            ]
+        ]
 
         if 'valgrind' in self.config:
             args = misc.get_valgrind_args(
@@ -96,7 +98,7 @@ class RBDMirror(Task):
             self.cluster_name,
             '--id',
             self.client_id,
-            ])
+        ])
 
         self.ctx.daemons.add_daemon(
             self.remote, 'rbd-mirror', self.client,
@@ -113,5 +115,6 @@ class RBDMirror(Task):
                                                     self.cluster_name)
         mirror_daemon.stop()
         super(RBDMirror, self).end()
+
 
 task = RBDMirror

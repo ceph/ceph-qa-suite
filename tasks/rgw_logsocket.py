@@ -1,14 +1,15 @@
 """
 rgw s3tests logging wrappers
 """
-from tasks.util.compat import StringIO
-from configobj import ConfigObj
 import contextlib
 import logging
-from tasks import s3tests
 
-from teuthology import misc as teuthology
+from configobj import ConfigObj
 from teuthology import contextutil
+from teuthology import misc as teuthology
+
+from tasks import s3tests
+from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
@@ -20,11 +21,13 @@ def download(ctx, config):
     """
     return s3tests.download(ctx, config)
 
+
 def _config_user(s3tests_conf, section, user):
     """
     Run s3tests user config function
     """
     return s3tests._config_user(s3tests_conf, section, user)
+
 
 @contextlib.contextmanager
 def create_users(ctx, config):
@@ -33,12 +36,14 @@ def create_users(ctx, config):
     """
     return s3tests.create_users(ctx, config)
 
+
 @contextlib.contextmanager
 def configure(ctx, config):
     """
     Run s3tests user configure function
     """
     return s3tests.configure(ctx, config)
+
 
 @contextlib.contextmanager
 def run_tests(ctx, config):
@@ -51,20 +56,20 @@ def run_tests(ctx, config):
         client_config['extra_args'] = [
             's3tests.functional.test_s3:test_bucket_list_return_data',
         ]
-#        args = [
-#                'S3TEST_CONF={tdir}/archive/s3-tests.{client}.conf'.format(tdir=testdir, client=client),
-#                '{tdir}/s3-tests/virtualenv/bin/nosetests'.format(tdir=testdir),
-#                '-w',
-#                '{tdir}/s3-tests'.format(tdir=testdir),
-#                '-v',
-#		's3tests.functional.test_s3:test_bucket_list_return_data',
-#                ]
-#        if client_config is not None and 'extra_args' in client_config:
-#            args.extend(client_config['extra_args'])
-#
-#        ctx.cluster.only(client).run(
-#            args=args,
-#            )
+    #        args = [
+    #                'S3TEST_CONF={tdir}/archive/s3-tests.{client}.conf'.format(tdir=testdir, client=client),
+    #                '{tdir}/s3-tests/virtualenv/bin/nosetests'.format(tdir=testdir),
+    #                '-w',
+    #                '{tdir}/s3-tests'.format(tdir=testdir),
+    #                '-v',
+    #                's3tests.functional.test_s3:test_bucket_list_return_data',
+    #                ]
+    #        if client_config is not None and 'extra_args' in client_config:
+    #            args.extend(client_config['extra_args'])
+    #
+    #        ctx.cluster.only(client).run(
+    #            args=args,
+    #            )
 
     s3tests.run_tests(ctx, config)
 
@@ -72,12 +77,12 @@ def run_tests(ctx, config):
 
     for client, client_config in config.items():
         ctx.cluster.only(client).run(
-            args = [
+            args=[
                 'netcat',
                 '-w', '5',
                 '-U', '{tdir}/rgw.opslog.sock'.format(tdir=testdir),
-                ],
-             stdout = netcat_out,
+            ],
+            stdout=netcat_out,
         )
 
         out = netcat_out.getvalue()
@@ -113,7 +118,7 @@ def task(ctx, config):
               extra_args: ['--exclude', 'test_100_continue']
     """
     assert config is None or isinstance(config, list) \
-        or isinstance(config, dict), \
+           or isinstance(config, dict), \
         "task s3tests only supports a list or dictionary for configuration"
     all_clients = ['client.{id}'.format(id=id_)
                    for id_ in teuthology.all_roles_of_type(ctx.cluster, 'client')]
@@ -137,25 +142,25 @@ def task(ctx, config):
             infile={
                 'DEFAULT':
                     {
-                    'port'      : 7280,
-                    'is_secure' : 'no',
+                        'port': 7280,
+                        'is_secure': 'no',
                     },
-                'fixtures' : {},
-                's3 main'  : {},
-                's3 alt'   : {},
-                }
-            )
+                'fixtures': {},
+                's3 main': {},
+                's3 alt': {},
+            }
+        )
 
     with contextutil.nested(
-        lambda: download(ctx=ctx, config=config),
-        lambda: create_users(ctx=ctx, config=dict(
+            lambda: download(ctx=ctx, config=config),
+            lambda: create_users(ctx=ctx, config=dict(
                 clients=clients,
                 s3tests_conf=s3tests_conf,
-                )),
-        lambda: configure(ctx=ctx, config=dict(
+            )),
+            lambda: configure(ctx=ctx, config=dict(
                 clients=config,
                 s3tests_conf=s3tests_conf,
-                )),
-        lambda: run_tests(ctx=ctx, config=config),
-        ):
+            )),
+            lambda: run_tests(ctx=ctx, config=config),
+    ):
         yield

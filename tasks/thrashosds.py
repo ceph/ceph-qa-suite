@@ -10,6 +10,7 @@ from tasks.ceph_manager import Thrasher
 
 log = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def task(ctx, config):
     """
@@ -163,7 +164,7 @@ def task(ctx, config):
                         'Failed to get console status for '
                         '%s, disabling console...'
                         % cname)
-                    console=None
+                    console = None
                 else:
                     # find the remote for this console and add it
                     remotes = [
@@ -190,7 +191,7 @@ def task(ctx, config):
         cluster_manager,
         config,
         logger=log.getChild('thrasher')
-        )
+    )
     try:
         yield
     finally:

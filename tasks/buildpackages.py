@@ -10,6 +10,7 @@ Integration tests:
 teuthology-openstack --verbose --key-name myself --key-filename ~/Downloads/myself --ceph infernalis --suite teuthology/buildpackages
 
 """
+
 import copy
 import logging
 import os
@@ -21,8 +22,8 @@ from teuthology.openstack import OpenStack
 
 log = logging.getLogger(__name__)
 
-class LocalGitbuilderProject(packaging.GitbuilderProject):
 
+class LocalGitbuilderProject(packaging.GitbuilderProject):
     def __init__(self):
         pass
 
@@ -32,6 +33,7 @@ def get_pkg_type(os_type):
         return 'rpm'
     else:
         return 'deb'
+
 
 def apply_overrides(ctx, config):
     if config is None:
@@ -49,6 +51,7 @@ def apply_overrides(ctx, config):
         install_overrides = overrides.get('install', {})
         misc.deep_merge(config, install_overrides.get(project, {}))
     return config
+
 
 def get_config_install(ctx, config):
     config = apply_overrides(ctx, config)
@@ -98,10 +101,12 @@ def lookup_configs(ctx, node):
                 configs.extend(lookup_configs(ctx, value))
     return configs
 
+
 def get_sha1(ref):
     url = teuth_config.get_ceph_git_url()
     ls_remote = misc.sh("git ls-remote " + url + " " + ref)
     return ls_remote.split()[0]
+
 
 def task(ctx, config):
     """
@@ -191,13 +196,13 @@ def task(ctx, config):
         network = openstack.net()
         if network != "":
             network = " OPENSTACK_NETWORK='" + network + "' "
-        openstack.image(os_type, os_version, arch) # create if it does not exist
+        openstack.image(os_type, os_version, arch)  # create if it does not exist
         build_flavor = openstack.flavor_range(
             config['min_machine'], config['good_machine'], arch, select)
         default_arch = openstack.get_default_arch()
         http_flavor = openstack.flavor({
-            'disk': 30, # GB
-            'ram': 1024, # MB
+            'disk': 30,  # GB
+            'ram': 1024,  # MB
             'cpus': 1,
         }, default_arch, select)
         lock = "/tmp/buildpackages-" + sha1 + "-" + os_type + "-" + os_version

@@ -3,14 +3,15 @@ Rados modle-based integration tests
 """
 import contextlib
 import logging
+
 import gevent
 from teuthology import misc as teuthology
-
 from teuthology.orchestra import run
 
 from tasks.util.compat import range, string
 
 log = logging.getLogger(__name__)
+
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -20,21 +21,21 @@ def task(ctx, config):
     The config should be as follows::
 
         rados:
-          clients: [client list]
-          ops: <number of ops>
-          objects: <number of objects to use>
-          max_in_flight: <max number of operations in flight>
-          object_size: <size of objects in bytes>
-          min_stride_size: <minimum write stride size in bytes>
-          max_stride_size: <maximum write stride size in bytes>
-          op_weights: <dictionary mapping operation type to integer weight>
-          runs: <number of times to run> - the pool is remade between runs
-          ec_pool: use an ec pool
-          erasure_code_profile: profile to use with the erasure coded pool
-          pool_snaps: use pool snapshots instead of selfmanaged snapshots
-	  write_fadvise_dontneed: write behavior like with LIBRADOS_OP_FLAG_FADVISE_DONTNEED.
-	                          This mean data don't access in the near future.
-				  Let osd backend don't keep data in cache.
+            clients: [client list]
+            ops: <number of ops>
+            objects: <number of objects to use>
+            max_in_flight: <max number of operations in flight>
+            object_size: <size of objects in bytes>
+            min_stride_size: <minimum write stride size in bytes>
+            max_stride_size: <maximum write stride size in bytes>
+            op_weights: <dictionary mapping operation type to integer weight>
+            runs: <number of times to run> - the pool is remade between runs
+            ec_pool: use an ec pool
+            erasure_code_profile: profile to use with the erasure coded pool
+            pool_snaps: use pool snapshots instead of selfmanaged snapshots
+            write_fadvise_dontneed: write behavior like with LIBRADOS_OP_FLAG_FADVISE_DONTNEED.
+                                    This mean data don't access in the near future.
+                                    Let osd backend don't keep data in cache.
 
     For example::
 
@@ -50,20 +51,20 @@ def task(ctx, config):
             min_stride_size: 1024
             max_stride_size: 4096
             op_weights:
-              read: 20
-              write: 10
-              delete: 2
-              snap_create: 3
-              rollback: 2
-              snap_remove: 0
+                read: 20
+                write: 10
+                delete: 2
+                snap_create: 3
+                rollback: 2
+                snap_remove: 0
             ec_pool: create an ec pool, defaults to False
             erasure_code_profile:
-              name: teuthologyprofile
-              k: 2
-              m: 1
-              ruleset-failure-domain: osd
+                name: teuthologyprofile
+                k: 2
+                m: 1
+                ruleset-failure-domain: osd
             pool_snaps: true
-	    write_fadvise_dontneed: true
+        write_fadvise_dontneed: true
             runs: 10
         - interactive:
 
@@ -150,12 +151,9 @@ def task(ctx, config):
         '--min-stride-size', str(config.get('min_stride_size', object_size / 10)),
         '--max-stride-size', str(config.get('max_stride_size', object_size / 5)),
         '--max-seconds', str(config.get('max_seconds', 0))
-        ])
+    ])
 
-    weights = {}
-    weights['read'] = 100
-    weights['write'] = 100
-    weights['delete'] = 10
+    weights = {'read': 100, 'write': 100, 'delete': 10}
     # Parallel of the op_types in test/osd/TestRados.cc
     for field in [
         # read handled above
@@ -178,7 +176,7 @@ def task(ctx, config):
         "write",
         "read",
         "delete"
-        ]:
+    ]:
         if field in op_weights:
             weights[field] = op_weights[field]
 
@@ -195,7 +193,6 @@ def task(ctx, config):
         args.extend([
             '--op', op, str(weight)
         ])
-                
 
     def thread():
         """Thread spawned by gevent"""
@@ -232,11 +229,11 @@ def task(ctx, config):
                 (remote,) = ctx.cluster.only(role).remotes.keys()
                 proc = remote.run(
                     args=["CEPH_CLIENT_ID={id_}".format(id_=id_)] + args +
-                    ["--pool", pool],
+                         ["--pool", pool],
                     logger=log.getChild("rados.{id}".format(id=id_)),
                     stdin=run.PIPE,
                     wait=False
-                    )
+                )
                 tests[id_] = proc
             run.wait(tests.values())
 

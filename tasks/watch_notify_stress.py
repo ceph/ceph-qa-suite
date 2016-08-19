@@ -45,21 +45,23 @@ def task(ctx, config):
         (remote,) = ctx.cluster.only(role).remotes.keys()
         remotes.append(remote)
 
-        args =['CEPH_CLIENT_ID={id_}'.format(id_=id_),
-               'CEPH_ARGS="{flags}"'.format(flags=config.get('flags', '')),
-               'daemon-helper',
-               'kill',
-               'multi_stress_watch foo foo'
-               ]
+        args = [
+            'CEPH_CLIENT_ID={id_}'.format(id_=id_),
+            'CEPH_ARGS="{flags}"'.format(flags=config.get('flags', '')),
+            'daemon-helper',
+            'kill',
+            'multi_stress_watch foo foo'
+        ]
 
         log.info("args are %s" % (args,))
 
-        proc = proc_thrasher.ProcThrasher({}, remote,
+        proc = proc_thrasher.ProcThrasher(
+            {}, remote,
             args=[run.Raw(i) for i in args],
             logger=log.getChild('testwatch.{id}'.format(id=id_)),
             stdin=run.PIPE,
             wait=False
-            )
+        )
         proc.start()
         testwatch[id_] = proc
 

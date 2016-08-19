@@ -25,15 +25,18 @@ from tasks.util.rgw import rgwadmin, get_user_summary, get_user_successful_ops
 
 log = logging.getLogger(__name__)
 
+
 def create_presigned_url(conn, method, bucket_name, key_name, expiration):
-    return conn.generate_url(expires_in=expiration,
+    return conn.generate_url(
+        expires_in=expiration,
         method=method,
         bucket=bucket_name,
         key=key_name,
         query_auth=True,
     )
 
-def send_raw_http_request(conn, method, bucket_name, key_name, follow_redirects = False):
+
+def send_raw_http_request(conn, method, bucket_name, key_name, follow_redirects=False):
     url = create_presigned_url(conn, method, bucket_name, key_name, 3600)
     print(url)
     h = httplib2.Http()
@@ -67,7 +70,7 @@ def task(ctx, config):
     """
     global log
     assert config is None or isinstance(config, list) \
-        or isinstance(config, dict), \
+           or isinstance(config, dict), \
         "task s3tests only supports a list or dictionary for configuration"
     all_clients = ['client.{id}'.format(id=id_)
                    for id_ in teuthology.all_roles_of_type(ctx.cluster, 'client')]
@@ -79,7 +82,7 @@ def task(ctx, config):
 
     multi_region_run = rgw_utils.multi_region_enabled(ctx)
 
-    client = clients[0]; # default choice, multi-region code may overwrite this
+    client = clients[0]  # default choice, multi-region code may overwrite this
     if multi_region_run:
         client = rgw_utils.get_master_client(ctx, clients)
 
@@ -89,25 +92,25 @@ def task(ctx, config):
 
     realm = ctx.rgw.realm
     log.debug('radosgw-admin: realm %r', realm)
-    
-    ##
-    user1='foo'
-    user2='fud'
-    subuser1='foo:foo1'
-    subuser2='foo:foo2'
-    display_name1='Foo'
-    display_name2='Fud'
-    email='foo@foo.com'
-    email2='bar@bar.com'
-    access_key='9te6NH5mcdcq0Tc5i8i1'
-    secret_key='Ny4IOauQoL18Gp2zM7lC1vLmoawgqcYP/YGcWfXu'
-    access_key2='p5YnriCv1nAtykxBrupQ'
-    secret_key2='Q8Tk6Q/27hfbFSYdSkPtUqhqx1GgzvpXa4WARozh'
-    swift_secret1='gpS2G9RREMrnbqlp29PP2D36kgPR1tm72n5fPYfL'
-    swift_secret2='ri2VJQcKSYATOY6uaDUX7pxgkW+W1YmC6OCxPHwy'
 
-    bucket_name='myfoo'
-    bucket_name2='mybar'
+    ##
+    user1 = 'foo'
+    user2 = 'fud'
+    subuser1 = 'foo:foo1'
+    subuser2 = 'foo:foo2'
+    display_name1 = 'Foo'
+    display_name2 = 'Fud'
+    email = 'foo@foo.com'
+    email2 = 'bar@bar.com'
+    access_key = '9te6NH5mcdcq0Tc5i8i1'
+    secret_key = 'Ny4IOauQoL18Gp2zM7lC1vLmoawgqcYP/YGcWfXu'
+    access_key2 = 'p5YnriCv1nAtykxBrupQ'
+    secret_key2 = 'Q8Tk6Q/27hfbFSYdSkPtUqhqx1GgzvpXa4WARozh'
+    swift_secret1 = 'gpS2G9RREMrnbqlp29PP2D36kgPR1tm72n5fPYfL'
+    swift_secret2 = 'ri2VJQcKSYATOY6uaDUX7pxgkW+W1YmC6OCxPHwy'
+
+    bucket_name = 'myfoo'
+    bucket_name2 = 'mybar'
 
     # connect to rgw
     connection = boto.s3.connection.S3Connection(
@@ -117,7 +120,7 @@ def task(ctx, config):
         port=remote_port,
         host=remote_host,
         calling_format=boto.s3.connection.OrdinaryCallingFormat(),
-        )
+    )
     connection2 = boto.s3.connection.S3Connection(
         aws_access_key_id=access_key2,
         aws_secret_access_key=secret_key2,
@@ -125,7 +128,7 @@ def task(ctx, config):
         port=remote_port,
         host=remote_host,
         calling_format=boto.s3.connection.OrdinaryCallingFormat(),
-        )
+    )
 
     # legend (test cases can be easily grep-ed out)
     # TESTCASE 'testname','object','method','operation','assertion'
@@ -135,23 +138,23 @@ def task(ctx, config):
 
     # TESTCASE 'create-ok','user','create','w/all valid info','succeeds'
     (err, out) = rgwadmin(ctx, client, [
-            'user', 'create',
-            '--uid', user1,
-            '--display-name', display_name1,
-            '--email', email,
-            '--access-key', access_key,
-            '--secret', secret_key,
-            '--max-buckets', '4'
-            ],
-            check_status=True)
+        'user', 'create',
+        '--uid', user1,
+        '--display-name', display_name1,
+        '--email', email,
+        '--access-key', access_key,
+        '--secret', secret_key,
+        '--max-buckets', '4'
+    ],
+                          check_status=True)
 
     # TESTCASE 'duplicate email','user','create','existing user email','fails'
     (err, out) = rgwadmin(ctx, client, [
-            'user', 'create',
-            '--uid', user2,
-            '--display-name', display_name2,
-            '--email', email,
-            ])
+        'user', 'create',
+        '--uid', user2,
+        '--display-name', display_name2,
+        '--email', email,
+    ])
     assert err
 
     # TESTCASE 'info-existing','user','info','existing user','returns correct info'
@@ -186,9 +189,9 @@ def task(ctx, config):
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client,
-                ['metadata', 'get', 'user:{uid}'.format(uid=user1)], check_status=True)
+                                    ['metadata', 'get', 'user:{uid}'.format(uid=user1)], check_status=True)
             (err2, out2) = rgwadmin(ctx, dest_client,
-                ['metadata', 'get', 'user:{uid}'.format(uid=user1)], check_status=True)
+                                    ['metadata', 'get', 'user:{uid}'.format(uid=user1)], check_status=True)
             assert out1 == out2
 
         # suspend a user on the master, then check the status on the destination
@@ -214,32 +217,40 @@ def task(ctx, config):
             assert out is None
 
             # then recreate it so later tests pass
-            (err, out) = rgwadmin(ctx, client, [
-                'user', 'create',
-                '--uid', user1,
-                '--display-name', display_name1,
-                '--email', email,
-                '--access-key', access_key,
-                '--secret', secret_key,
-                '--max-buckets', '4'
+            (err, out) = rgwadmin(
+                ctx,
+                client,
+                [
+                    'user', 'create',
+                    '--uid', user1,
+                    '--display-name', display_name1,
+                    '--email', email,
+                    '--access-key', access_key,
+                    '--secret', secret_key,
+                    '--max-buckets', '4'
                 ],
-                check_status=True)
+                check_status=True
+            )
 
         # now do the multi-region bucket tests
         log.debug('now do the multi-region bucket tests')
 
         # Create a second user for the following tests
         log.debug('Create a second user for the following tests')
-        (err, out) = rgwadmin(ctx, client, [
-            'user', 'create',
-            '--uid', user2,
-            '--display-name', display_name2,
-            '--email', email2,
-            '--access-key', access_key2,
-            '--secret', secret_key2,
-            '--max-buckets', '4'
+        (err, out) = rgwadmin(
+            ctx,
+            client,
+            [
+                'user', 'create',
+                '--uid', user2,
+                '--display-name', display_name2,
+                '--email', email2,
+                '--access-key', access_key2,
+                '--secret', secret_key2,
+                '--max-buckets', '4'
             ],
-            check_status=True)
+            check_status=True
+        )
         (err, out) = rgwadmin(ctx, client, ['user', 'info', '--uid', user2], check_status=True)
         assert out is not None
 
@@ -254,24 +265,24 @@ def task(ctx, config):
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                    ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                    check_status=True)
             (err2, out2) = rgwadmin(ctx, dest_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                    ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                    check_status=True)
             assert out1 == out2
 
             # get the bucket.instance info and compare that
             src_bucket_id = out1['data']['bucket']['bucket_id']
             dest_bucket_id = out2['data']['bucket']['bucket_id']
             (err1, out1) = rgwadmin(ctx, source_client, ['metadata', 'get',
-                'bucket.instance:{bucket_name}:{bucket_instance}'.format(
-                bucket_name=bucket_name2,bucket_instance=src_bucket_id)],
-                check_status=True)
+                                                         'bucket.instance:{bucket_name}:{bucket_instance}'.format(
+                                                             bucket_name=bucket_name2, bucket_instance=src_bucket_id)],
+                                    check_status=True)
             (err2, out2) = rgwadmin(ctx, dest_client, ['metadata', 'get',
-                'bucket.instance:{bucket_name}:{bucket_instance}'.format(
-                bucket_name=bucket_name2,bucket_instance=dest_bucket_id)],
-                check_status=True)
+                                                       'bucket.instance:{bucket_name}:{bucket_instance}'.format(
+                                                           bucket_name=bucket_name2, bucket_instance=dest_bucket_id)],
+                                    check_status=True)
             del out1['data']['bucket_info']['bucket']['pool']
             del out1['data']['bucket_info']['bucket']['index_pool']
             del out1['data']['bucket_info']['bucket']['data_extra_pool']
@@ -306,10 +317,10 @@ def task(ctx, config):
                 port=dest_remote_port,
                 host=dest_remote_host,
                 calling_format=boto.s3.connection.OrdinaryCallingFormat(),
-                )
+            )
 
             # this should fail
-            r, content = send_raw_http_request(connection_dest, 'DELETE', bucket_name2, '', follow_redirects = False)
+            r, content = send_raw_http_request(connection_dest, 'DELETE', bucket_name2, '', follow_redirects=False)
             assert r.status == 301
 
             # now delete the bucket on the source RGW and do another sync
@@ -327,9 +338,9 @@ def task(ctx, config):
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client, ['metadata', 'get',
-                'bucket:{bucket_name}'.format(bucket_name=bucket_name2)])
+                                                         'bucket:{bucket_name}'.format(bucket_name=bucket_name2)])
             (err2, out2) = rgwadmin(ctx, dest_client, ['metadata', 'get',
-                'bucket:{bucket_name}'.format(bucket_name=bucket_name2)])
+                                                       'bucket:{bucket_name}'.format(bucket_name=bucket_name2)])
             # Both of the previous calls should have errors due to requesting
             # metadata for non-existent buckets
             assert err1
@@ -346,11 +357,11 @@ def task(ctx, config):
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                    ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                    check_status=True)
             (err2, out2) = rgwadmin(ctx, dest_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                    ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                    check_status=True)
             assert out1 == out2
 
         # Now delete the bucket and recreate it with a different user
@@ -367,11 +378,11 @@ def task(ctx, config):
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err1, out1) = rgwadmin(ctx, source_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                    ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                    check_status=True)
             (err2, out2) = rgwadmin(ctx, dest_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                    ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                    check_status=True)
             assert out1 == out2
             assert out1['data']['owner'] == user2
             assert out1['data']['owner'] != user1
@@ -385,8 +396,8 @@ def task(ctx, config):
             # get the metadata so we can tweak it
             log.debug('get the metadata so we can tweak it')
             (err, orig_data) = rgwadmin(ctx, source_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                        ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                        check_status=True)
 
             # manually edit mtime for this bucket to be 300 seconds in the past
             log.debug('manually edit mtime for this bucket to be 300 seconds in the past')
@@ -396,15 +407,15 @@ def task(ctx, config):
             log.debug("new mtime ", mtime)
             assert new_data != orig_data
             (err, out) = rgwadmin(ctx, source_client,
-                ['metadata', 'put', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                stdin=StringIO(json.dumps(new_data)),
-                check_status=True)
+                                  ['metadata', 'put', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                  stdin=StringIO(json.dumps(new_data)),
+                                  check_status=True)
 
             # get the metadata and make sure that the 'put' worked
-            log.debug('get the metadata and make sure that the \'put\' worked')
+            log.debug("get the metadata and make sure that the 'put' worked")
             (err, out) = rgwadmin(ctx, source_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                  ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                  check_status=True)
             assert out == new_data
 
             # sync to propagate the new metadata
@@ -415,11 +426,11 @@ def task(ctx, config):
             log.debug('get the metadata from the dest and compare it to what we just set')
             # and what the source region has.
             (err1, out1) = rgwadmin(ctx, source_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                    ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                    check_status=True)
             (err2, out2) = rgwadmin(ctx, dest_client,
-                ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
-                check_status=True)
+                                    ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
+                                    check_status=True)
             # yeah for the transitive property
             assert out1 == out2
             assert out1 == new_data
@@ -437,7 +448,7 @@ def task(ctx, config):
             source_client = c_config['src']
             dest_client = c_config['dest']
             (err, out) = rgwadmin(ctx, source_client,
-                ['user', 'rm', '--uid', user2], check_status=True)
+                                  ['user', 'rm', '--uid', user2], check_status=True)
             rgw_utils.radosgw_agent_sync_all(ctx)
             # The two 'user info' calls should fail and not return any data
             # since we just deleted this user.
@@ -538,7 +549,7 @@ def task(ctx, config):
 
     # TESTCASE 'suspend-ok','user','suspend','active user','succeeds'
     (err, out) = rgwadmin(ctx, client, ['user', 'suspend', '--uid', user1],
-        check_status=True)
+                          check_status=True)
 
     # TESTCASE 'suspend-suspended','user','suspend','suspended user','succeeds w/advisory'
     (err, out) = rgwadmin(ctx, client, ['user', 'info', '--uid', user1], check_status=True)
@@ -553,22 +564,22 @@ def task(ctx, config):
 
     # TESTCASE 'add-keys','key','create','w/valid info','succeeds'
     (err, out) = rgwadmin(ctx, client, [
-            'key', 'create', '--uid', user1,
-            '--access-key', access_key2, '--secret', secret_key2,
-            ], check_status=True)
+        'key', 'create', '--uid', user1,
+        '--access-key', access_key2, '--secret', secret_key2,
+    ], check_status=True)
 
     # TESTCASE 'info-new-key','user','info','after key addition','returns all keys'
     (err, out) = rgwadmin(ctx, client, ['user', 'info', '--uid', user1],
-        check_status=True)
+                          check_status=True)
     assert len(out['keys']) == 2
     assert out['keys'][0]['access_key'] == access_key2 or out['keys'][1]['access_key'] == access_key2
     assert out['keys'][0]['secret_key'] == secret_key2 or out['keys'][1]['secret_key'] == secret_key2
 
     # TESTCASE 'rm-key','key','rm','newly added key','succeeds, key is removed'
     (err, out) = rgwadmin(ctx, client, [
-            'key', 'rm', '--uid', user1,
-            '--access-key', access_key2,
-            ], check_status=True)
+        'key', 'rm', '--uid', user1,
+        '--access-key', access_key2,
+    ], check_status=True)
     assert len(out['keys']) == 1
     assert out['keys'][0]['access_key'] == access_key
     assert out['keys'][0]['secret_key'] == secret_key
@@ -578,16 +589,16 @@ def task(ctx, config):
     subuser_perm = 'full-control'
 
     (err, out) = rgwadmin(ctx, client, [
-            'subuser', 'create', '--subuser', subuser1,
-            '--access', subuser_access
-            ], check_status=True)
+        'subuser', 'create', '--subuser', subuser1,
+        '--access', subuser_access
+    ], check_status=True)
 
     # TESTCASE 'add-swift-key','key','create','swift key','succeeds'
     (err, out) = rgwadmin(ctx, client, [
-            'subuser', 'modify', '--subuser', subuser1,
-            '--secret', swift_secret1,
-            '--key-type', 'swift',
-            ], check_status=True)
+        'subuser', 'modify', '--subuser', subuser1,
+        '--secret', swift_secret1,
+        '--key-type', 'swift',
+    ], check_status=True)
 
     # TESTCASE 'subuser-perm-mask', 'subuser', 'info', 'test subuser perm mask durability', 'succeeds'
     (err, out) = rgwadmin(ctx, client, ['user', 'info', '--uid', user1])
@@ -602,10 +613,10 @@ def task(ctx, config):
 
     # TESTCASE 'add-swift-subuser','key','create','swift sub-user key','succeeds'
     (err, out) = rgwadmin(ctx, client, [
-            'subuser', 'create', '--subuser', subuser2,
-            '--secret', swift_secret2,
-            '--key-type', 'swift',
-            ], check_status=True)
+        'subuser', 'create', '--subuser', subuser2,
+        '--secret', swift_secret2,
+        '--key-type', 'swift',
+    ], check_status=True)
 
     # TESTCASE 'info-swift-subuser','user','info','after key addition','returns all sub-users/keys'
     (err, out) = rgwadmin(ctx, client, ['user', 'info', '--uid', user1], check_status=True)
@@ -615,28 +626,28 @@ def task(ctx, config):
 
     # TESTCASE 'rm-swift-key1','key','rm','subuser','succeeds, one key is removed'
     (err, out) = rgwadmin(ctx, client, [
-            'key', 'rm', '--subuser', subuser1,
-            '--key-type', 'swift',
-            ], check_status=True)
+        'key', 'rm', '--subuser', subuser1,
+        '--key-type', 'swift',
+    ], check_status=True)
     assert len(out['swift_keys']) == 1
 
     # TESTCASE 'rm-subuser','subuser','rm','subuser','success, subuser is removed'
     (err, out) = rgwadmin(ctx, client, [
-            'subuser', 'rm', '--subuser', subuser1,
-            ], check_status=True)
+        'subuser', 'rm', '--subuser', subuser1,
+    ], check_status=True)
     assert len(out['subusers']) == 1
 
     # TESTCASE 'rm-subuser-with-keys','subuser','rm','subuser','succeeds, second subser and key is removed'
     (err, out) = rgwadmin(ctx, client, [
-            'subuser', 'rm', '--subuser', subuser2,
-            '--key-type', 'swift', '--purge-keys',
-            ], check_status=True)
+        'subuser', 'rm', '--subuser', subuser2,
+        '--key-type', 'swift', '--purge-keys',
+    ], check_status=True)
     assert len(out['swift_keys']) == 0
     assert len(out['subusers']) == 0
 
     # TESTCASE 'bucket-stats','bucket','stats','no session/buckets','succeeds, empty list'
     (err, out) = rgwadmin(ctx, client, ['bucket', 'stats', '--uid', user1],
-        check_status=True)
+                          check_status=True)
     assert len(out) == 0
 
     if multi_region_run:
@@ -678,14 +689,14 @@ def task(ctx, config):
 
     # TESTCASE 'bucket-stats3','bucket','stats','new empty bucket','succeeds, empty list'
     (err, out) = rgwadmin(ctx, client, [
-            'bucket', 'stats', '--bucket', bucket_name], check_status=True)
+        'bucket', 'stats', '--bucket', bucket_name], check_status=True)
     assert out['owner'] == user1
     bucket_id = out['id']
 
     # TESTCASE 'bucket-stats4','bucket','stats','new empty bucket','succeeds, expected bucket ID'
     (err, out) = rgwadmin(ctx, client, ['bucket', 'stats', '--uid', user1], check_status=True)
     assert len(out) == 1
-    assert out[0]['id'] == bucket_id    # does it return the same ID twice in a row?
+    assert out[0]['id'] == bucket_id  # does it return the same ID twice in a row?
 
     # use some space
     key = boto.s3.key.Key(bucket)
@@ -693,7 +704,7 @@ def task(ctx, config):
 
     # TESTCASE 'bucket-stats5','bucket','stats','after creating key','succeeds, lists one non-empty object'
     (err, out) = rgwadmin(ctx, client, [
-            'bucket', 'stats', '--bucket', bucket_name], check_status=True)
+        'bucket', 'stats', '--bucket', bucket_name], check_status=True)
     assert out['id'] == bucket_id
     assert out['usage']['rgw.main']['num_objects'] == 1
     assert out['usage']['rgw.main']['size_kb'] > 0
@@ -703,19 +714,19 @@ def task(ctx, config):
 
     # TESTCASE 'bucket unlink', 'bucket', 'unlink', 'unlink bucket from user', 'fails', 'access denied error'
     (err, out) = rgwadmin(ctx, client,
-        ['bucket', 'unlink', '--uid', user1, '--bucket', bucket_name],
-        check_status=True)
+                          ['bucket', 'unlink', '--uid', user1, '--bucket', bucket_name],
+                          check_status=True)
 
     # create a second user to link the bucket to
     (err, out) = rgwadmin(ctx, client, [
-            'user', 'create',
-            '--uid', user2,
-            '--display-name', display_name2,
-            '--access-key', access_key2,
-            '--secret', secret_key2,
-            '--max-buckets', '1',
-            ],
-            check_status=True)
+        'user', 'create',
+        '--uid', user2,
+        '--display-name', display_name2,
+        '--access-key', access_key2,
+        '--secret', secret_key2,
+        '--max-buckets', '1',
+    ],
+                          check_status=True)
 
     # try creating an object with the first user before the bucket is relinked
     denied = False
@@ -733,7 +744,7 @@ def task(ctx, config):
 
     # link the bucket to another user
     (err, out) = rgwadmin(ctx, client, ['metadata', 'get', 'bucket:{n}'.format(n=bucket_name)],
-        check_status=True)
+                          check_status=True)
 
     bucket_data = out['data']
     assert bucket_data['bucket']['name'] == bucket_name
@@ -741,8 +752,9 @@ def task(ctx, config):
     bucket_id = bucket_data['bucket']['bucket_id']
 
     # link the bucket to another user
-    (err, out) = rgwadmin(ctx, client, ['bucket', 'link', '--uid', user2, '--bucket', bucket_name, '--bucket-id', bucket_id],
-        check_status=True)
+    (err, out) = rgwadmin(ctx, client,
+                          ['bucket', 'link', '--uid', user2, '--bucket', bucket_name, '--bucket-id', bucket_id],
+                          check_status=True)
 
     # try to remove user, should fail (has a linked bucket)
     (err, out) = rgwadmin(ctx, client, ['user', 'rm', '--uid', user2])
@@ -750,15 +762,15 @@ def task(ctx, config):
 
     # TESTCASE 'bucket unlink', 'bucket', 'unlink', 'unlink bucket from user', 'succeeds, bucket unlinked'
     (err, out) = rgwadmin(ctx, client, ['bucket', 'unlink', '--uid', user2, '--bucket', bucket_name],
-        check_status=True)
+                          check_status=True)
 
     # relink the bucket to the first user and delete the second user
     (err, out) = rgwadmin(ctx, client,
-        ['bucket', 'link', '--uid', user1, '--bucket', bucket_name, '--bucket-id', bucket_id],
-        check_status=True)
+                          ['bucket', 'link', '--uid', user1, '--bucket', bucket_name, '--bucket-id', bucket_id],
+                          check_status=True)
 
     (err, out) = rgwadmin(ctx, client, ['user', 'rm', '--uid', user2],
-        check_status=True)
+                          check_status=True)
 
     # TESTCASE 'object-rm', 'object', 'rm', 'remove object', 'succeeds, object is removed'
 
@@ -769,13 +781,13 @@ def task(ctx, config):
 
     # now delete it
     (err, out) = rgwadmin(ctx, client,
-        ['object', 'rm', '--bucket', bucket_name, '--object', object_name],
-        check_status=True)
+                          ['object', 'rm', '--bucket', bucket_name, '--object', object_name],
+                          check_status=True)
 
     # TESTCASE 'bucket-stats6','bucket','stats','after deleting key','succeeds, lists one no objects'
     (err, out) = rgwadmin(ctx, client, [
-            'bucket', 'stats', '--bucket', bucket_name],
-            check_status=True)
+        'bucket', 'stats', '--bucket', bucket_name],
+                          check_status=True)
     assert out['id'] == bucket_id
     assert out['usage']['rgw.main']['num_objects'] == 0
 
@@ -790,31 +802,33 @@ def task(ctx, config):
             continue
 
         (err, rgwlog) = rgwadmin(ctx, client, ['log', 'show', '--object', obj],
-            check_status=True)
+                                 check_status=True)
         assert len(rgwlog) > 0
 
         # exempt bucket_name2 from checking as it was only used for multi-region tests
         assert rgwlog['bucket'].find(bucket_name) == 0 or rgwlog['bucket'].find(bucket_name2) == 0
         assert rgwlog['bucket'] != bucket_name or rgwlog['bucket_id'] == bucket_id
-        assert rgwlog['bucket_owner'] == user1 or rgwlog['bucket'] == bucket_name + '5' or rgwlog['bucket'] == bucket_name2
+        assert rgwlog['bucket_owner'] == user1 or rgwlog['bucket'] == bucket_name + '5' or rgwlog[
+                                                                                               'bucket'] == bucket_name2
         for entry in rgwlog['log_entries']:
             log.debug('checking log entry: ', entry)
             assert entry['bucket'] == rgwlog['bucket']
             possible_buckets = [bucket_name + '5', bucket_name2]
             user = entry['user']
             assert user == user1 or user.endswith('system-user') or \
-                rgwlog['bucket'] in possible_buckets
+                   rgwlog['bucket'] in possible_buckets
 
         # TESTCASE 'log-rm','log','rm','delete log objects','succeeds'
         (err, out) = rgwadmin(ctx, client, ['log', 'rm', '--object', obj],
-            check_status=True)
+                              check_status=True)
 
     # TODO: show log by bucket+date
 
     # need to wait for all usage data to get flushed, should take up to 30 seconds
     timestamp = time.time()
-    while time.time() - timestamp <= (20 * 60):      # wait up to 20 minutes
-        (err, out) = rgwadmin(ctx, client, ['usage', 'show', '--categories', 'delete_obj'])  # last operation we did is delete obj, wait for it to flush
+    while time.time() - timestamp <= (20 * 60):  # wait up to 20 minutes
+        (err, out) = rgwadmin(ctx, client, ['usage', 'show', '--categories',
+                                            'delete_obj'])  # last operation we did is delete obj, wait for it to flush
         if get_user_successful_ops(out, user1) > 0:
             break
         time.sleep(1)
@@ -833,7 +847,7 @@ def task(ctx, config):
 
     # TESTCASE 'usage-show2' 'usage' 'show' 'user usage' 'succeeds'
     (err, out) = rgwadmin(ctx, client, ['usage', 'show', '--uid', user1],
-        check_status=True)
+                          check_status=True)
     assert len(out['entries']) > 0
     assert len(out['summary']) > 0
     user_summary = out['summary'][0]
@@ -845,7 +859,7 @@ def task(ctx, config):
     test_categories = ['create_bucket', 'put_obj', 'delete_obj', 'delete_bucket']
     for cat in test_categories:
         (err, out) = rgwadmin(ctx, client, ['usage', 'show', '--uid', user1, '--categories', cat],
-            check_status=True)
+                              check_status=True)
         assert len(out['summary']) > 0
         user_summary = out['summary'][0]
         assert user_summary['user'] == user1
@@ -860,15 +874,15 @@ def task(ctx, config):
 
     # TESTCASE 'usage-trim' 'usage' 'trim' 'user usage' 'succeeds, usage removed'
     (err, out) = rgwadmin(ctx, client, ['usage', 'trim', '--uid', user1],
-        check_status=True)
+                          check_status=True)
     (err, out) = rgwadmin(ctx, client, ['usage', 'show', '--uid', user1],
-        check_status=True)
+                          check_status=True)
     assert len(out['entries']) == 0
     assert len(out['summary']) == 0
 
     # TESTCASE 'user-suspend2','user','suspend','existing user','succeeds'
     (err, out) = rgwadmin(ctx, client, ['user', 'suspend', '--uid', user1],
-        check_status=True)
+                          check_status=True)
 
     # TESTCASE 'user-suspend3','user','suspend','suspended user','cannot write objects'
     try:
@@ -879,7 +893,7 @@ def task(ctx, config):
 
     # TESTCASE 'user-renable2','user','enable','suspended user','succeeds'
     (err, out) = rgwadmin(ctx, client, ['user', 'enable', '--uid', user1],
-        check_status=True)
+                          check_status=True)
 
     # TESTCASE 'user-renable3','user','enable','reenabled user','can write objects'
     key = boto.s3.key.Key(bucket)
@@ -888,7 +902,7 @@ def task(ctx, config):
     # TESTCASE 'gc-list', 'gc', 'list', 'get list of objects ready for garbage collection'
 
     # create an object large enough to be split into multiple parts
-    test_string = 'foo'*10000000
+    test_string = 'foo' * 10000000
 
     big_key = boto.s3.key.Key(bucket)
     big_key.set_contents_from_string(test_string)
@@ -906,7 +920,7 @@ def task(ctx, config):
     # TESTCASE 'gc-process', 'gc', 'process', 'manually collect garbage'
     (err, out) = rgwadmin(ctx, client, ['gc', 'process'], check_status=True)
 
-    #confirm
+    # confirm
     (err, out) = rgwadmin(ctx, client, ['gc', 'list'])
 
     assert len(out) == 0
@@ -935,8 +949,8 @@ def task(ctx, config):
     key.set_acl('private')
 
     (err, out) = rgwadmin(ctx, client,
-        ['policy', '--bucket', bucket.name, '--object', key.key],
-        check_status=True, format='xml')
+                          ['policy', '--bucket', bucket.name, '--object', key.key],
+                          check_status=True, format='xml')
 
     acl = get_acl(key)
 
@@ -946,8 +960,8 @@ def task(ctx, config):
     key.set_acl('public-read')
 
     (err, out) = rgwadmin(ctx, client,
-        ['policy', '--bucket', bucket.name, '--object', key.key],
-        check_status=True, format='xml')
+                          ['policy', '--bucket', bucket.name, '--object', key.key],
+                          check_status=True, format='xml')
 
     acl = get_acl(key)
 
@@ -961,11 +975,11 @@ def task(ctx, config):
         key.set_contents_from_string(key_name[i])
 
     (err, out) = rgwadmin(ctx, client,
-        ['bucket', 'rm', '--bucket', bucket_name, '--purge-objects'],
-        check_status=True)
+                          ['bucket', 'rm', '--bucket', bucket_name, '--purge-objects'],
+                          check_status=True)
 
     # TESTCASE 'caps-add', 'caps', 'add', 'add user cap', 'succeeds'
-    caps='user=read'
+    caps = 'user=read'
     (err, out) = rgwadmin(ctx, client, ['caps', 'add', '--uid', user1, '--caps', caps])
 
     assert out['caps'][0]['perm'] == 'read'
@@ -988,8 +1002,8 @@ def task(ctx, config):
     key.set_contents_from_string('twelve')
 
     (err, out) = rgwadmin(ctx, client,
-        ['user', 'rm', '--uid', user1, '--purge-data' ],
-        check_status=True)
+                          ['user', 'rm', '--uid', user1, '--purge-data'],
+                          check_status=True)
 
     # TESTCASE 'rm-user3','user','rm','deleted user','fails'
     (err, out) = rgwadmin(ctx, client, ['user', 'info', '--uid', user1])
@@ -999,7 +1013,7 @@ def task(ctx, config):
     #
 
     if realm is None:
-        (err, out) = rgwadmin(ctx, client, ['zone', 'get','--rgw-zone','default'])
+        (err, out) = rgwadmin(ctx, client, ['zone', 'get', '--rgw-zone', 'default'])
     else:
         (err, out) = rgwadmin(ctx, client, ['zone', 'get'])
     orig_placement_pools = len(out['placement_pools'])
@@ -1013,16 +1027,16 @@ def task(ctx, config):
     # default_rule = out['placement_pools'][0]
     # assert default_rule['key'] == 'default-placement'
 
-    rule={'key': 'new-placement', 'val': {'data_pool': '.rgw.buckets.2', 'index_pool': '.rgw.buckets.index.2'}}
+    rule = {'key': 'new-placement', 'val': {'data_pool': '.rgw.buckets.2', 'index_pool': '.rgw.buckets.index.2'}}
 
     out['placement_pools'].append(rule)
 
     (err, out) = rgwadmin(ctx, client, ['zone', 'set'],
-        stdin=StringIO(json.dumps(out)),
-        check_status=True)
+                          stdin=StringIO(json.dumps(out)),
+                          check_status=True)
 
     if realm is None:
-        (err, out) = rgwadmin(ctx, client, ['zone', 'get','--rgw-zone','default'])
+        (err, out) = rgwadmin(ctx, client, ['zone', 'get', '--rgw-zone', 'default'])
     else:
         (err, out) = rgwadmin(ctx, client, ['zone', 'get'])
     assert len(out) > 0

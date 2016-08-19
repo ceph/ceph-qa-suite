@@ -13,6 +13,7 @@ from tasks.util.compat import range
 
 log = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def task(ctx, config):
     """
@@ -42,7 +43,7 @@ def task(ctx, config):
         for i in range(num_osds):
             (osd_remote,) = ctx.cluster.only('osd.%d' % i).remotes.keys()
             p = osd_remote.run(
-                args = [ 'test', '-e', '{tdir}/err'.format(tdir=testdir) ],
+                args=['test', '-e', '{tdir}/err'.format(tdir=testdir)],
                 wait=True,
                 check_status=False,
             )
@@ -55,11 +56,11 @@ def task(ctx, config):
             log_path = '/var/log/ceph/osd.%d.log' % (i)
 
             p = osd_remote.run(
-                args = [
-                         'tail', '-1', log_path,
-                         run.Raw('|'),
-                         'grep', '-q', 'end dump'
-                       ],
+                args=[
+                    'tail', '-1', log_path,
+                    run.Raw('|'),
+                    'grep', '-q', 'end dump'
+                ],
                 wait=True,
                 check_status=False,
             )

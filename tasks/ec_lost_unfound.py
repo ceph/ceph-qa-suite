@@ -13,6 +13,7 @@ from tasks.util.rados import rados
 
 log = logging.getLogger(__name__)
 
+
 def task(ctx, config):
     """
     Test handling of lost objects on an ec pool.
@@ -63,16 +64,16 @@ def task(ctx, config):
 
     # delay recovery, and make the pg log very long (to prevent backfill)
     manager.raw_cluster_cmd(
-            'tell', 'osd.1',
-            'injectargs',
-            '--osd-recovery-delay-start 1000 --osd-min-pg-log-entries 100000000'
-            )
+        'tell', 'osd.1',
+        'injectargs',
+        '--osd-recovery-delay-start 1000 --osd-min-pg-log-entries 100000000'
+    )
 
     manager.kill_osd(0)
     manager.mark_down_osd(0)
     manager.kill_osd(3)
     manager.mark_down_osd(3)
-    
+
     for f in range(1, 10):
         rados(ctx, mon, ['-p', pool, 'put', 'new_%d' % f, dummyfile])
         rados(ctx, mon, ['-p', pool, 'put', 'existed_%d' % f, dummyfile])
@@ -112,11 +113,11 @@ def task(ctx, config):
                           'rados',
                           '--no-log-to-stderr',
                           '--name', 'client.admin',
-                          '-b', str(4<<10),
-                          '-p' , pool,
+                          '-b', str(4 << 10),
+                          '-p', pool,
                           '-t', '20',
                           'bench', '240', 'write',
-                      ]).format(tdir=testdir),
+                          ]).format(tdir=testdir),
             ],
             logger=log.getChild('radosbench.{id}'.format(id='client.admin')),
             stdin=run.PIPE,

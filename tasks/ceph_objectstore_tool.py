@@ -166,10 +166,10 @@ def task(ctx, config):
 
     manager = ctx.managers['ceph']
     while (len(manager.get_osd_status()['up']) !=
-           len(manager.get_osd_status()['raw'])):
+               len(manager.get_osd_status()['raw'])):
         time.sleep(10)
     while (len(manager.get_osd_status()['in']) !=
-           len(manager.get_osd_status()['up'])):
+               len(manager.get_osd_status()['up'])):
         time.sleep(10)
     manager.raw_cluster_cmd('osd', 'set', 'noout')
     manager.raw_cluster_cmd('osd', 'set', 'nodown')
@@ -429,8 +429,8 @@ def test_objectstore(ctx, config, cli_remote, REP_POOL, REP_NAME, ec=False):
 
                         for key in keys:
                             if (key == "_" or
-                                    key == "snapset" or
-                                    key == "hinfo_key"):
+                                        key == "snapset" or
+                                        key == "hinfo_key"):
                                 continue
                             key = key.strip("_")
                             if key not in values:

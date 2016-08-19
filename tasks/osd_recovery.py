@@ -22,13 +22,14 @@ def rados_start(testdir, remote, cmd):
         'ceph-coverage',
         '{tdir}/archive/coverage'.format(tdir=testdir),
         'rados',
-        ];
+    ]
     pre.extend(cmd)
     proc = remote.run(
         args=pre,
         wait=False,
-        )
+    )
     return proc
+
 
 def task(ctx, config):
     """
@@ -50,7 +51,7 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     while len(manager.get_osd_status()['up']) < 3:
         time.sleep(10)
@@ -71,7 +72,7 @@ def task(ctx, config):
 
     # write some new data
     p = rados_start(testdir, mon, ['-p', 'rbd', 'bench', '20', 'write', '-b', '4096',
-                          '--no-cleanup'])
+                                   '--no-cleanup'])
 
     time.sleep(15)
 
@@ -131,7 +132,7 @@ def test_incomplete_pgs(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     while len(manager.get_osd_status()['up']) < 4:
         time.sleep(10)
@@ -165,8 +166,11 @@ def test_incomplete_pgs(ctx, config):
 
     # few objects in rbd pool (with pg log, normal recovery)
     for f in range(1, 20):
-        p = rados_start(testdir, mon, ['-p', 'rbd', 'put',
-                              'foo.%d' % f, '/etc/passwd'])
+        p = rados_start(
+            testdir,
+            mon,
+            ['-p', 'rbd', 'put', 'foo.%d' % f, '/etc/passwd']
+        )
         p.wait()
 
     # move it back

@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 blktrace = '/usr/sbin/blktrace'
 daemon_signal = 'term'
 
+
 @contextlib.contextmanager
 def setup(ctx, config):
     """
@@ -25,8 +26,9 @@ def setup(ctx, config):
         remote.run(
             args=['mkdir', '-p', '-m0755', '--', log_dir],
             wait=False,
-            )
+        )
     yield
+
 
 @contextlib.contextmanager
 def execute(ctx, config):
@@ -59,10 +61,10 @@ def execute(ctx, config):
                         dev.rsplit("/", 1)[1],
                         '-d',
                         dev,
-                        ],
+                    ],
                     wait=False,
                     stdin=run.PIPE,
-                    )
+                )
                 procs.append(proc)
     try:
         yield
@@ -71,6 +73,7 @@ def execute(ctx, config):
         log.info('stopping blktrace processs')
         for proc in procs:
             proc.stdin.close()
+
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -90,7 +93,7 @@ def task(ctx, config):
     config['cluster'] = config.get('cluster', 'ceph')
 
     with contextutil.nested(
-        lambda: setup(ctx=ctx, config=config),
-        lambda: execute(ctx=ctx, config=config),
-        ):
+            lambda: setup(ctx=ctx, config=config),
+            lambda: execute(ctx=ctx, config=config)
+    ):
         yield

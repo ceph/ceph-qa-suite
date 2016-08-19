@@ -3,12 +3,14 @@ Test Object locations going down
 """
 import logging
 import time
+
 from teuthology import misc as teuthology
 
 from tasks.ceph_manager import CephManager
 from tasks.util.rados import rados
 
 log = logging.getLogger(__name__)
+
 
 def task(ctx, config):
     """
@@ -25,7 +27,7 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     while len(manager.get_osd_status()['up']) < 3:
         time.sleep(10)
@@ -41,28 +43,28 @@ def task(ctx, config):
 
     # delay recovery, and make the pg log very long (to prevent backfill)
     manager.raw_cluster_cmd(
-            'tell', 'osd.0',
-            'injectargs',
-            '--osd-recovery-delay-start 10000 --osd-min-pg-log-entries 100000000'
-            )
+        'tell', 'osd.0',
+        'injectargs',
+        '--osd-recovery-delay-start 10000 --osd-min-pg-log-entries 100000000'
+    )
     # delay recovery, and make the pg log very long (to prevent backfill)
     manager.raw_cluster_cmd(
-            'tell', 'osd.1',
-            'injectargs',
-            '--osd-recovery-delay-start 10000 --osd-min-pg-log-entries 100000000'
-            )
+        'tell', 'osd.1',
+        'injectargs',
+        '--osd-recovery-delay-start 10000 --osd-min-pg-log-entries 100000000'
+    )
     # delay recovery, and make the pg log very long (to prevent backfill)
     manager.raw_cluster_cmd(
-            'tell', 'osd.2',
-            'injectargs',
-            '--osd-recovery-delay-start 10000 --osd-min-pg-log-entries 100000000'
-            )
+        'tell', 'osd.2',
+        'injectargs',
+        '--osd-recovery-delay-start 10000 --osd-min-pg-log-entries 100000000'
+    )
     # delay recovery, and make the pg log very long (to prevent backfill)
     manager.raw_cluster_cmd(
-            'tell', 'osd.3',
-            'injectargs',
-            '--osd-recovery-delay-start 10000 --osd-min-pg-log-entries 100000000'
-            )
+        'tell', 'osd.3',
+        'injectargs',
+        '--osd-recovery-delay-start 10000 --osd-min-pg-log-entries 100000000'
+    )
 
     # kludge to make sure they get a map
     rados(ctx, mon, ['-p', 'data', 'put', 'dummy', dummyfile])

@@ -17,6 +17,7 @@ class DecoratingLoader(loader.TestLoader):
     A specialization of TestLoader that tags some extra attributes
     onto test classes as they are loaded.
     """
+
     def __init__(self, params):
         self._params = params
         super(DecoratingLoader, self).__init__()

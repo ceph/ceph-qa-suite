@@ -152,7 +152,7 @@ def task(ctx, config):
     # Set osd_recovery_delay_start back to 0 and kick the queue
     for i in osds:
         manager.raw_cluster_cmd('tell', 'osd.%d' % i, 'debug',
-                                    'kick_recovery_wq', ' 0')
+                                'kick_recovery_wq', ' 0')
 
     log.info('reading divergent objects')
     for i in range(DIVERGENT_WRITE + DIVERGENT_REMOVE):

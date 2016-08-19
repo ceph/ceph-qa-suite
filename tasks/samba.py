@@ -90,7 +90,7 @@ def task(ctx, config):
 
     if config is None:
         config = dict(('samba.{id}'.format(id=id_), None)
-                  for id_ in teuthology.all_roles_of_type(ctx.cluster, 'samba'))
+                      for id_ in teuthology.all_roles_of_type(ctx.cluster, 'samba'))
     elif isinstance(config, list):
         config = dict((name, None) for name in config)
 
@@ -124,22 +124,22 @@ def task(ctx, config):
         # so that samba tests succeed
         if config[rolestr] is None and id_ == samba_servers[0][0]:
             remote.run(
-                    args=[
-                        'mkdir', '-p', '/tmp/cmnt', run.Raw('&&'),
-                        'sudo', 'ceph-fuse', '/tmp/cmnt', run.Raw('&&'),
-                        'sudo', 'chown', 'ubuntu:ubuntu', '/tmp/cmnt/', run.Raw('&&'),
-                        'sudo', 'chmod', '1777', '/tmp/cmnt/', run.Raw('&&'),
-                        'sudo', 'umount', '/tmp/cmnt/', run.Raw('&&'),
-                        'rm', '-rf', '/tmp/cmnt',
-                        ],
-                    )
+                args=[
+                    'mkdir', '-p', '/tmp/cmnt', run.Raw('&&'),
+                    'sudo', 'ceph-fuse', '/tmp/cmnt', run.Raw('&&'),
+                    'sudo', 'chown', 'ubuntu:ubuntu', '/tmp/cmnt/', run.Raw('&&'),
+                    'sudo', 'chmod', '1777', '/tmp/cmnt/', run.Raw('&&'),
+                    'sudo', 'umount', '/tmp/cmnt/', run.Raw('&&'),
+                    'rm', '-rf', '/tmp/cmnt',
+                ],
+            )
         else:
             remote.run(
-                    args=[
-                        'sudo', 'chown', 'ubuntu:ubuntu', backend, run.Raw('&&'),
-                        'sudo', 'chmod', '1777', backend,
-                        ],
-                    )
+                args=[
+                    'sudo', 'chown', 'ubuntu:ubuntu', backend, run.Raw('&&'),
+                    'sudo', 'chmod', '1777', backend,
+                ],
+            )
 
         teuthology.sudo_write_file(remote, "/usr/local/samba/etc/smb.conf", """
 [global]
@@ -164,13 +164,13 @@ def task(ctx, config):
             ])
 
         smbd_cmd = [
-                'sudo',
-                'daemon-helper',
-                'term',
-                'nostdin',
-                '/usr/local/samba/sbin/smbd',
-                '-F',
-                ]
+            'sudo',
+            'daemon-helper',
+            'term',
+            'nostdin',
+            '/usr/local/samba/sbin/smbd',
+            '-F',
+        ]
         ctx.daemons.add_daemon(remote, 'smbd', id_,
                                args=smbd_cmd,
                                logger=log.getChild("smbd.{id_}".format(id_=id_)),
@@ -210,8 +210,8 @@ def task(ctx, config):
                     '/usr/local/samba/var/run/',
                     '/usr/local/samba/var/locks',
                     '/usr/local/samba/var/lock',
-                    ],
-                )
+                ],
+            )
             # make sure daemons are gone
             try:
                 remote.run(
@@ -222,26 +222,26 @@ def task(ctx, config):
                         'do', 'sleep', '1',
                         run.Raw(';'),
                         'done',
-                        ],
-                    )
+                    ],
+                )
 
                 remote.run(
                     args=[
                         'sudo',
                         'lsof',
                         backend,
-                        ],
+                    ],
                     check_status=False
-                    )
+                )
                 remote.run(
                     args=[
                         'sudo',
                         'fuser',
                         '-M',
                         backend,
-                        ],
+                    ],
                     check_status=False
-                    )
+                )
             except Exception:
                 log.exception("Saw exception")
                 pass

@@ -10,6 +10,7 @@ from tasks.util.compat import range
 
 log = logging.getLogger(__name__)
 
+
 def task(ctx, config):
     """
     Test monitor recovery.
@@ -25,7 +26,7 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     mons = [f.split('.')[1] for f in teuthology.get_mon_names(ctx)]
     log.info("mon ids = %s" % mons)

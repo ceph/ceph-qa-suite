@@ -12,6 +12,7 @@ from tasks.util.rados import rados
 
 log = logging.getLogger(__name__)
 
+
 def task(ctx, config):
     """
     Test handling of osd_failsafe_nearfull_ratio and osd_failsafe_full_ratio
@@ -58,21 +59,21 @@ def task(ctx, config):
     (mon,) = ctx.cluster.only(first_mon).remotes.keys()
 
     proc = mon.run(
-             args=[
-                 'sudo',
-                 'daemon-helper',
-                 'kill',
-                 'ceph', '-w'
-             ],
-             stdin=run.PIPE,
-             stdout=StringIO(),
-             wait=False,
-        )
+        args=[
+            'sudo',
+            'daemon-helper',
+            'kill',
+            'ceph', '-w'
+        ],
+        stdin=run.PIPE,
+        stdout=StringIO(),
+        wait=False,
+    )
 
     manager.raw_cluster_cmd('tell', 'osd.0', 'injectargs', '--osd_failsafe_nearfull_ratio .00001')
 
     time.sleep(sleep_time)
-    proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
+    proc.stdin.close()  # causes daemon-helper send SIGKILL to ceph -w
     proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')
@@ -86,21 +87,21 @@ def task(ctx, config):
     log.info('2. Verify error messages when exceeding full_ratio')
 
     proc = mon.run(
-             args=[
-                 'sudo',
-                 'daemon-helper',
-                 'kill',
-                 'ceph', '-w'
-             ],
-             stdin=run.PIPE,
-             stdout=StringIO(),
-             wait=False,
-        )
+        args=[
+            'sudo',
+            'daemon-helper',
+            'kill',
+            'ceph', '-w'
+        ],
+        stdin=run.PIPE,
+        stdout=StringIO(),
+        wait=False,
+    )
 
     manager.raw_cluster_cmd('tell', 'osd.0', 'injectargs', '--osd_failsafe_full_ratio .00001')
 
     time.sleep(sleep_time)
-    proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
+    proc.stdin.close()  # causes daemon-helper send SIGKILL to ceph -w
     proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')
@@ -128,19 +129,19 @@ def task(ctx, config):
     log.info('5. Verify warning messages again when exceeding nearfull_ratio')
 
     proc = mon.run(
-             args=[
-                 'sudo',
-                 'daemon-helper',
-                 'kill',
-                 'ceph', '-w'
-             ],
-             stdin=run.PIPE,
-             stdout=StringIO(),
-             wait=False,
-        )
+        args=[
+            'sudo',
+            'daemon-helper',
+            'kill',
+            'ceph', '-w'
+        ],
+        stdin=run.PIPE,
+        stdout=StringIO(),
+        wait=False,
+    )
 
     time.sleep(sleep_time)
-    proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
+    proc.stdin.close()  # causes daemon-helper send SIGKILL to ceph -w
     proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')
@@ -157,21 +158,21 @@ def task(ctx, config):
     log.info('6. Verify error messages again when exceeding full_ratio')
 
     proc = mon.run(
-             args=[
-                 'sudo',
-                 'daemon-helper',
-                 'kill',
-                 'ceph', '-w'
-             ],
-             stdin=run.PIPE,
-             stdout=StringIO(),
-             wait=False,
-        )
+        args=[
+            'sudo',
+            'daemon-helper',
+            'kill',
+            'ceph', '-w'
+        ],
+        stdin=run.PIPE,
+        stdout=StringIO(),
+        wait=False,
+    )
 
     manager.raw_cluster_cmd('tell', 'osd.0', 'injectargs', '--osd_failsafe_full_ratio .00001')
 
     time.sleep(sleep_time)
-    proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
+    proc.stdin.close()  # causes daemon-helper send SIGKILL to ceph -w
     proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')
@@ -188,19 +189,19 @@ def task(ctx, config):
     time.sleep(10)
 
     proc = mon.run(
-             args=[
-                 'sudo',
-                 'daemon-helper',
-                 'kill',
-                 'ceph', '-w'
-             ],
-             stdin=run.PIPE,
-             stdout=StringIO(),
-             wait=False,
-        )
+        args=[
+            'sudo',
+            'daemon-helper',
+            'kill',
+            'ceph', '-w'
+        ],
+        stdin=run.PIPE,
+        stdout=StringIO(),
+        wait=False,
+    )
 
     time.sleep(sleep_time)
-    proc.stdin.close() # causes daemon-helper send SIGKILL to ceph -w
+    proc.stdin.close()  # causes daemon-helper send SIGKILL to ceph -w
     proc.wait()
 
     lines = proc.stdout.getvalue().split('\n')

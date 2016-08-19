@@ -18,6 +18,7 @@ else:
 
 log = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def task(ctx, config):
     """
@@ -51,7 +52,7 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     num_osds = teuthology.num_instances_of_type(ctx.cluster, 'osd')
     while len(manager.get_osd_status()['up']) < num_osds:
@@ -60,17 +61,19 @@ def task(ctx, config):
     scrub_proc = Scrubber(
         manager,
         config,
-        )
+    )
     try:
         yield
     finally:
         log.info('joining scrub')
         scrub_proc.do_join()
 
+
 class Scrubber:
     """
     Scrubbing is actually performed during initialzation
     """
+
     def __init__(self, manager, config):
         """
         Spawn scrubbing thread upon completion.

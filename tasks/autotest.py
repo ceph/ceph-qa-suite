@@ -1,6 +1,7 @@
-""" 
+"""
 Run an autotest test on the ceph cluster.
 """
+
 import json
 import logging
 import os
@@ -12,6 +13,7 @@ from teuthology.parallel import parallel
 from tasks.util.compat import string
 
 log = logging.getLogger(__name__)
+
 
 def task(ctx, config):
     """
@@ -63,16 +65,17 @@ def task(ctx, config):
                 'install',
                 '-d',
                 '-m', '0755',
-                '--owner={user}'.format(user='ubuntu'), #TODO
+                '--owner={user}'.format(user='ubuntu'),  # TODO
                 '--',
                 scratch,
-                ],
-            )
+            ],
+        )
 
     with parallel() as p:
         for role, tests in config.items():
             (remote,) = ctx.cluster.only(role).remotes.keys()
             p.spawn(_run_tests, testdir, remote, role, tests)
+
 
 def _download(testdir, remote):
     """
@@ -121,21 +124,21 @@ def _run_tests(testdir, remote, role, tests):
             idx=idx,
             testname=testname,
             id=id_,
-            )
+        )
         control = '{tdir}/control.{tag}'.format(tdir=testdir, tag=tag)
         teuthology.write_file(
             remote=remote,
             path=control,
             data='import json; data=json.loads({data!r}); job.run_test(**data)'.format(
                 data=json.dumps(dict(
-                        url=testname,
-                        dir=scratch,
-                        # TODO perhaps tag
-                        # results will be in {testdir}/autotest/client/results/dbench
-                        # or {testdir}/autotest/client/results/dbench.{tag}
-                        )),
-                ),
-            )
+                    url=testname,
+                    dir=scratch,
+                    # TODO perhaps tag
+                    # results will be in {testdir}/autotest/client/results/dbench
+                    # or {testdir}/autotest/client/results/dbench.{tag}
+                )),
+            ),
+        )
         remote.run(
             args=[
                 '{tdir}/autotest/client/bin/autotest'.format(tdir=testdir),
@@ -144,14 +147,14 @@ def _run_tests(testdir, remote, role, tests):
                 '--tag={tag}'.format(tag=tag),
                 control,
                 run.Raw('3>&1'),
-                ],
-            )
+            ],
+        )
 
         remote.run(
             args=[
                 'rm', '-rf', '--', control,
-                ],
-            )
+            ],
+        )
 
         remote.run(
             args=[
@@ -159,11 +162,11 @@ def _run_tests(testdir, remote, role, tests):
                 '--',
                 '{tdir}/autotest/client/results/{tag}'.format(tdir=testdir, tag=tag),
                 '{tdir}/archive/autotest/{tag}'.format(tdir=testdir, tag=tag),
-                ],
-            )
+            ],
+        )
 
     remote.run(
         args=[
             'rm', '-rf', '--', '{tdir}/autotest'.format(tdir=testdir),
-            ],
-        )
+        ],
+    )

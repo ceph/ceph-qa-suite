@@ -287,7 +287,7 @@ def cephfs_setup(ctx, config):
     if mdss.remotes:
         log.info('Setting up CephFS filesystem...')
 
-        ceph_fs = Filesystem(ctx) # TODO: make Filesystem cluster-aware
+        ceph_fs = Filesystem(ctx)  # TODO: make Filesystem cluster-aware
         if not ceph_fs.legacy_configured():
             ceph_fs.create()
 
@@ -302,7 +302,7 @@ def cephfs_setup(ctx, config):
                 coverage_dir,
                 'ceph', 'mds', 'set', 'allow_multimds', 'true',
                 '--yes-i-really-mean-it'],
-	    check_status=False,  # probably old version, upgrade test
+            check_status=False,  # probably old version, upgrade test
         )
         mon_remote.run(args=[
             'sudo',
@@ -1107,7 +1107,7 @@ def healthy(ctx, config):
 
     if ctx.cluster.only(teuthology.is_type('mds', cluster_name)).remotes:
         # Some MDSs exist, wait for them to be healthy
-        ceph_fs = Filesystem(ctx) # TODO: make Filesystem cluster-aware
+        ceph_fs = Filesystem(ctx)  # TODO: make Filesystem cluster-aware
         ceph_fs.wait_for_daemons(timeout=300)
 
 
@@ -1476,7 +1476,7 @@ def task(ctx, config):
             block_journal=config.get('block_journal', None),
             tmpfs_journal=config.get('tmpfs_journal', None),
             log_whitelist=config.get('log-whitelist', []),
-            cpu_profile=set(config.get('cpu_profile', []),),
+            cpu_profile=set(config.get('cpu_profile', []), ),
             cluster=config['cluster'],
         )),
         lambda: run_daemon(ctx=ctx, config=config, type_='mon'),

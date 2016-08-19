@@ -38,7 +38,7 @@ def find_victim_object(ctx, pg, osd):
         'ceph-{id}'.format(id=osd),
         'current',
         '{pg}_head'.format(pg=pg)
-        )
+    )
 
     # fuzz time
     with contextlib.closing(StringIO()) as ls_fp:
@@ -72,7 +72,7 @@ def corrupt_file(osd_remote, path):
 def get_pgnum(pgid):
     pos = pgid.find('.')
     assert pos != -1
-    return pgid[pos+1:]
+    return pgid[pos + 1:]
 
 
 def deep_scrub(manager, victim, pool):
@@ -352,7 +352,7 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     while len(manager.get_osd_status()['up']) < num_osds:
         time.sleep(10)

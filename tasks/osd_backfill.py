@@ -3,6 +3,7 @@ Osd backfill test
 """
 import logging
 import time
+
 from teuthology import misc as teuthology
 
 from tasks.ceph_manager import CephManager
@@ -21,13 +22,14 @@ def rados_start(ctx, remote, cmd):
         'ceph-coverage',
         '{tdir}/archive/coverage'.format(tdir=testdir),
         'rados',
-        ];
+    ]
     pre.extend(cmd)
     proc = remote.run(
         args=pre,
         wait=False,
-        )
+    )
     return proc
+
 
 def task(ctx, config):
     """
@@ -48,7 +50,7 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     while len(manager.get_osd_status()['up']) < 3:
         time.sleep(10)
@@ -59,7 +61,7 @@ def task(ctx, config):
 
     # write some data
     p = rados_start(ctx, mon, ['-p', 'rbd', 'bench', '15', 'write', '-b', '4096',
-                          '--no-cleanup'])
+                               '--no-cleanup'])
     err = p.wait()
     log.info('err is %d' % err)
 
@@ -77,7 +79,7 @@ def task(ctx, config):
 
     # write some new data
     p = rados_start(ctx, mon, ['-p', 'rbd', 'bench', '30', 'write', '-b', '4096',
-                          '--no-cleanup'])
+                               '--no-cleanup'])
 
     time.sleep(15)
 
@@ -101,5 +103,3 @@ def task(ctx, config):
     manager.raw_cluster_cmd('tell', 'osd.1', 'flush_pg_stats')
     manager.raw_cluster_cmd('tell', 'osd.2', 'flush_pg_stats')
     manager.wait_for_clean()
-
-

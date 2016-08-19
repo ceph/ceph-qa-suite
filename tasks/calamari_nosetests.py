@@ -28,7 +28,7 @@ EXTRA_NOSETEST_PKGS = [
 
 
 def find_client0(cluster):
-    ''' Find remote that has client.0 role, or None '''
+    """ Find remote that has client.0 role, or None """
     for rem, roles in cluster.remotes.items():
         if 'client.0' in roles:
             return rem
@@ -36,7 +36,7 @@ def find_client0(cluster):
 
 
 def pip(remote, package, venv=None, uninstall=False, force=False):
-    ''' {un}install a package with pip, possibly in a virtualenv '''
+    """ {un}install a package with pip, possibly in a virtualenv """
     if venv:
         pip = os.path.join(venv, 'bin', 'pip')
         args = ['sudo', pip]
@@ -56,7 +56,7 @@ def pip(remote, package, venv=None, uninstall=False, force=False):
 
 @contextlib.contextmanager
 def install_epel(remote):
-    ''' install a disabled-by-default epel repo config file '''
+    """ install a disabled-by-default epel repo config file """
     remove = False
     try:
         if remote.os.package_type == 'deb':
@@ -84,7 +84,7 @@ def install_epel(remote):
 
 
 def enable_epel(remote, enable=True):
-    ''' enable/disable the epel repo '''
+    """ enable/disable the epel repo """
     args = 'sudo sed -i'.split()
     if enable:
         args.extend(['s/enabled=0/enabled=1/'])
@@ -98,7 +98,7 @@ def enable_epel(remote, enable=True):
 
 @contextlib.contextmanager
 def install_extra_pkgs(client):
-    ''' Install EXTRA_PKGS '''
+    """ Install EXTRA_PKGS """
     try:
         for pkg in EXTRA_PKGS:
             packaging.install_package(pkg, client)
@@ -111,7 +111,7 @@ def install_extra_pkgs(client):
 
 @contextlib.contextmanager
 def clone_calamari(config, client):
-    ''' clone calamari source into current directory on remote '''
+    """ clone calamari source into current directory on remote """
     branch = config.get('calamari_branch', 'master')
     url = config.get('calamari_giturl', 'git://github.com/ceph/calamari')
     try:
@@ -134,7 +134,7 @@ def clone_calamari(config, client):
 
 @contextlib.contextmanager
 def write_info_yaml(cluster, client):
-    ''' write info.yaml to client for nosetests '''
+    """ write info.yaml to client for nosetests """
     try:
         info = {
             'cluster': {
@@ -151,7 +151,7 @@ def write_info_yaml(cluster, client):
 
 @contextlib.contextmanager
 def write_test_conf(client):
-    ''' write calamari/tests/test.conf to client for nosetests '''
+    """ write calamari/tests/test.conf to client for nosetests """
     try:
         testconf = textwrap.dedent('''
             [testing]
@@ -206,7 +206,7 @@ def prepare_nosetest_env(client):
         # the package, which will include the WSGI/Django app, running
         # as the Apache user.  So make them all world-read-and-execute.
         args = 'sudo chmod a+x'.split() + \
-            ['.', './calamari', './calamari/rest-api']
+               ['.', './calamari', './calamari/rest-api']
         client.run(args=args)
 
         # make one dummy request just to get the WSGI app to do
@@ -232,7 +232,7 @@ def prepare_nosetest_env(client):
 
 @contextlib.contextmanager
 def run_nosetests(client):
-    ''' Actually run the tests '''
+    """ Actually run the tests """
     args = [
         'cd',
         'calamari',
@@ -279,12 +279,12 @@ def task(ctx, config):
         raise RuntimeError("must have client.0 role")
 
     with contextutil.nested(
-        lambda: install_epel(client0),
-        lambda: install_extra_pkgs(client0),
-        lambda: clone_calamari(config, client0),
-        lambda: write_info_yaml(ctx.cluster, client0),
-        lambda: write_test_conf(client0),
-        lambda: prepare_nosetest_env(client0),
-        lambda: run_nosetests(client0),
+            lambda: install_epel(client0),
+            lambda: install_extra_pkgs(client0),
+            lambda: clone_calamari(config, client0),
+            lambda: write_info_yaml(ctx.cluster, client0),
+            lambda: write_test_conf(client0),
+            lambda: prepare_nosetest_env(client0),
+            lambda: run_nosetests(client0),
     ):
         yield

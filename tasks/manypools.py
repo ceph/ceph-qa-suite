@@ -8,6 +8,7 @@ from teuthology.orchestra import run
 
 log = logging.getLogger(__name__)
 
+
 def task(ctx, config):
     """
     Create the specified number of pools and write 16 objects to them (thereby forcing
@@ -31,9 +32,9 @@ def task(ctx, config):
         clients: [client.0]
         time: 360
     """
-    
+
     log.info('creating {n} pools'.format(n=config))
-    
+
     poolnum = int(config)
     creator_remotes = []
     client_roles = teuthology.all_roles_of_type(ctx.cluster, 'client')
@@ -44,31 +45,31 @@ def task(ctx, config):
         creator_remotes.append((creator_remote, 'client.{id}'.format(id=role)))
 
     remaining_pools = poolnum
-    poolprocs=dict()
-    while (remaining_pools > 0):
+    poolprocs = dict()
+    while remaining_pools > 0:
         log.info('{n} pools remaining to create'.format(n=remaining_pools))
-	for remote, role_ in creator_remotes:
+        for remote, role_ in creator_remotes:
             poolnum = remaining_pools
             remaining_pools -= 1
             if remaining_pools < 0:
                 continue
             log.info('creating pool{num} on {role}'.format(num=poolnum, role=role_))
-	    proc = remote.run(
-	        args=[
-		    'rados',
-		    '--name', role_,
-		    'mkpool', 'pool{num}'.format(num=poolnum), '-1',
-		    run.Raw('&&'),
-		    'rados',
-		    '--name', role_,
-		    '--pool', 'pool{num}'.format(num=poolnum),
-		    'bench', '0', 'write', '-t', '16', '--block-size', '1'
-		    ],
-		wait = False
-	    )
+            proc = remote.run(
+                args=[
+                    'rados',
+                    '--name', role_,
+                    'mkpool', 'pool{num}'.format(num=poolnum), '-1',
+                    run.Raw('&&'),
+                    'rados',
+                    '--name', role_,
+                    '--pool', 'pool{num}'.format(num=poolnum),
+                    'bench', '0', 'write', '-t', '16', '--block-size', '1'
+                ],
+                wait=False
+            )
             log.info('waiting for pool and object creates')
-	    poolprocs[remote] = proc
-        
-    
+            poolprocs[remote] = proc
+
         run.wait(poolprocs.values())
+
     log.info('created all {n} pools and wrote 16 objects to each'.format(n=poolnum))

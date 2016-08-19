@@ -7,6 +7,7 @@ import logging
 import math
 import random
 import time
+
 import gevent
 from teuthology import misc as teuthology
 
@@ -14,12 +15,14 @@ from tasks.ceph_manager import CephManager
 
 log = logging.getLogger(__name__)
 
+
 def _get_mons(ctx):
     """
     Get monitor names from the context value.
     """
     mons = [f[len('mon.'):] for f in teuthology.get_mon_names(ctx)]
     return mons
+
 
 class MonitorThrasher:
     """
@@ -82,6 +85,7 @@ class MonitorThrasher:
           all:
             - mon/workloadgen.sh
     """
+
     def __init__(self, ctx, manager, config, logger):
         self.ctx = ctx
         self.manager = manager
@@ -163,7 +167,7 @@ class MonitorThrasher:
         j = json.loads(out)
         assert j['ret'] == 0, \
             'error forcing store sync on mon.{id}:\n{ret}'.format(
-                id=mon,ret=out)
+                id=mon, ret=out)
 
     def should_freeze_mon(self):
         """
@@ -207,7 +211,7 @@ class MonitorThrasher:
         """
         m = len(_get_mons(self.ctx))
         if self.maintain_quorum:
-            return max(math.ceil(m/2.0)-1, 0)
+            return max(math.ceil(m / 2.0) - 1, 0)
         else:
             return m
 
@@ -216,15 +220,15 @@ class MonitorThrasher:
         Cotinuously loop and thrash the monitors.
         """
         self.log('start thrashing')
-        self.log('seed: {s}, revive delay: {r}, thrash delay: {t} '\
-                   'thrash many: {tm}, maintain quorum: {mq} '\
-                   'store thrash: {st}, probability: {stp} '\
-                   'freeze mon: prob {fp} duration {fd}'.format(
-                s=self.random_seed,r=self.revive_delay,t=self.thrash_delay,
-                tm=self.thrash_many, mq=self.maintain_quorum,
-                st=self.store_thrash,stp=self.store_thrash_probability,
-                fp=self.freeze_mon_probability,fd=self.freeze_mon_duration,
-                ))
+        self.log('seed: {s}, revive delay: {r}, thrash delay: {t} '
+                 'thrash many: {tm}, maintain quorum: {mq} '
+                 'store thrash: {st}, probability: {stp} '
+                 'freeze mon: prob {fp} duration {fd}'.format(
+            s=self.random_seed, r=self.revive_delay, t=self.thrash_delay,
+            tm=self.thrash_many, mq=self.maintain_quorum,
+            st=self.store_thrash, stp=self.store_thrash_probability,
+            fp=self.freeze_mon_probability, fd=self.freeze_mon_duration
+        ))
 
         while not self.stopping:
             mons = _get_mons(self.ctx)
@@ -235,7 +239,7 @@ class MonitorThrasher:
                 assert s['state'] == 'leader' or s['state'] == 'peon'
                 assert len(s['quorum']) == len(mons)
 
-            kill_up_to = self.rng.randrange(1, self.max_killable()+1)
+            kill_up_to = self.rng.randrange(1, self.max_killable() + 1)
             mons_to_kill = self.rng.sample(mons, kill_up_to)
             self.log('monitors to thrash: {m}'.format(m=mons_to_kill))
 
@@ -266,13 +270,13 @@ class MonitorThrasher:
                     self.unfreeze_mon(mon)
 
             if self.maintain_quorum:
-                self.manager.wait_for_mon_quorum_size(len(mons)-len(mons_to_kill))
+                self.manager.wait_for_mon_quorum_size(len(mons) - len(mons_to_kill))
                 for m in mons:
                     if m in mons_to_kill:
                         continue
                     s = self.manager.get_mon_status(m)
                     assert s['state'] == 'leader' or s['state'] == 'peon'
-                    assert len(s['quorum']) == len(mons)-len(mons_to_kill)
+                    assert len(s['quorum']) == len(mons) - len(mons_to_kill)
 
             self.log('waiting for {delay} secs before reviving monitors'.format(
                 delay=self.revive_delay))
@@ -308,6 +312,7 @@ class MonitorThrasher:
                     delay=self.thrash_delay))
                 time.sleep(self.thrash_delay)
 
+
 @contextlib.contextmanager
 def task(ctx, config):
     """
@@ -330,10 +335,10 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
     thrash_proc = MonitorThrasher(ctx,
-        manager, config,
-        logger=log.getChild('mon_thrasher'))
+                                  manager, config,
+                                  logger=log.getChild('mon_thrasher'))
     try:
         log.debug('Yielding')
         yield

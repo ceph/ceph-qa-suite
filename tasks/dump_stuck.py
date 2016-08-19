@@ -11,6 +11,7 @@ from tasks.ceph_manager import CephManager
 
 log = logging.getLogger(__name__)
 
+
 def check_stuck(manager, num_inactive, num_unclean, num_stale, timeout=10):
     """
     Do checks.  Make sure get_stuck_pgs return the right amout of information, then
@@ -43,6 +44,7 @@ def check_stuck(manager, num_inactive, num_unclean, num_stale, timeout=10):
         m = re.search('(\d+) pgs stuck stale', health)
         assert int(m.group(1)) == num_stale
 
+
 def task(ctx, config):
     """
     Test the dump_stuck command.
@@ -63,14 +65,14 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     manager.raw_cluster_cmd('tell', 'osd.0', 'flush_pg_stats')
     manager.raw_cluster_cmd('tell', 'osd.1', 'flush_pg_stats')
     manager.wait_for_clean(timeout)
 
     manager.raw_cluster_cmd('tell', 'mon.0', 'injectargs', '--',
-#                            '--mon-osd-report-timeout 90',
+                            #                            '--mon-osd-report-timeout 90',
                             '--mon-pg-stuck-threshold 10')
 
     check_stuck(
@@ -78,7 +80,7 @@ def task(ctx, config):
         num_inactive=0,
         num_unclean=0,
         num_stale=0,
-        )
+    )
     num_pgs = manager.get_num_pgs()
 
     manager.mark_out_osd(0)
@@ -91,7 +93,7 @@ def task(ctx, config):
         num_inactive=0,
         num_unclean=num_pgs,
         num_stale=0,
-        )
+    )
 
     manager.mark_in_osd(0)
     manager.raw_cluster_cmd('tell', 'osd.0', 'flush_pg_stats')
@@ -103,7 +105,7 @@ def task(ctx, config):
         num_inactive=0,
         num_unclean=0,
         num_stale=0,
-        )
+    )
 
     for id_ in teuthology.all_roles_of_type(ctx.cluster, 'osd'):
         manager.kill_osd(id_)
@@ -118,7 +120,7 @@ def task(ctx, config):
                 num_inactive=0,
                 num_unclean=0,
                 num_stale=num_pgs,
-                )
+            )
             done = True
         except AssertionError:
             # wait up to 15 minutes to become stale
@@ -143,4 +145,4 @@ def task(ctx, config):
         num_inactive=0,
         num_unclean=0,
         num_stale=0,
-        )
+    )

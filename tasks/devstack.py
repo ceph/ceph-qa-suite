@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import contextlib
 import logging
 import textwrap
@@ -127,11 +128,12 @@ def generate_ceph_keys(ceph_node):
 
     ceph_auth_cmds = [
         ['sudo', 'ceph', 'auth', 'get-or-create', 'client.cinder', 'mon',
-            'allow r', 'osd', 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rx pool=images'],  # noqa
+         'allow r', 'osd', 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rx pool=images'],
+        # noqa
         ['sudo', 'ceph', 'auth', 'get-or-create', 'client.glance', 'mon',
-            'allow r', 'osd', 'allow class-read object_prefix rbd_children, allow rwx pool=images'],  # noqa
+         'allow r', 'osd', 'allow class-read object_prefix rbd_children, allow rwx pool=images'],  # noqa
         ['sudo', 'ceph', 'auth', 'get-or-create', 'client.cinder-backup', 'mon',
-            'allow r', 'osd', 'allow class-read object_prefix rbd_children, allow rwx pool=backups'],  # noqa
+         'allow r', 'osd', 'allow class-read object_prefix rbd_children, allow rwx pool=backups'],  # noqa
     ]
     for cmd in ceph_auth_cmds:
         ceph_node.run(args=cmd)
@@ -148,21 +150,22 @@ def distribute_ceph_keys(devstack_node, ceph_node):
         key_stringio.seek(0)
         misc.sudo_write_file(to_remote, dest_path,
                              key_stringio, owner=owner)
+
     keys = [
         dict(name='client.glance',
              path='/etc/ceph/ceph.client.glance.keyring',
              # devstack appears to just want root:root
-             #owner='glance:glance',
+             # owner='glance:glance',
              ),
         dict(name='client.cinder',
              path='/etc/ceph/ceph.client.cinder.keyring',
              # devstack appears to just want root:root
-             #owner='cinder:cinder',
+             # owner='cinder:cinder',
              ),
         dict(name='client.cinder-backup',
              path='/etc/ceph/ceph.client.cinder-backup.keyring',
              # devstack appears to just want root:root
-             #owner='cinder:cinder',
+             # owner='cinder:cinder',
              ),
     ]
     for key_dict in keys:
@@ -221,7 +224,7 @@ def update_devstack_config_files(devstack_node, secret_uuid):
             default_store='rbd',
             rbd_store_user='glance',
             rbd_store_pool='images',
-            show_image_direct_url='True',)),
+            show_image_direct_url='True', )),
         dict(name='/etc/cinder/cinder.conf', options=dict(
             volume_driver='cinder.volume.drivers.rbd.RBDDriver',
             rbd_pool='volumes',
@@ -239,7 +242,7 @@ def update_devstack_config_files(devstack_node, secret_uuid):
             backup_ceph_stripe_unit='0',
             backup_ceph_stripe_count='0',
             restore_discard_excess_bytes='true',
-            )),
+        )),
         dict(name='/etc/nova/nova.conf', options=dict(
             libvirt_images_type='rbd',
             libvirt_images_rbd_pool='volumes',
@@ -249,7 +252,7 @@ def update_devstack_config_files(devstack_node, secret_uuid):
             libvirt_inject_password='false',
             libvirt_inject_key='false',
             libvirt_inject_partition='-2',
-            )),
+        )),
     ]
 
     for update in updates:
@@ -309,10 +312,10 @@ def exercise(ctx, config):
     devstack_node = list(ctx.cluster.only(is_devstack_node).remotes.keys())[0]
 
     # TODO: save the log *and* preserve failures
-    #devstack_archive_dir = create_devstack_archive(ctx, devstack_node)
+    # devstack_archive_dir = create_devstack_archive(ctx, devstack_node)
 
     try:
-        #cmd = "cd devstack && ./exercise.sh 2>&1 | tee {dir}/exercise.log".format(  # noqa
+        # cmd = "cd devstack && ./exercise.sh 2>&1 | tee {dir}/exercise.log".format(  # noqa
         #    dir=devstack_archive_dir)
         cmd = "cd devstack && ./exercise.sh"
         devstack_node.run(args=cmd, wait=True)

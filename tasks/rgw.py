@@ -3,36 +3,36 @@ rgw routines
 """
 import argparse
 import contextlib
+import errno
 import json
 import logging
 import os
 import time
-import errno
-import tasks.util.rgw as rgw_utils
 
-from tasks.util.compat import StringIO
-
-from teuthology.orchestra import run
-from teuthology import misc as teuthology
 from teuthology import contextutil
+from teuthology import misc as teuthology
+from teuthology.orchestra import run
 from teuthology.orchestra.run import CommandFailedError
-from tasks.util.rgw import rgwadmin
+
+import tasks.util.rgw as rgw_utils
+from tasks.util.compat import StringIO
 from tasks.util.rados import (rados, create_ec_pool,
-                                        create_replicated_pool,
-                                        create_cache_pool)
+                              create_replicated_pool,
+                              create_cache_pool)
+from tasks.util.rgw import rgwadmin
 
 log = logging.getLogger(__name__)
 
-def get_config_master_client(ctx, config, regions):
 
+def get_config_master_client(ctx, config, regions):
     role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
                        for client, c_config in config.items()])
     log.debug('roles_zones = %r', role_zones)
     region_info = dict([
-        (region_name, extract_region_info(region_name, r_config))
-        for region_name, r_config in regions.items()])
+                           (region_name, extract_region_info(region_name, r_config))
+                           for region_name, r_config in regions.items()])
 
-     # read master zonegroup and master_zone
+    # read master zonegroup and master_zone
     for zonegroup, zg_info in region_info.items():
         if zg_info['is_master']:
             master_zonegroup = zonegroup
@@ -46,8 +46,9 @@ def get_config_master_client(ctx, config, regions):
 
     return None
 
+
 @contextlib.contextmanager
-def create_apache_dirs(ctx, config, on_client = None, except_client = None):
+def create_apache_dirs(ctx, config, on_client=None, except_client=None):
     """
     Remotely create apache directories.  Delete when finished.
     """
@@ -73,8 +74,8 @@ def create_apache_dirs(ctx, config, on_client = None, except_client = None):
                 'mkdir',
                 '{tdir}/archive/apache.{client}'.format(tdir=testdir,
                                                         client=client),
-                ],
-            )
+            ],
+        )
     try:
         yield
     finally:
@@ -90,16 +91,16 @@ def create_apache_dirs(ctx, config, on_client = None, except_client = None):
                     'rmdir',
                     '{tdir}/apache/htdocs.{client}'.format(tdir=testdir,
                                                            client=client),
-                    ],
-                )
+                ],
+            )
         for client in clients_to_create_as:
             ctx.cluster.only(client).run(
                 args=[
                     'rmdir',
                     '{tdir}/apache'.format(tdir=testdir),
-                    ],
+                ],
                 check_status=False,  # only need to remove once per host
-                )
+            )
 
 
 def _use_uds_with_fcgi(remote):
@@ -116,8 +117,8 @@ def _use_uds_with_fcgi(remote):
 
 
 @contextlib.contextmanager
-def ship_apache_configs(ctx, config, role_endpoints, on_client = None,
-                        except_client = None):
+def ship_apache_configs(ctx, config, role_endpoints, on_client=None,
+                        except_client=None):
     """
     Ship apache config and rgw.fgci to all clients.  Clean up on termination
     """
@@ -186,14 +187,14 @@ def ship_apache_configs(ctx, config, role_endpoints, on_client = None,
                 user=user,
                 group=group,
                 apache24_modconfig=apache24_modconfig,
-                )
+            )
             teuthology.write_file(
                 remote=remote,
                 path='{tdir}/apache/apache.{client}.conf'.format(
                     tdir=testdir,
                     client=client),
                 data=conf,
-                )
+            )
         rgw_options = []
         if ctx.rgw.use_fastcgi or _use_uds_with_fcgi(remote):
             rgw_options = [
@@ -223,15 +224,15 @@ ulimit -c unlimited
 exec radosgw -f -n {client} -k /etc/ceph/ceph.{client}.keyring {rgw_options}
 
 """.format(tdir=testdir, client=client, rgw_options=" ".join(rgw_options))
-            )
+        )
         remote.run(
             args=[
                 'chmod',
                 'a=rx',
                 '{tdir}/apache/htdocs.{client}/rgw.fcgi'.format(tdir=testdir,
                                                                 client=client),
-                ],
-            )
+            ],
+        )
     try:
         yield
     finally:
@@ -249,12 +250,12 @@ exec radosgw -f -n {client} -k /etc/ceph/ceph.{client}.keyring {rgw_options}
                     '{tdir}/apache/htdocs.{client}/rgw.fcgi'.format(
                         tdir=testdir,
                         client=client),
-                    ],
-                )
+                ],
+            )
 
 
 @contextlib.contextmanager
-def start_rgw(ctx, config, on_client = None, except_client = None):
+def start_rgw(ctx, config, on_client=None, except_client=None):
     """
     Start rgw on remote sites.
     """
@@ -283,7 +284,7 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
             '{tdir}/archive/coverage'.format(tdir=testdir),
             'daemon-helper',
             'term',
-            ]
+        ]
 
         rgw_cmd = ['radosgw']
 
@@ -332,7 +333,7 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
             '/var/log/ceph/rgw.{client}.stdout'.format(tdir=testdir,
                                                        client=client),
             run.Raw('2>&1'),
-            ])
+        ])
 
         if client_config.get('valgrind'):
             cmd_prefix = teuthology.get_valgrind_args(
@@ -340,7 +341,7 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
                 client,
                 cmd_prefix,
                 client_config.get('valgrind')
-                )
+            )
 
         run_cmd = list(cmd_prefix)
         run_cmd.extend(rgw_cmd)
@@ -351,7 +352,7 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
             logger=log.getChild(client),
             stdin=run.PIPE,
             wait=False,
-            )
+        )
 
     try:
         yield
@@ -364,12 +365,12 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
                     '-f',
                     '{tdir}/rgw.opslog.{client}.sock'.format(tdir=testdir,
                                                              client=client),
-                    ],
-                )
+                ],
+            )
 
 
 @contextlib.contextmanager
-def start_apache(ctx, config, on_client = None, except_client = None):
+def start_apache(ctx, config, on_client=None, except_client=None):
     """
     Start apache on remote sites.
     """
@@ -408,11 +409,11 @@ def start_apache(ctx, config, on_client = None, except_client = None):
                 '-f',
                 '{tdir}/apache/apache.{client}.conf'.format(tdir=testdir,
                                                             client=client),
-                ],
+            ],
             logger=log.getChild(client),
             stdin=run.PIPE,
             wait=False,
-            )
+        )
         apaches[client] = proc
 
     try:
@@ -433,7 +434,7 @@ def extract_user_info(client_config):
     # test if there isn't a system user or if there isn't a name for that
     # user, return None
     if ('system user' not in client_config or
-            'name' not in client_config['system user']):
+                'name' not in client_config['system user']):
         return None
 
     user_info = dict()
@@ -441,7 +442,7 @@ def extract_user_info(client_config):
         user=client_config['system user']['name'],
         access_key=client_config['system user']['access key'],
         secret_key=client_config['system user']['secret key'],
-        )
+    )
     return user_info
 
 
@@ -529,7 +530,7 @@ def extract_region_info(region, region_info):
                                             'tags': []}]),
         default_placement=region_info.get('default placement',
                                           'default_placement'),
-        )
+    )
 
 
 def assign_ports(ctx, config):
@@ -633,11 +634,12 @@ def configure_users_for_client(ctx, config, client, everywhere=False):
                          '--system',
                      ],
                      check_status=True,
-            )
+                     )
     yield
 
+
 @contextlib.contextmanager
-def configure_users(ctx, config,  everywhere=False):
+def configure_users(ctx, config, everywhere=False):
     """
     Create users by remotely running rgwadmin commands using extracted
     user information.
@@ -662,7 +664,7 @@ def configure_users(ctx, config,  everywhere=False):
             clients_to_create_as = config.keys()
         for client_name in clients_to_create_as:
             log.debug('Creating user {user} on {client}'.format(
-                      user=user_info['system_key']['user'], client=client))
+                user=user_info['system_key']['user'], client=client))
             rgwadmin(ctx, client_name,
                      cmd=[
                          'user', 'create',
@@ -676,6 +678,7 @@ def configure_users(ctx, config,  everywhere=False):
                      )
 
     yield
+
 
 @contextlib.contextmanager
 def create_nonregion_pools(ctx, config, regions):
@@ -695,8 +698,9 @@ def create_nonregion_pools(ctx, config, regions):
             create_replicated_pool(remote, data_pool, 64)
         if ctx.rgw.cache_pools:
             create_cache_pool(remote, data_pool, data_pool + '.cache', 64,
-                              64*1024*1024)
+                              64 * 1024 * 1024)
     yield
+
 
 @contextlib.contextmanager
 def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, realm, master_client):
@@ -740,8 +744,8 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
         role_zones[client] = (region, zone, zone_info, user_info)
 
     region_info = dict([
-        (region_name, extract_region_info(region_name, r_config))
-        for region_name, r_config in regions.items()])
+                           (region_name, extract_region_info(region_name, r_config))
+                           for region_name, r_config in regions.items()])
 
     fill_in_endpoints(region_info, role_zones, role_endpoints)
 
@@ -809,6 +813,7 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
 
     yield
 
+
 @contextlib.contextmanager
 def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     """
@@ -851,8 +856,8 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
         role_zones[client] = (region, zone, zone_info, user_info)
 
     region_info = dict([
-        (region_name, extract_region_info(region_name, r_config))
-        for region_name, r_config in regions.items()])
+                           (region_name, extract_region_info(region_name, r_config))
+                           for region_name, r_config in regions.items()])
 
     fill_in_endpoints(region_info, role_zones, role_endpoints)
 
@@ -884,8 +889,8 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     log.debug('master client = %r', master_client)
     log.debug('config %r ', config)
 
-    (ret, out)=rgwadmin(ctx, master_client,
-                        cmd=['realm', 'create', '--rgw-realm', realm, '--default'])
+    (ret, out) = rgwadmin(ctx, master_client,
+                          cmd=['realm', 'create', '--rgw-realm', realm, '--default'])
     log.debug('realm create ret %r exists %r', -ret, errno.EEXIST)
     assert ret == 0 or ret != -errno.EEXIST
     if ret is -errno.EEXIST:
@@ -917,10 +922,10 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
 
             log.debug('zone info is: %r', zone_json)
             rgwadmin(ctx, client,
-                 cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
-                      '--rgw-zone', zone],
-                 stdin=StringIO(zone_json),
-                 check_status=True)
+                     cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
+                          '--rgw-zone', zone],
+                     stdin=StringIO(zone_json),
+                     check_status=True)
 
         for region, info in region_info.items():
             region_json = json.dumps(info)
@@ -944,6 +949,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
              check_status=True)
 
     yield
+
 
 @contextlib.contextmanager
 def pull_configuration(ctx, config, regions, role_endpoints, realm, master_client):
@@ -989,8 +995,8 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
         role_zones[client] = (region, zone, zone_info, user_info)
 
     region_info = dict([
-        (region_name, extract_region_info(region_name, r_config))
-        for region_name, r_config in regions.items()])
+                           (region_name, extract_region_info(region_name, r_config))
+                           for region_name, r_config in regions.items()])
 
     fill_in_endpoints(region_info, role_zones, role_endpoints)
 
@@ -1000,10 +1006,10 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
             endpoint = 'http://{host}:{port}/'.format(host=host, port=port)
             log.debug("endpoint: %s", endpoint)
             rgwadmin(ctx, client,
-                cmd=['-n', client, 'realm', 'pull', '--rgw-realm', realm, '--default', '--url',
-                     endpoint, '--access_key',
-                     user_info['system_key']['access_key'], '--secret',
-                     user_info['system_key']['secret_key']],
+                     cmd=['-n', client, 'realm', 'pull', '--rgw-realm', realm, '--default', '--url',
+                          endpoint, '--access_key',
+                          user_info['system_key']['access_key'], '--secret',
+                          user_info['system_key']['secret_key']],
                      check_status=True)
 
             (zonegroup, zone, zone_info, zone_user_info) = role_zones[client]
@@ -1027,11 +1033,13 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
 
     yield
 
+
 @contextlib.contextmanager
 def wait_for_master():
     log.debug("wait_for_master")
     time.sleep(20)
     yield
+
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -1173,7 +1181,7 @@ def task(ctx, config):
     if config is None:
         config = dict(('client.{id}'.format(id=id_), None)
                       for id_ in teuthology.all_roles_of_type(
-                          ctx.cluster, 'client'))
+            ctx.cluster, 'client'))
     elif isinstance(config, list):
         config = dict((name, None) for name in config)
 
@@ -1231,7 +1239,7 @@ def task(ctx, config):
     subtasks = [
         lambda: create_nonregion_pools(
             ctx=ctx, config=config, regions=regions),
-        ]
+    ]
 
     multisite = len(regions) > 1
 
@@ -1261,7 +1269,7 @@ def task(ctx, config):
                 regions=regions,
                 role_endpoints=role_endpoints,
                 realm=realm,
-                master_client = master_client,
+                master_client=master_client,
             )
         ])
 
@@ -1291,7 +1299,7 @@ def task(ctx, config):
         else:
             raise ValueError("frontend must be 'apache' or 'civetweb'")
 
-        subtasks.extend([lambda: wait_for_master(),])
+        subtasks.extend([lambda: wait_for_master(), ])
         subtasks.extend([
             lambda: pull_configuration(ctx=ctx,
                                        config=config,
@@ -1299,7 +1307,7 @@ def task(ctx, config):
                                        role_endpoints=role_endpoints,
                                        realm=realm,
                                        master_client=master_client
-            ),
+                                       ),
         ])
 
         subtasks.extend([
@@ -1315,33 +1323,33 @@ def task(ctx, config):
             subtasks.insert(0,
                             lambda: create_apache_dirs(ctx=ctx, config=config,
                                                        on_client=None,
-                                                       except_client = master_client))
+                                                       except_client=master_client))
             subtasks.extend([
                 lambda: ship_apache_configs(ctx=ctx, config=config,
                                             role_endpoints=role_endpoints,
                                             on_client=None,
-                                            except_client = master_client,
-                ),
+                                            except_client=master_client,
+                                            ),
                 lambda: start_rgw(ctx=ctx,
                                   config=config,
                                   on_client=None,
-                                  except_client = master_client),
+                                  except_client=master_client),
                 lambda: start_apache(ctx=ctx,
-                                     config = config,
+                                     config=config,
                                      on_client=None,
-                                     except_client = master_client,
-                ),
+                                     except_client=master_client,
+                                     ),
             ])
         elif ctx.rgw.frontend == 'civetweb':
             subtasks.extend([
                 lambda: start_rgw(ctx=ctx,
                                   config=config,
                                   on_client=None,
-                                  except_client = master_client),
+                                  except_client=master_client),
             ])
         else:
             raise ValueError("frontend must be 'apache' or 'civetweb'")
-                
+
     else:
         log.debug('single cluster run')
         subtasks.extend([
@@ -1366,7 +1374,7 @@ def task(ctx, config):
                 lambda: start_rgw(ctx=ctx,
                                   config=config),
                 lambda: start_apache(ctx=ctx, config=config),
-                ])
+            ])
         elif ctx.rgw.frontend == 'civetweb':
             subtasks.extend([
                 lambda: start_rgw(ctx=ctx,

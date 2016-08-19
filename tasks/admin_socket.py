@@ -90,16 +90,16 @@ def _socket_command(ctx, remote, socket_path, command, args):
     while True:
         proc = remote.run(
             args=[
-                'sudo',
-                'adjust-ulimits',
-                'ceph-coverage',
-                '{tdir}/archive/coverage'.format(tdir=testdir),
-                'ceph',
-                '--admin-daemon', socket_path,
-                ] + command.split(' ') + args,
+                     'sudo',
+                     'adjust-ulimits',
+                     'ceph-coverage',
+                     '{tdir}/archive/coverage'.format(tdir=testdir),
+                     'ceph',
+                     '--admin-daemon', socket_path,
+                 ] + command.split(' ') + args,
             stdout=json_fp,
             check_status=False,
-            )
+        )
         if proc.exitstatus == 0:
             break
         assert max_tries > 0
@@ -111,6 +111,7 @@ def _socket_command(ctx, remote, socket_path, command, args):
     json_fp.close()
     log.debug('admin socket command %s returned %s', command, out)
     return json.loads(out)
+
 
 def _run_tests(ctx, client, tests):
     """
@@ -132,7 +133,7 @@ def _run_tests(ctx, client, tests):
         tmp_dir = os.path.join(
             testdir,
             'admin_socket_{client}'.format(client=client),
-            )
+        )
         remote.run(
             args=[
                 'mkdir',
@@ -155,7 +156,7 @@ def _run_tests(ctx, client, tests):
             if 'test' in config:
                 url = config['test'].format(
                     branch=config.get('branch', 'master')
-                    )
+                )
                 test_path = os.path.join(tmp_dir, command)
                 remote.run(
                     args=[
@@ -170,8 +171,8 @@ def _run_tests(ctx, client, tests):
                         'u=rx',
                         '--',
                         test_path,
-                        ],
-                    )
+                    ],
+                )
 
             args = config.get('args', [])
             assert isinstance(args, list), \
@@ -181,13 +182,13 @@ def _run_tests(ctx, client, tests):
                 remote.run(
                     args=[
                         test_path,
-                        ],
+                    ],
                     stdin=json.dumps(sock_out),
-                    )
+                )
 
     finally:
         remote.run(
             args=[
                 'rm', '-rf', '--', tmp_dir,
-                ],
-            )
+            ],
+        )

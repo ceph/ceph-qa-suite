@@ -43,16 +43,16 @@ def download(ctx, config):
                 '-b', branch,
                 teuth_config.ceph_git_base_url + 's3-tests.git',
                 '{tdir}/s3-tests'.format(tdir=testdir),
-                ],
-            )
+            ],
+        )
         if sha1 is not None:
             ctx.cluster.only(client).run(
                 args=[
                     'cd', '{tdir}/s3-tests'.format(tdir=testdir),
                     run.Raw('&&'),
                     'git', 'reset', '--hard', sha1,
-                    ],
-                )
+                ],
+            )
     try:
         yield
     finally:
@@ -64,8 +64,8 @@ def download(ctx, config):
                     'rm',
                     '-rf',
                     '{tdir}/s3-tests'.format(tdir=testdir),
-                    ],
-                )
+                ],
+            )
 
 
 def _config_user(s3tests_conf, section, user):
@@ -78,6 +78,7 @@ def _config_user(s3tests_conf, section, user):
     s3tests_conf[section].setdefault('display_name', 'Mr. {user}'.format(user=user))
     s3tests_conf[section].setdefault('access_key', ''.join(random.sample(string.ascii_uppercase, 20)))
     s3tests_conf[section].setdefault('secret_key', base64.b64encode(os.urandom(40)))
+
 
 @contextlib.contextmanager
 def create_users(ctx, config):
@@ -112,7 +113,7 @@ def create_users(ctx, config):
             if 'delete_user' in s3tests_conf['s3']:
                 delete_this_user = s3tests_conf['s3']['delete_user']
                 log.debug('delete_user set to {flag} for {client}'.format(flag=delete_this_user, client=client))
-            cached_client_user_names[client][section+user] = (s3tests_conf[section]['user_id'], delete_this_user)
+            cached_client_user_names[client][section + user] = (s3tests_conf[section]['user_id'], delete_this_user)
 
             # skip actual user creation if the create_user flag is set to false for this client
             if 'create_user' in s3tests_conf['s3'] and s3tests_conf['s3']['create_user'] == False:
@@ -138,9 +139,9 @@ def create_users(ctx, config):
         yield
     finally:
         for client in config['clients']:
-                #uid = '{user}.{client}'.format(user=user, client=client)
-                real_uid, delete_this_user  = cached_client_user_names[client][section+user]
             for section, user in users.items():
+                # uid = '{user}.{client}'.format(user=user, client=client)
+                real_uid, delete_this_user = cached_client_user_names[client][section + user]
                 if delete_this_user:
                     ctx.cluster.only(client).run(
                         args=[
@@ -152,10 +153,11 @@ def create_users(ctx, config):
                             'user', 'rm',
                             '--uid', real_uid,
                             '--purge-data',
-                            ],
-                        )
+                        ],
+                    )
                 else:
                     log.debug('skipping delete for user {uid} on {client}'.format(uid=real_uid, client=client))
+
 
 @contextlib.contextmanager
 def configure(ctx, config):
@@ -190,19 +192,20 @@ def configure(ctx, config):
                 '{tdir}/s3-tests'.format(tdir=teuthology.get_testdir(ctx)),
                 run.Raw('&&'),
                 './bootstrap',
-                ],
-            )
+            ],
+        )
         conf_fp = StringIO()
         conf = dict(
-                        s3=s3tests_conf['s3'],
-                        readwrite=s3tests_conf['readwrite'],
-                    )
+            s3=s3tests_conf['s3'],
+            readwrite=s3tests_conf['readwrite'],
+        )
         yaml.safe_dump(conf, conf_fp, default_flow_style=False)
         teuthology.write_file(
             remote=remote,
-            path='{tdir}/archive/s3readwrite.{client}.config.yaml'.format(tdir=teuthology.get_testdir(ctx), client=client),
+            path='{tdir}/archive/s3readwrite.{client}.config.yaml'.format(tdir=teuthology.get_testdir(ctx),
+                                                                          client=client),
             data=conf_fp.getvalue(),
-            )
+        )
     yield
 
 
@@ -218,17 +221,18 @@ def run_tests(ctx, config):
     testdir = teuthology.get_testdir(ctx)
     for client, client_config in config.items():
         (remote,) = ctx.cluster.only(client).remotes.keys()
-        conf = teuthology.get_file(remote, '{tdir}/archive/s3readwrite.{client}.config.yaml'.format(tdir=testdir, client=client))
+        conf = teuthology.get_file(remote, '{tdir}/archive/s3readwrite.{client}.config.yaml'.format(tdir=testdir,
+                                                                                                    client=client))
         args = [
-                '{tdir}/s3-tests/virtualenv/bin/s3tests-test-readwrite'.format(tdir=testdir),
-                ]
+            '{tdir}/s3-tests/virtualenv/bin/s3tests-test-readwrite'.format(tdir=testdir),
+        ]
         if client_config is not None and 'extra_args' in client_config:
             args.extend(client_config['extra_args'])
 
         ctx.cluster.only(client).run(
             args=args,
             stdin=conf,
-            )
+        )
     yield
 
 
@@ -295,7 +299,7 @@ def task(ctx, config):
 
     """
     assert config is None or isinstance(config, list) \
-        or isinstance(config, dict), \
+           or isinstance(config, dict), \
         "task s3tests only supports a list or dictionary for configuration"
     all_clients = ['client.{id}'.format(id=id_)
                    for id_ in teuthology.all_roles_of_type(ctx.cluster, 'client')]
@@ -322,26 +326,26 @@ def task(ctx, config):
         config[client].setdefault('readwrite', {})
 
         s3tests_conf[client] = ({
-                'DEFAULT':
-                    {
-                    'port'      : 7280,
-                    'is_secure' : False,
-                    },
-                'readwrite' : config[client]['readwrite'],
-                's3'  : config[client]['s3'],
-                })
+            'DEFAULT':
+                {
+                    'port': 7280,
+                    'is_secure': False,
+                },
+            'readwrite': config[client]['readwrite'],
+            's3': config[client]['s3'],
+        })
 
     with contextutil.nested(
-        lambda: download(ctx=ctx, config=config),
-        lambda: create_users(ctx=ctx, config=dict(
+            lambda: download(ctx=ctx, config=config),
+            lambda: create_users(ctx=ctx, config=dict(
                 clients=clients,
                 s3tests_conf=s3tests_conf,
-                )),
-        lambda: configure(ctx=ctx, config=dict(
+            )),
+            lambda: configure(ctx=ctx, config=dict(
                 clients=config,
                 s3tests_conf=s3tests_conf,
-                )),
-        lambda: run_tests(ctx=ctx, config=config),
-        ):
+            )),
+            lambda: run_tests(ctx=ctx, config=config),
+    ):
         pass
     yield

@@ -17,6 +17,7 @@ from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def create_image(ctx, config):
     """
@@ -58,15 +59,15 @@ def create_image(ctx, config):
         log.info('Creating image {name} with size {size}'.format(name=name,
                                                                  size=size))
         args = [
-                'adjust-ulimits',
-                'ceph-coverage'.format(tdir=testdir),
-                '{tdir}/archive/coverage'.format(tdir=testdir),
-                'rbd',
-                '-p', 'rbd',
-                'create',
-                '--size', str(size),
-                name,
-            ]
+            'adjust-ulimits',
+            'ceph-coverage'.format(tdir=testdir),
+            '{tdir}/archive/coverage'.format(tdir=testdir),
+            'rbd',
+            '-p', 'rbd',
+            'create',
+            '--size', str(size),
+            name,
+        ]
         # omit format option if using the default (format 1)
         # since old versions of don't support it
         if int(fmt) != 1:
@@ -90,8 +91,9 @@ def create_image(ctx, config):
                     '-p', 'rbd',
                     'rm',
                     name,
-                    ],
-                )
+                ],
+            )
+
 
 @contextlib.contextmanager
 def clone_image(ctx, config):
@@ -133,11 +135,11 @@ def clone_image(ctx, config):
                     ('snap', 'protect', parent_spec),
                     ('clone', parent_spec, name)]:
             args = [
-                    'adjust-ulimits',
-                    'ceph-coverage'.format(tdir=testdir),
-                    '{tdir}/archive/coverage'.format(tdir=testdir),
-                    'rbd', '-p', 'rbd'
-                    ]
+                'adjust-ulimits',
+                'ceph-coverage'.format(tdir=testdir),
+                '{tdir}/archive/coverage'.format(tdir=testdir),
+                'rbd', '-p', 'rbd'
+            ]
             args.extend(cmd)
             remote.run(args=args)
 
@@ -158,13 +160,14 @@ def clone_image(ctx, config):
                         ('snap', 'unprotect', parent_spec),
                         ('snap', 'rm', parent_spec)]:
                 args = [
-                        'adjust-ulimits',
-                        'ceph-coverage'.format(tdir=testdir),
-                        '{tdir}/archive/coverage'.format(tdir=testdir),
-                        'rbd', '-p', 'rbd'
-                        ]
+                    'adjust-ulimits',
+                    'ceph-coverage'.format(tdir=testdir),
+                    '{tdir}/archive/coverage'.format(tdir=testdir),
+                    'rbd', '-p', 'rbd'
+                ]
                 args.extend(cmd)
                 remote.run(args=args)
+
 
 @contextlib.contextmanager
 def modprobe(ctx, config):
@@ -186,8 +189,8 @@ def modprobe(ctx, config):
                 'sudo',
                 'modprobe',
                 'rbd',
-                ],
-            )
+            ],
+        )
     try:
         yield
     finally:
@@ -206,8 +209,9 @@ def modprobe(ctx, config):
                     # time through.
                     run.Raw('||'),
                     'true',
-                    ],
-                )
+                ],
+            )
+
 
 @contextlib.contextmanager
 def dev_create(ctx, config):
@@ -256,8 +260,8 @@ def dev_create(ctx, config):
                 'while', 'test', '!', '-e', '/dev/rbd/rbd/{image}'.format(image=image), run.Raw(';'), 'do',
                 'sleep', '1', run.Raw(';'),
                 'done',
-                ],
-            )
+            ],
+        )
     try:
         yield
     finally:
@@ -284,12 +288,13 @@ def dev_create(ctx, config):
                     'do',
                     'sleep', '1', run.Raw(';'),
                     'done',
-                    ],
-                )
+                ],
+            )
 
 
 def rbd_devname_rtn(ctx, image):
-    return '/dev/rbd/rbd/{image}'.format(image=image)    
+    return '/dev/rbd/rbd/{image}'.format(image=image)
+
 
 def canonical_path(ctx, role, path):
     """
@@ -299,12 +304,13 @@ def canonical_path(ctx, role, path):
     """
     version_fp = StringIO()
     ctx.cluster.only(role).run(
-        args=[ 'readlink', '-f', path ],
+        args=['readlink', '-f', path],
         stdout=version_fp,
-        )
+    )
     canonical_path = version_fp.getvalue().rstrip('\n')
     version_fp.close()
     return canonical_path
+
 
 @contextlib.contextmanager
 def run_xfstests(ctx, config):
@@ -342,6 +348,7 @@ def run_xfstests(ctx, config):
             p.spawn(run_xfstests_one_client, ctx, role, properties)
     yield
 
+
 def run_xfstests_one_client(ctx, role, properties):
     """
     Spawned routine to handle xfs tests for a single client
@@ -363,7 +370,6 @@ def run_xfstests_one_client(ctx, role, properties):
         tests = properties.get('tests')
         randomize = properties.get('randomize')
 
-
         (remote,) = ctx.cluster.only(role).remotes.keys()
 
         # Fetch the test script
@@ -382,7 +388,7 @@ def run_xfstests_one_client(ctx, role, properties):
             role=role,
             url=xfstests_krbd_url))
 
-        args = [ 'wget', '-O', test_path, '--', xfstests_krbd_url ]
+        args = ['wget', '-O', test_path, '--', xfstests_krbd_url]
         remote.run(args=args)
 
         log.info('Running xfstests on {role}:'.format(role=role))
@@ -409,7 +415,7 @@ def run_xfstests_one_client(ctx, role, properties):
             '-f', fs_type,
             '-t', test_dev,
             '-s', scratch_dev,
-            ]
+        ]
         if randomize:
             args.append('-r')
         if tests:
@@ -419,6 +425,7 @@ def run_xfstests_one_client(ctx, role, properties):
         log.info('Removing {script} on {role}'.format(script=test_script,
                                                       role=role))
         remote.run(args=['rm', '-f', test_path])
+
 
 @contextlib.contextmanager
 def xfstests(ctx, config):
@@ -451,7 +458,7 @@ def xfstests(ctx, config):
                 xfstests_url: 'https://raw.github.com/ceph/branch/master/qa'
     """
     if config is None:
-        config = { 'all': None }
+        config = {'all': None}
     assert isinstance(config, dict) or isinstance(config, list), \
         "task xfstests only supports a list or dictionary for configuration"
     if isinstance(config, dict):
@@ -481,26 +488,27 @@ def xfstests(ctx, config):
             properties = {}
 
         test_image = properties.get('test_image', 'test_image.{role}'.format(role=role))
-        test_size = properties.get('test_size', 10000) # 10G
+        test_size = properties.get('test_size', 10000)  # 10G
         test_fmt = properties.get('test_format', 1)
         scratch_image = properties.get('scratch_image', 'scratch_image.{role}'.format(role=role))
-        scratch_size = properties.get('scratch_size', 10000) # 10G
+        scratch_size = properties.get('scratch_size', 10000)  # 10G
         scratch_fmt = properties.get('scratch_format', 1)
 
         images_config[role] = dict(
             image_name=test_image,
             image_size=test_size,
             image_format=test_fmt,
-            )
+        )
 
         scratch_config[role] = dict(
             image_name=scratch_image,
             image_size=scratch_size,
             image_format=scratch_fmt,
-            )
+        )
 
         xfstests_branch = properties.get('xfstests_branch', 'master')
-        xfstests_url = properties.get('xfstests_url', 'https://raw.github.com/ceph/ceph/{branch}/qa'.format(branch=xfstests_branch))
+        xfstests_url = properties.get('xfstests_url',
+                                      'https://raw.github.com/ceph/ceph/{branch}/qa'.format(branch=xfstests_branch))
 
         xfstests_config[role] = dict(
             count=properties.get('count', 1),
@@ -510,25 +518,25 @@ def xfstests(ctx, config):
             randomize=properties.get('randomize', False),
             tests=properties.get('tests'),
             xfstests_url=xfstests_url,
-            )
+        )
 
         log.info('Setting up xfstests using RBD images:')
         log.info('      test ({size} MB): {image}'.format(size=test_size,
-                                                        image=test_image))
+                                                          image=test_image))
         log.info('   scratch ({size} MB): {image}'.format(size=scratch_size,
-                                                        image=scratch_image))
+                                                          image=scratch_image))
         modprobe_config[role] = None
         image_map_config[role] = test_image
         scratch_map_config[role] = scratch_image
 
     with contextutil.nested(
-        lambda: create_image(ctx=ctx, config=images_config),
-        lambda: create_image(ctx=ctx, config=scratch_config),
-        lambda: modprobe(ctx=ctx, config=modprobe_config),
-        lambda: dev_create(ctx=ctx, config=image_map_config),
-        lambda: dev_create(ctx=ctx, config=scratch_map_config),
-        lambda: run_xfstests(ctx=ctx, config=xfstests_config),
-        ):
+            lambda: create_image(ctx=ctx, config=images_config),
+            lambda: create_image(ctx=ctx, config=scratch_config),
+            lambda: modprobe(ctx=ctx, config=modprobe_config),
+            lambda: dev_create(ctx=ctx, config=image_map_config),
+            lambda: dev_create(ctx=ctx, config=scratch_map_config),
+            lambda: run_xfstests(ctx=ctx, config=xfstests_config),
+    ):
         yield
 
 
@@ -572,7 +580,7 @@ def task(ctx, config):
               fs_type: xfs
     """
     if config is None:
-        config = { 'all': None }
+        config = {'all': None}
     norm_config = config
     if isinstance(config, dict):
         norm_config = teuthology.replace_all_with_clients(ctx.cluster, config)
@@ -588,12 +596,12 @@ def task(ctx, config):
     log.debug('rbd config is: %s', norm_config)
 
     with contextutil.nested(
-        lambda: create_image(ctx=ctx, config=norm_config),
-        lambda: modprobe(ctx=ctx, config=norm_config),
-        lambda: dev_create(ctx=ctx, config=role_images),
-        lambda: generic_mkfs(ctx=ctx, config=norm_config,
-                devname_rtn=rbd_devname_rtn),
-        lambda: generic_mount(ctx=ctx, config=role_images,
-                devname_rtn=rbd_devname_rtn),
-        ):
+            lambda: create_image(ctx=ctx, config=norm_config),
+            lambda: modprobe(ctx=ctx, config=norm_config),
+            lambda: dev_create(ctx=ctx, config=role_images),
+            lambda: generic_mkfs(ctx=ctx, config=norm_config,
+                                 devname_rtn=rbd_devname_rtn),
+            lambda: generic_mount(ctx=ctx, config=role_images,
+                                  devname_rtn=rbd_devname_rtn),
+    ):
         yield

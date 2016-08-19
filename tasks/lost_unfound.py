@@ -13,6 +13,7 @@ from tasks.util.rados import rados
 
 log = logging.getLogger(__name__)
 
+
 def task(ctx, config):
     """
     Test handling of lost objects.
@@ -31,7 +32,7 @@ def task(ctx, config):
         mon,
         ctx=ctx,
         logger=log.getChild('ceph_manager'),
-        )
+    )
 
     while len(manager.get_osd_status()['up']) < 3:
         time.sleep(10)
@@ -63,14 +64,14 @@ def task(ctx, config):
 
     # delay recovery, and make the pg log very long (to prevent backfill)
     manager.raw_cluster_cmd(
-            'tell', 'osd.1',
-            'injectargs',
-            '--osd-recovery-delay-start 1000 --osd-min-pg-log-entries 100000000'
-            )
+        'tell', 'osd.1',
+        'injectargs',
+        '--osd-recovery-delay-start 1000 --osd-min-pg-log-entries 100000000'
+    )
 
     manager.kill_osd(0)
     manager.mark_down_osd(0)
-    
+
     for f in range(1, 10):
         rados(ctx, mon, ['-p', POOL, 'put', 'new_%d' % f, dummyfile])
         rados(ctx, mon, ['-p', POOL, 'put', 'existed_%d' % f, dummyfile])
@@ -81,8 +82,8 @@ def task(ctx, config):
     log.info('osd.0 command_args is %s' % 'foo')
     log.info(ctx.daemons.get_daemon('osd', 0).command_args)
     ctx.daemons.get_daemon('osd', 0).command_kwargs['args'].extend([
-            '--osd-recovery-delay-start', '1000'
-            ])
+        '--osd-recovery-delay-start', '1000'
+    ])
     manager.revive_osd(0)
     manager.mark_in_osd(0)
     manager.wait_till_osd_is_up(0)
@@ -125,11 +126,11 @@ def task(ctx, config):
                           'rados',
                           '--no-log-to-stderr',
                           '--name', 'client.admin',
-                          '-b', str(4<<10),
-                          '-p' , POOL,
+                          '-b', str(4 << 10),
+                          '-p', POOL,
                           '-t', '20',
                           'bench', '240', 'write',
-                      ]).format(tdir=testdir),
+                          ]).format(tdir=testdir),
             ],
             logger=log.getChild('radosbench.{id}'.format(id='client.admin')),
             stdin=run.PIPE,
@@ -145,11 +146,11 @@ def task(ctx, config):
 
             # verify that i can list them direct from the osd
             log.info('listing missing/lost in %s state %s', pg['pgid'],
-                     pg['state']);
+                     pg['state'])
             m = manager.list_pg_missing(pg['pgid'])
-            #log.info('%s' % m)
+            # log.info('%s' % m)
             assert m['num_unfound'] == pg['stat_sum']['num_objects_unfound']
-            num_unfound=0
+            num_unfound = 0
             for o in m['objects']:
                 if len(o['locations']) == 0:
                     num_unfound += 1

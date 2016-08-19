@@ -1,14 +1,16 @@
 """
 Rest Api
 """
-import logging
 import contextlib
+import logging
 import time
-from tasks.util.compat import range
-from teuthology import misc as teuthology
+
 from teuthology import contextutil
+from teuthology import misc as teuthology
 from teuthology.orchestra import run
 from teuthology.orchestra.daemon import DaemonGroup
+
+from tasks.util.compat import range
 
 log = logging.getLogger(__name__)
 
@@ -34,12 +36,12 @@ def run_rest_api_daemon(ctx, api_clients):
                     'client.rest{id}'.format(id=id_), ]
                 cl_rest_id = 'client.rest{id}'.format(id=id_)
                 ctx.daemons.add_daemon(rems, 'restapi',
-                    cl_rest_id,
-                    args=run_cmd,
-                    logger=log.getChild(cl_rest_id),
-                    stdin=run.PIPE,
-                    wait=False,
-                    )
+                                       cl_rest_id,
+                                       args=run_cmd,
+                                       logger=log.getChild(cl_rest_id),
+                                       stdin=run.PIPE,
+                                       wait=False,
+                                       )
                 for i in range(1, 12):
                     log.info('testing for ceph-rest-api try {0}'.format(i))
                     run_cmd = [
@@ -66,6 +68,7 @@ def run_rest_api_daemon(ctx, api_clients):
         TO DO: destroy daemons started -- modify iter_daemons_of_role
         """
         teuthology.stop_daemons_of_type(ctx, 'restapi')
+
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -103,9 +106,9 @@ def task(ctx, config):
     api_clients = []
     remotes = ctx.cluster.only(teuthology.is_type('client')).remotes
     log.info(remotes)
-    if config == None:
+    if config is None:
         api_clients = ['client.{id}'.format(id=id_)
-            for id_ in teuthology.all_roles_of_type(ctx.cluster, 'client')]
+                       for id_ in teuthology.all_roles_of_type(ctx.cluster, 'client')]
     else:
         api_clients = config
     log.info(api_clients)
@@ -116,7 +119,7 @@ def task(ctx, config):
             if whole_id_ in api_clients:
                 id_ = whole_id_[len('client.'):]
                 keyring = '/etc/ceph/ceph.client.rest{id}.keyring'.format(
-                        id=id_)
+                    id=id_)
                 rems.run(
                     args=[
                         'sudo',
@@ -137,8 +140,8 @@ def task(ctx, config):
                         'chmod',
                         '0644',
                         keyring,
-                        ],
-                    )
+                    ],
+                )
                 rems.run(
                     args=[
                         'sudo',
@@ -150,8 +153,8 @@ def task(ctx, config):
                         run.Raw('>>'),
                         "/etc/ceph/ceph.conf",
                         run.Raw("'")
-                        ]
-                    )
+                    ]
+                )
                 rems.run(
                     args=[
                         'sudo',
@@ -166,8 +169,8 @@ def task(ctx, config):
                         run.Raw('>>'),
                         '/etc/ceph/ceph.conf',
                         run.Raw("'"),
-                        ]
-                    )
+                    ]
+                )
                 rems.run(
                     args=[
                         'sudo',
@@ -179,6 +182,5 @@ def task(ctx, config):
                     ]
                 )
     with contextutil.nested(
-            lambda: run_rest_api_daemon(ctx=ctx, api_clients=api_clients),):
+            lambda: run_rest_api_daemon(ctx=ctx, api_clients=api_clients), ):
         yield
-

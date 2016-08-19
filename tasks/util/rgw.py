@@ -1,12 +1,14 @@
-import logging
 import json
+import logging
+
 import requests
+from teuthology import misc as teuthology
+from teuthology.orchestra.connection import split_user
+
 from tasks.util.compat import StringIO, zip, urlparse
 
-from teuthology.orchestra.connection import split_user
-from teuthology import misc as teuthology
-
 log = logging.getLogger(__name__)
+
 
 # simple test to indicate if multi-region testing should occur
 def multi_region_enabled(ctx):
@@ -14,9 +16,10 @@ def multi_region_enabled(ctx):
     # use that as an indicator that we're testing multi-region sync
     return 'radosgw_agent' in ctx
 
+
 def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
              format='json'):
-    log.info('rgwadmin: {client} : {cmd}'.format(client=client,cmd=cmd))
+    log.info('rgwadmin: {client} : {cmd}'.format(client=client, cmd=cmd))
     testdir = teuthology.get_testdir(ctx)
     pre = [
         'adjust-ulimits',
@@ -25,8 +28,8 @@ def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
         'radosgw-admin'.format(tdir=testdir),
         '--log-to-stderr',
         '--format', format,
-        '-n',  client,
-        ]
+        '-n', client,
+    ]
     pre.extend(cmd)
     log.info('rgwadmin: cmd=%s' % pre)
     (remote,) = ctx.cluster.only(client).remotes.keys()
@@ -36,7 +39,7 @@ def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
         stdout=StringIO(),
         stderr=StringIO(),
         stdin=stdin,
-        )
+    )
     r = proc.exitstatus
     out = proc.stdout.getvalue()
     j = None
@@ -47,7 +50,8 @@ def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
         except ValueError:
             j = out
             log.info(' raw result: %s' % j)
-    return (r, j)
+    return r, j
+
 
 def get_user_summary(out, user):
     """Extract the summary for a given user"""
@@ -61,11 +65,13 @@ def get_user_summary(out, user):
 
     return user_summary
 
+
 def get_user_successful_ops(out, user):
     summary = out['summary']
     if len(summary) == 0:
         return 0
     return get_user_summary(out, user)['total']['successful_ops']
+
 
 def get_zone_host_and_port(ctx, client, zone):
     _, region_map = rgwadmin(ctx, client, check_status=True,
@@ -81,6 +87,7 @@ def get_zone_host_and_port(ctx, client, zone):
                 return host, port
     assert False, 'no endpoint for zone {zone} found'.format(zone=zone)
 
+
 def get_master_zone(ctx, client):
     _, region_map = rgwadmin(ctx, client, check_status=True,
                              cmd=['-n', client, 'region-map', 'get'])
@@ -89,7 +96,7 @@ def get_master_zone(ctx, client):
         is_master = (region['val']['is_master'] == "true")
         log.info('region={r} is_master={ism}'.format(r=region, ism=is_master))
         if not is_master:
-          continue
+            continue
         master_zone = region['val']['master_zone']
         log.info('master_zone=%s' % master_zone)
         for zone_info in region['val']['zones']:
@@ -98,8 +105,9 @@ def get_master_zone(ctx, client):
     log.info('couldn\'t find master zone')
     return None
 
+
 def get_master_client(ctx, clients):
-    master_zone = get_master_zone(ctx, clients[0]) # can use any client for this as long as system configured correctly
+    master_zone = get_master_zone(ctx, clients[0])  # can use any client for this as long as system configured correctly
     if not master_zone:
         return None
 
@@ -110,6 +118,7 @@ def get_master_client(ctx, clients):
 
     return None
 
+
 def get_zone_system_keys(ctx, client, zone):
     _, zone_info = rgwadmin(ctx, client, check_status=True,
                             cmd=['-n', client,
@@ -117,11 +126,13 @@ def get_zone_system_keys(ctx, client, zone):
     system_key = zone_info['system_key']
     return system_key['access_key'], system_key['secret_key']
 
+
 def zone_for_client(ctx, client):
     ceph_config = ctx.ceph['ceph'].conf.get('global', {})
     ceph_config.update(ctx.ceph['ceph'].conf.get('client', {}))
     ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
     return ceph_config.get('rgw zone')
+
 
 def region_for_client(ctx, client):
     ceph_config = ctx.ceph['ceph'].conf.get('global', {})
@@ -129,21 +140,26 @@ def region_for_client(ctx, client):
     ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
     return ceph_config.get('rgw region')
 
+
 def radosgw_data_log_window(ctx, client):
     ceph_config = ctx.ceph['ceph'].conf.get('global', {})
     ceph_config.update(ctx.ceph['ceph'].conf.get('client', {}))
     ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
     return ceph_config.get('rgw data log window', 30)
 
+
 def radosgw_agent_sync_data(ctx, agent_host, agent_port, full=False):
     log.info('sync agent {h}:{p}'.format(h=agent_host, p=agent_port))
     method = "full" if full else "incremental"
-    return requests.post('http://{addr}:{port}/data/{method}'.format(addr = agent_host, port = agent_port, method = method))
+    return requests.post('http://{addr}:{port}/data/{method}'.format(addr=agent_host, port=agent_port, method=method))
+
 
 def radosgw_agent_sync_metadata(ctx, agent_host, agent_port, full=False):
     log.info('sync agent {h}:{p}'.format(h=agent_host, p=agent_port))
     method = "full" if full else "incremental"
-    return requests.post('http://{addr}:{port}/metadata/{method}'.format(addr = agent_host, port = agent_port, method = method))
+    return requests.post(
+        'http://{addr}:{port}/metadata/{method}'.format(addr=agent_host, port=agent_port, method=method))
+
 
 def radosgw_agent_sync_all(ctx, full=False, data=False):
     if ctx.radosgw_agent.procs:
@@ -152,14 +168,16 @@ def radosgw_agent_sync_all(ctx, full=False, data=False):
             sync_host, sync_port = get_sync_agent(ctx, agent_client)
             log.debug('doing a sync via {host1}'.format(host1=sync_host))
             radosgw_agent_sync_metadata(ctx, sync_host, sync_port, full)
-            if (data):
+            if data:
                 radosgw_agent_sync_data(ctx, sync_host, sync_port, full)
+
 
 def host_for_role(ctx, role):
     for target, roles in zip(ctx.config['targets'].keys(), ctx.config['roles']):
         if role in roles:
             _, host = split_user(target)
             return host
+
 
 def get_sync_agent(ctx, source):
     for task in ctx.config['tasks']:
