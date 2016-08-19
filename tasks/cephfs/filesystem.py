@@ -1,24 +1,21 @@
-
-from StringIO import StringIO
+import datetime
+import errno
 import json
 import logging
-from gevent import Greenlet
 import os
-import time
-import datetime
 import re
-import errno
+import time
 
-from teuthology.exceptions import CommandFailedError
+from gevent import Greenlet
 from teuthology import misc
+from teuthology.exceptions import CommandFailedError
 from teuthology.nuke import clear_firewall
 from teuthology.parallel import parallel
 
 from tasks.ceph_manager import write_conf, CephManager
-
+from tasks.util.compat import StringIO, range, cmp
 
 log = logging.getLogger(__name__)
-
 
 DAEMON_WAIT_TIMEOUT = 120
 ROOT_INO = 1
@@ -45,7 +42,7 @@ class MDSCluster(object):
     @property
     def admin_remote(self):
         first_mon = misc.get_first_mon(self._ctx, None)
-        (result,) = self._ctx.cluster.only(first_mon).remotes.iterkeys()
+        (result,) = self._ctx.cluster.only(first_mon).remotes.keys()
         return result
 
     def __init__(self, ctx):
@@ -108,6 +105,7 @@ class MDSCluster(object):
         have gone down and come up, rather than potentially seeing the healthy states
         that existed before the restart.
         """
+
         def _fail_restart(id_):
             self.mds_daemons[id_].stop()
             self.mon_manager.raw_cluster_cmd("mds", "fail", id_)
@@ -172,7 +170,7 @@ class MDSCluster(object):
             self._ctx.ceph['ceph'].conf[subsys] = {}
         self._ctx.ceph['ceph'].conf[subsys][key] = value
         write_conf(self._ctx)  # XXX because we don't have the ceph task's config object, if they
-                               # used a different config path this won't work.
+        # used a different config path this won't work.
 
     def clear_ceph_conf(self, subsys, key):
         del self._ctx.ceph['ceph'].conf[subsys][key]
@@ -238,7 +236,13 @@ class MDSCluster(object):
         log.warn(json.dumps(list(self._all_info()), indent=2))  # dump for debugging
         raise RuntimeError("MDS id '{0}' not found in map".format(mds_id))
 
-    def get_mds_info(self, mds_id):
+    def get_mds_info(self, mds_id=None):
+        """
+        :param mds_id: Optional ID of MDS, default to all
+        """
+        if not mds_id:
+            return list(self._all_info())
+
         for mds_info in self._all_info():
             if mds_info['name'] == mds_id:
                 return mds_info
@@ -258,6 +262,7 @@ class Filesystem(MDSCluster):
     This object is for driving a CephFS filesystem.  The MDS daemons driven by
     MDSCluster may be shared with other Filesystems.
     """
+
     def __init__(self, ctx, name=None):
         super(Filesystem, self).__init__(ctx)
 
@@ -383,7 +388,7 @@ class Filesystem(MDSCluster):
             # Old version, fall back to non-multi-fs commands
             if cfe.exitstatus == errno.EINVAL:
                 mds_map = json.loads(
-                        self.mon_manager.raw_cluster_cmd('mds', 'dump', '--format=json'))
+                    self.mon_manager.raw_cluster_cmd('mds', 'dump', '--format=json'))
             else:
                 raise
 
@@ -543,7 +548,8 @@ class Filesystem(MDSCluster):
 
         stdout = StringIO()
         self.client_remote.run(args=[
-            'sudo', os.path.join(self._prefix, 'ceph-dencoder'), 'type', object_type, 'import', temp_bin_path, 'decode', 'dump_json'
+            'sudo', os.path.join(self._prefix, 'ceph-dencoder'), 'type', object_type, 'import', temp_bin_path, 'decode',
+            'dump_json'
         ], stdout=stdout)
         dump_json = stdout.getvalue().strip()
         try:
@@ -720,7 +726,7 @@ class Filesystem(MDSCluster):
         want_objects = [
             "{0:x}.{1:08x}".format(ino, n)
             for n in range(0, ((size - 1) / stripe_size) + 1)
-        ]
+            ]
 
         exist_objects = self.rados(["ls"], pool=self.get_data_pool_name()).split("\n")
 
@@ -898,7 +904,7 @@ class Filesystem(MDSCluster):
                 # data-scan args first token is a command, followed by args to it.
                 # insert worker arguments after the command.
                 cmd = args[0]
-                worker_args = [cmd] + ["--worker_n", n.__str__(), "--worker_m", worker_count.__str__()] + args[1:]
+                worker_args = [cmd] + ["--worker_n", str(n), "--worker_m", str(worker_count)] + args[1:]
             else:
                 worker_args = args
 
