@@ -1,6 +1,5 @@
-
-from StringIO import StringIO
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
+from tasks.util.compat import StringIO
 from tasks.workunit import task as workunit
 
 JOURNAL_FORMAT_LEGACY = 0
