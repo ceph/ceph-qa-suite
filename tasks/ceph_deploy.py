@@ -724,6 +724,7 @@ def single_node_test(ctx, config):
     if config.get('rhbuild'):
         log.info("RH Build, Skip Download")
         with contextutil.nested(
+            lambda: install_fn.ship_utilities(ctx=ctx, config=None),
             lambda: ansible.CephLab(ctx, config=config),
             lambda: cli_test(ctx=ctx, config=config),
         ):
