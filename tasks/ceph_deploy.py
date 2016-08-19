@@ -80,7 +80,13 @@ def install_ceph_deploy(ctx, config):
                 extra_pkgs = config.get('deb_extra_pkgs')
                 deb_pkgs.extend(extra_pkgs)
             deb_pkg = str.join(' ', deb_pkgs)
-            remote.run(args=['sudo', 'apt-get', '-y', 'install', run.Raw(deb_pkg)])
+            remote.run(
+                args=[
+                    'sudo',
+                    'apt-get',
+                    '-y',
+                    'install',
+                    run.Raw(deb_pkg)])
         elif remote.os.package_type == 'rpm':
             rpm_pkgs = ['ceph-deploy', 'ceph-test']
             if config.get('rpm_extra_pkgs'):
@@ -238,7 +244,8 @@ def build_ceph_cluster(ctx, config):
         log.info('Building ceph cluster using ceph-deploy...')
         testdir = teuthology.get_testdir(ctx)
         if config.get('rhbuild'):
-            ceph_admin.run(args=['mkdir', '{tdir}/ceph-deploy'.format(tdir=testdir)])
+            ceph_admin.run(
+                args=['mkdir', '{tdir}/ceph-deploy'.format(tdir=testdir)])
         ceph_branch = None
         if config.get('branch') is not None:
             cbranch = config.get('branch')
@@ -435,14 +442,14 @@ def build_ceph_cluster(ctx, config):
             raise RuntimeError(
                 "The cluster is NOT operational due to insufficient OSDs")
         if not hasattr(ctx, 'managers'):
-            ctx.managers = {} 
+            ctx.managers = {}
         (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
         ctx.managers['ceph'] = CephManager(
-                mon,
-                ctx=ctx,
-                logger=log.getChild('ceph_manager.ceph'),
-                cluster='ceph',
-            )
+            mon,
+            ctx=ctx,
+            logger=log.getChild('ceph_manager.ceph'),
+            cluster='ceph',
+        )
         yield
 
     except Exception:
@@ -474,7 +481,7 @@ def build_ceph_cluster(ctx, config):
                               'grep', '-v', 'grep', run.Raw('|'),
                               'grep', 'ceph'], check_status=False)
         if 'modified_remotes' in ctx.config:
-            del ctx.config['modified_remotes'] 
+            del ctx.config['modified_remotes']
         if ctx.archive is not None:
             # archive mon data, too
             log.info('Archiving mon data...')
@@ -641,7 +648,7 @@ def cli_test(ctx, config):
             if (out.split(None, 1)[0] == 'HEALTH_OK'):
                 break
             elif (out.split(None, 1)[0] == 'HEALTH_WARN'):
-		break
+                break
     rgw_install = 'install {branch} --rgw {node}'.format(
         branch=test_branch,
         node=nodename,
@@ -651,14 +658,14 @@ def cli_test(ctx, config):
     execute_cdeploy(admin, rgw_create, path)
     log.info('All ceph-deploy cli tests passed')
     if not hasattr(ctx, 'managers'):
-        ctx.managers = {} 
+        ctx.managers = {}
     (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
     ctx.managers['ceph'] = CephManager(
-                mon,
-                ctx=ctx,
-                logger=log.getChild('ceph_manager.ceph'),
-                cluster='ceph',
-            )
+        mon,
+        ctx=ctx,
+        logger=log.getChild('ceph_manager.ceph'),
+        cluster='ceph',
+    )
     try:
         yield
     finally:
@@ -707,7 +714,8 @@ def single_node_test(ctx, config):
     if config.get('rhbuild'):
         log.info("RH Build, Skip Download")
         with contextutil.nested(
-            lambda: ansible.CephLab(ctx,config=ansible_config),
+            lambda: install_fn.ship_utilities(ctx=ctx, config=None),
+            lambda: ansible.CephLab(ctx, config=ansible_config),
             lambda: cli_test(ctx=ctx, config=config),
         ):
             yield
@@ -728,24 +736,49 @@ def restart(ctx, config):
         for remote, roles in remotes_and_roles.iteritems():
             log.info("Restarting service on %s", remote.shortname)
             if remote.os.package_type == 'rpm':
-                remote.run(args=['sudo', '/etc/init.d/ceph', 'restart'], check_status=False)
-                remote.run(args=['sudo', 'systemctl', 'restart', 'ceph.target'], check_status=False)
+                remote.run(
+                    args=[
+                        'sudo',
+                        '/etc/init.d/ceph',
+                        'restart'],
+                    check_status=False)
+                remote.run(
+                    args=[
+                        'sudo',
+                        'systemctl',
+                        'restart',
+                        'ceph.target'],
+                    check_status=False)
     yield
 
 
 def stopceph(remote):
     if remote.os.package_type == 'rpm':
         log.info("Fix directory permission to be owned by ceph")
-        remote.run(args=['sudo', '/etc/init.d/ceph', 'stop'], check_status=False)
-        remote.run(args=['sudo', 'systemctl', 'stop', 'ceph.target'], check_status=False)
+        remote.run(
+            args=[
+                'sudo',
+                '/etc/init.d/ceph',
+                'stop'],
+            check_status=False)
+        remote.run(
+            args=[
+                'sudo',
+                'systemctl',
+                'stop',
+                'ceph.target'],
+            check_status=False)
 
 
 def enable_restart_systemd(remote):
     if remote.os.package_type == 'rpm':
         log.info("Enable systemd files")
         remote.run(args=['sudo', 'systemctl', 'stop', 'firewalld'])
-        serv_files = ['ceph-mon.target', 'ceph-osd.target', 'ceph-radosgw.target',
-                      'ceph.target']
+        serv_files = [
+            'ceph-mon.target',
+            'ceph-osd.target',
+            'ceph-radosgw.target',
+            'ceph.target']
         for serv_file in serv_files:
             remote.run(args=['sudo', 'systemctl', 'enable', serv_file])
         remote.run(args=['sudo', 'systemctl', 'start', 'ceph.target'])
@@ -755,9 +788,27 @@ def enable_restart_systemd(remote):
         time.sleep(5)
         for i in range(1, 3):
             # it takes 2 runs to ensure all permission are set due to pid locks
-            remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/lib/ceph'])
-            remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/log/ceph'])
-            remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/var/run/ceph'])
+            remote.run(
+                args=[
+                    'sudo',
+                    'chown',
+                    '-R',
+                    'ceph:ceph',
+                    '/var/lib/ceph'])
+            remote.run(
+                args=[
+                    'sudo',
+                    'chown',
+                    '-R',
+                    'ceph:ceph',
+                    '/var/log/ceph'])
+            remote.run(
+                args=[
+                    'sudo',
+                    'chown',
+                    '-R',
+                    'ceph:ceph',
+                    '/var/run/ceph'])
             remote.run(args=['sudo', 'chown', '-R', 'ceph:ceph', '/etc/ceph'])
             time.sleep(5)
             remote.run(args=['sudo', 'systemctl', 'enable', 'ceph.target'])
@@ -777,7 +828,16 @@ def upgrade(ctx, config):
             stopceph(remote)
             nodename = remote.shortname
             log.info("Upgrading ceph on  %s", nodename)
-            remote.run(args=['sudo', 'yum', 'install', '-y', 'ceph-mon', 'ceph-osd', 'ceph-radosgw', 'ceph-test'])
+            remote.run(
+                args=[
+                    'sudo',
+                    'yum',
+                    'install',
+                    '-y',
+                    'ceph-mon',
+                    'ceph-osd',
+                    'ceph-radosgw',
+                    'ceph-test'])
             log.info("Initiate auto relabel after reboot")
             remote.run(args=['sudo', 'touch', run.Raw('/.autorelabel')])
             log.info("Rebooting node %s", nodename)
@@ -785,16 +845,33 @@ def upgrade(ctx, config):
                 remote.run(args=['sudo', 'reboot'], wait=False)
             except Exception:
                 log.info("Ignoring exceptions in reboot")
-            time.sleep(60) # wait for reboot to happen and avoid immediate connect
+            # wait for reboot to happen and avoid immediate connect
+            time.sleep(60)
             remote.reconnect(timeout=300)
-            time.sleep(60) # wait for sometime for services to start
+            time.sleep(60)  # wait for sometime for services to start
             remote.reconnect(timeout=60)
             enable_restart_systemd(remote)
             if 'mon' in role:
-                remote.run(args=['sudo', 'systemctl', 'start', run.Raw('ceph-mon@`hostname`.service')])
+                remote.run(
+                    args=[
+                        'sudo',
+                        'systemctl',
+                        'start',
+                        run.Raw('ceph-mon@`hostname`.service')])
                 time.sleep(5)
-                remote.run(args=['sudo', 'systemctl', 'status', run.Raw('ceph-mon@`hostname`.service')])
-            remote.run(args=['ps', run.Raw('-eaf'), run.Raw('|'), 'grep', 'ceph'])
+                remote.run(
+                    args=[
+                        'sudo',
+                        'systemctl',
+                        'status',
+                        run.Raw('ceph-mon@`hostname`.service')])
+            remote.run(
+                args=[
+                    'ps',
+                    run.Raw('-eaf'),
+                    run.Raw('|'),
+                    'grep',
+                    'ceph'])
     (remote,) = ctx.cluster.only('mon.a').remotes
     with contextutil.safe_while(sleep=20, tries=6,
                                 action='check health') as proceed:
