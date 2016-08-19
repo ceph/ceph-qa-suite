@@ -7,6 +7,9 @@ overrides:
         ms inject delay type: osd
         ms inject internal delays: 0.002
         ms inject socket failures: 2500
+        osd pool default size: 2
+        osd pool default pg num:  128
+        osd pool default pgp num:  128
 tasks:
 - ssh-keys:
 - ceph-deploy:
