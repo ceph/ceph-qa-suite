@@ -32,6 +32,8 @@ tasks:
 #       - sleep 1000000000 # forever
 #
 - workunit:
+    env:
+      PYTHON: python2
     clients:
       all:
         - ceph-disk/ceph-disk.sh

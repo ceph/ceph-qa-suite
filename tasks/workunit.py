@@ -2,16 +2,17 @@
 Workunit task -- Run ceph on sets of specific clients
 """
 import logging
-import pipes
 import os
-
-from util import get_remote_for_role
+import pipes
 
 from teuthology import misc
 from teuthology.config import config as teuth_config
+from teuthology.orchestra import run
 from teuthology.orchestra.run import CommandFailedError
 from teuthology.parallel import parallel
-from teuthology.orchestra import run
+
+from tasks.util import get_remote_for_role
+from tasks.util.compat import string
 
 log = logging.getLogger(__name__)
 
@@ -92,14 +93,19 @@ def task(ctx, config):
 
     created_mountpoint = {}
 
+    py_version = config.get('python')
+    if py_version is not None:
+        assert py_version in (2, 3), 'Invalid Python version: {version}'.format(version=py_version)
+        py_version = str(py_version)
+
     if config.get('env') is not None:
         assert isinstance(config['env'], dict), 'env must be a dictionary'
     clients = config['clients']
 
     # Create scratch dirs for any non-all workunits
     log.info('Making a separate scratch dir for every client...')
-    for role in clients.iterkeys():
-        assert isinstance(role, basestring)
+    for role in clients.keys():
+        assert isinstance(role, string)
         if role == "all":
             continue
 
@@ -109,10 +115,10 @@ def task(ctx, config):
 
     # Execute any non-all workunits
     with parallel() as p:
-        for role, tests in clients.iteritems():
+        for role, tests in clients.items():
             if role != "all":
                 p.spawn(_run_tests, ctx, refspec, role, tests,
-                        config.get('env'), timeout=timeout)
+                        config.get('env'), py_version, timeout=timeout)
 
     # Clean up dirs from any non-all workunits
     for role, created in created_mountpoint.items():
@@ -122,7 +128,8 @@ def task(ctx, config):
     if 'all' in clients:
         all_tasks = clients["all"]
         _spawn_on_all_clients(ctx, refspec, all_tasks, config.get('env'),
-                              config.get('subdir'), timeout=timeout)
+                              py_version, config.get('subdir'),
+                              timeout=timeout)
 
 
 def _client_mountpoint(ctx, cluster, id_):
@@ -250,7 +257,7 @@ def _make_scratch_dir(ctx, role, subdir):
     return created_mountpoint
 
 
-def _spawn_on_all_clients(ctx, refspec, tests, env, subdir, timeout=None):
+def _spawn_on_all_clients(ctx, refspec, tests, env, py_version, subdir, timeout=None):
     """
     Make a scratch directory for each client in the cluster, and then for each
     test spawn _run_tests() for each role.
@@ -269,14 +276,15 @@ def _spawn_on_all_clients(ctx, refspec, tests, env, subdir, timeout=None):
     for unit in tests:
         with parallel() as p:
             for role, remote in client_remotes.items():
-                p.spawn(_run_tests, ctx, refspec, role, [unit], env, subdir,
+                p.spawn(_run_tests, ctx, refspec, role, [unit], env, py_version, subdir,
                         timeout=timeout)
 
     # cleanup the generated client directories
     for role, _ in client_remotes.items():
         _delete_dir(ctx, role, created_mountpoint[role])
 
-def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
+
+def _run_tests(ctx, refspec, role, tests, env, py_version, subdir=None, timeout=None):
     """
     Run the individual test. Create a scratch directory and then extract the
     workunits from git. Make the executables, and then run the tests.
@@ -295,11 +303,85 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
                     to False is passed, the 'timeout' command is not used.
     """
     testdir = misc.get_testdir(ctx)
-    assert isinstance(role, basestring)
+    assert isinstance(role, string)
     cluster, type_, id_ = misc.split_role(role)
     assert type_ == 'client'
     remote = get_remote_for_role(ctx, role)
     mnt = _client_mountpoint(ctx, cluster, id_)
+    PYTHON = None
+
+    if env and isinstance(env, dict):
+        # Use PYTHON for workunits which are not Python scripts
+        # per se (example, shell scripts), but call some Python
+        # program as a part of the test.
+        PYTHON = env.get('PYTHON')
+
+    if py_version:
+        # Use py_version for running pure Python workunits
+        PYTHON = 'python' + py_version
+
+    if PYTHON:
+        pip = 'pip3' if PYTHON == 'python3' else 'pip'
+        system_type = misc.get_system_type(remote)
+        sn = remote.shortname
+        if system_type == 'rpm':
+            log.info("Installing centos-release-scl package on {sn}".format(sn=sn))
+            args = ['sudo', 'yum', 'install', '-y', 'centos-release-scl']
+            remote.run(args=args)
+
+            log.info("Installing {python} package on {sn}".format(python=PYTHON, sn=sn))
+            args = ['sudo', 'yum', 'install', '-y']
+            if PYTHON == 'python3':
+                args.extend(['python34'])
+            else:
+                args.extend(['python27'])
+
+            remote.run(args=args)
+
+        elif system_type == 'deb':
+            log.info("Installing {python} package on {sn}".format(python=PYTHON, sn=sn))
+            args = [
+                'sudo',
+                'apt-get',
+                '-y',
+                '--force-yes',
+                'install'
+            ]
+
+            if PYTHON == 'python2':
+                args.extend(['python2.7'])
+            else:
+                args.extend([PYTHON])
+
+            remote.run(args=args)
+
+        log.info("Installing pip for {python} on {sn}".format(python=PYTHON, sn=sn))
+        args = [
+            'wget',
+            'https://bootstrap.pypa.io/get-pip.py',
+            run.Raw('&&'),
+            'sudo',
+            '-H',
+            '--',
+            PYTHON,
+            'get-pip.py'
+        ]
+        remote.run(args=args)
+
+        log.info("Installing pip packages for {python} on {sn}".format(python=PYTHON, sn=sn))
+        args = [
+            'sudo',
+            '-H',
+            '--',
+            pip,
+            'install',
+            '--upgrade',
+            'requests',
+            'pytest',
+            'configobj'
+        ]
+        remote.run(args=args)
+
     # subdir so we can remove and recreate this a lot without sudo
     if subdir is None:
         scratch_tmp = os.path.join(mnt, 'client.{id}'.format(id=id_), 'tmp')
@@ -382,7 +464,7 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
                     run.Raw('PATH=$PATH:/usr/sbin')
                 ]
                 if env is not None:
-                    for var, val in env.iteritems():
+                    for var, val in env.items():
                         quoted_val = pipes.quote(val)
                         env_arg = '{var}={val}'.format(var=var, val=quoted_val)
                         args.append(run.Raw(env_arg))
@@ -392,6 +474,11 @@ def _run_tests(ctx, refspec, role, tests, env, subdir=None, timeout=None):
                     '{tdir}/archive/coverage'.format(tdir=testdir)])
                 if timeout and timeout != '0':
                     args.extend(['timeout', timeout])
+
+                if py_version:
+                    # For pure Python workunits only
+                    args.extend(['env', '--', PYTHON])
+
                 args.extend([
                     '{srcdir}/{workunit}'.format(
                         srcdir=srcdir,
