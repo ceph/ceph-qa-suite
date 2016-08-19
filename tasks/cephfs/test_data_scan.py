@@ -5,12 +5,14 @@ Test our tools for recovering metadata from the data pool
 
 import logging
 import os
-from textwrap import dedent
 import traceback
 from collections import namedtuple
+from textwrap import dedent
 
 from teuthology.orchestra.run import CommandFailedError
+
 from tasks.cephfs.cephfs_test_case import CephFSTestCase, for_teuthology
+from tasks.util.compat import range
 
 log = logging.getLogger(__name__)
 
@@ -475,7 +477,7 @@ class TestDataScan(CephFSTestCase):
         self.mount_a.mount()
         self.mount_a.wait_until_mounted()
         files = self.mount_a.run_shell(["ls", "subdir/"]).stdout.getvalue().strip().split("\n")
-        self.assertListEqual(sorted(files), sorted(list(set(file_names) - set([victim_dentry]))))
+        self.assertListEqual(sorted(files), sorted(list(set(file_names) - {victim_dentry})))
 
         # Stop the filesystem
         self.mount_a.umount_wait()
