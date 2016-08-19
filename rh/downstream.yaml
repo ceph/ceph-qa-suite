@@ -1,0 +1,34 @@
+versions:
+   supported:
+     - '1.3.0'
+     - '1.3.1'
+     - '1.3.2'
+     - '1.3.3'
+   rpm:
+      mapped:
+         '1.3.0' : '0.94.1'
+         '1.3.1' : '0.94.3'
+         '1.3.2' : '0.94.5'
+         '1.3.3' : '0.94.7'
+   deb:
+      mapped:
+         '1.3.0' : '0.94.1'
+         '1.3.1' : '0.94.3'
+         '1.3.2' : '0.94.5'
+         '1.3.3' : '0.94.7'
+pkgs:
+   rpm:
+    - ceph-mon
+    - ceph-osd
+    - ceph-radosgw
+    - ceph-test
+    - ceph-selinux
+    - python-rados
+    - python-rbd
+   deb:
+    - ceph-mon
+    - ceph-osd
+    - ceph-test
+    - radosgw
+    - python-rados
+    - python-rbd
