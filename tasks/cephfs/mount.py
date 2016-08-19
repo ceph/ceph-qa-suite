@@ -1,13 +1,15 @@
-from contextlib import contextmanager
+import datetime
 import json
 import logging
-import datetime
-import time
-from textwrap import dedent
 import os
-from StringIO import StringIO
+import time
+from contextlib import contextmanager
+from textwrap import dedent
+
 from teuthology.orchestra import run
 from teuthology.orchestra.run import CommandFailedError, ConnectionLostError
+
+from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
