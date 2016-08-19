@@ -1,8 +1,10 @@
 import json
 import logging
 from unittest import case
-from cephfs_test_case import CephFSTestCase
+
 from teuthology.exceptions import CommandFailedError
+
+from tasks.cephfs.cephfs_test_case import CephFSTestCase
 
 log = logging.getLogger(__name__)
 
@@ -102,7 +104,7 @@ class TestStandbyReplay(CephFSTestCase):
         if fs is None:
             mds_info = self.mds_cluster.get_fs_map()['standbys']
         else:
-            mds_info = fs.get_mds_map()['info'].values()
+            mds_info = list(fs.get_mds_map()['info'].values())
         for info in mds_info:
             if info['name'] == mds_name:
                 return info
