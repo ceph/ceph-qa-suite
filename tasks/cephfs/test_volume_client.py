@@ -4,6 +4,7 @@ import time
 import os
 from textwrap import dedent
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
+from tasks.util.compat import range
 from teuthology.exceptions import CommandFailedError
 
 log = logging.getLogger(__name__)
