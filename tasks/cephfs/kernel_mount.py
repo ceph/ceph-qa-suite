@@ -1,13 +1,14 @@
-from StringIO import StringIO
 import json
 import logging
 from textwrap import dedent
-from teuthology.orchestra.run import CommandFailedError
-from teuthology import misc
 
+from teuthology import misc
 from teuthology.orchestra import remote as orchestra_remote
 from teuthology.orchestra import run
-from .mount import CephFSMount
+from teuthology.orchestra.run import CommandFailedError
+
+from tasks.cephfs.mount import CephFSMount
+from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
