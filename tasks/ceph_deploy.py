@@ -675,6 +675,11 @@ def cli_test(ctx, config):
                               'sudo', 'systemctl', 'stop', 'ceph.target'],
                         check_status=False)
         time.sleep(4)
+        ctx.cluster.run(args=['sudo', 'systemctl', 'stop',
+                              run.Raw('ceph-osd@target')], check_status=False)
+        ctx.cluster.run(args=['sudo', 'systemctl', 'stop' 'ceph.target'],
+                        check_status=False)
+        time.sleep(4)
         for i in range(3):
             umount_dev = "{d}1".format(d=devs[i])
             r = remote.run(args=['sudo', 'umount', run.Raw(umount_dev)])
