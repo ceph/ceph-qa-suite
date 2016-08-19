@@ -5,7 +5,7 @@ from unittest import case
 import time
 import os
 import re
-from StringIO import StringIO
+from tasks.util.compat import StringIO, range
 
 from tasks.cephfs.fuse_mount import FuseMount
 
