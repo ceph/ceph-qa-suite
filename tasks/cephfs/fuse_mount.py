@@ -1,15 +1,15 @@
-
-from StringIO import StringIO
 import json
-import time
 import logging
+import time
 from textwrap import dedent
 
 from teuthology import misc
 from teuthology.contextutil import MaxWhileTries
 from teuthology.orchestra import run
 from teuthology.orchestra.run import CommandFailedError
-from .mount import CephFSMount
+
+from tasks.cephfs.mount import CephFSMount
+from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
