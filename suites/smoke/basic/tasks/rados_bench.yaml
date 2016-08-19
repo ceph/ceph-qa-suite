@@ -1,5 +1,5 @@
 overrides:
-  ceph:
+  ceph-deploy:
     conf:
       global:
         ms inject delay max: 1
@@ -8,8 +8,7 @@ overrides:
         ms inject internal delays: 0.002
         ms inject socket failures: 2500
 tasks:
-- install: null
-- ceph:
+- ceph-deploy:
     fs: xfs
     log-whitelist:
     - wrongly marked me down

@@ -1,6 +1,5 @@
 tasks:
-- install: null
-- ceph:
+- ceph-deploy:
     fs: xfs
     log-whitelist:
     - wrongly marked me down

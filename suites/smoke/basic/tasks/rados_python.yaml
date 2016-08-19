@@ -1,6 +1,5 @@
 tasks:
-- install:
-- ceph:
+- ceph-deploy:
     fs: btrfs
     log-whitelist:
       - wrongly marked me down

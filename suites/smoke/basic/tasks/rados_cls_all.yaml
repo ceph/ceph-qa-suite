@@ -1,6 +1,5 @@
 tasks:
-- install:
-- ceph:
+- ceph-deploy:
     fs: xfs
 - workunit:
     clients:
