@@ -11,6 +11,7 @@ import time
 from teuthology.orchestra.run import CommandFailedError
 from tasks.cephfs.filesystem import ObjectNotFound, ROOT_INO
 from tasks.cephfs.cephfs_test_case import CephFSTestCase, for_teuthology
+from tasks.util.compat import range
 from tasks.workunit import task as workunit
 
 log = logging.getLogger(__name__)
