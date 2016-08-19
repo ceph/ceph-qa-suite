@@ -1,4 +1,5 @@
 tasks:
+- ssh-keys:
 - ceph-deploy:
     fs: ext4
 - ceph-fuse:
