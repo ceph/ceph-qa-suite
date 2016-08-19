@@ -1,9 +1,11 @@
-from StringIO import StringIO
 import json
 import logging
-from tasks.cephfs.fuse_mount import FuseMount
+
 from teuthology.exceptions import CommandFailedError
+
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
+from tasks.cephfs.fuse_mount import FuseMount
+from tasks.util.compat import StringIO
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +38,7 @@ class TestSessionMap(CephFSTestCase):
         lines = ps_txt.split("\n")[1:]
 
         for line in lines:
-            if "ceph-mds" in line and not "daemon-helper" in line:
+            if "ceph-mds" in line and "daemon-helper" not in line:
                 if line.find("-i {0}".format(mds_id)) != -1:
                     log.info("Found ps line for daemon: {0}".format(line))
                     return int(line.split()[0])
