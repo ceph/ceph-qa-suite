@@ -14,6 +14,7 @@ from teuthology.orchestra.run import CommandFailedError, ConnectionLostError
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
 from teuthology.packaging import get_package_version
 
+from tasks.util.compat import range
 
 log = logging.getLogger(__name__)
 
