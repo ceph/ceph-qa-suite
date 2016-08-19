@@ -415,6 +415,7 @@ def build_ceph_cluster(ctx, config):
             raise RuntimeError(
                 "The cluster is NOT operational due to insufficient OSDs")
         # Fix roles
+        (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
         for remote, roles in ctx.cluster.remotes.iteritems():
             out = StringIO()
             remote.run(
@@ -440,7 +441,6 @@ def build_ceph_cluster(ctx, config):
         if not hasattr(ctx, 'managers'):
             ctx.managers = {}
         ctx.daemons = DaemonGroup(use_init=True)
-        (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
         for remote, roles_for_host in ctx.cluster.remotes.iteritems():
             for role in roles_for_host:
                 _, type_, id_ = teuthology.split_role(role)
