@@ -18,7 +18,7 @@ If you built out of tree with CMake, then switch to your build directory before 
 
 """
 
-from StringIO import StringIO
+from tasks.util.compat import StringIO, string
 from collections import defaultdict
 import getpass
 import signal
@@ -100,14 +100,14 @@ class LocalRemoteProcess(object):
                 return
 
         out, err = self.subproc.communicate()
-        self.stdout.write(out)
-        self.stderr.write(err)
+        self.stdout.write(out.decode())
+        self.stderr.write(err.decode())
 
         self.exitstatus = self.returncode = self.subproc.returncode
 
         if self.exitstatus != 0:
-            sys.stderr.write(out)
-            sys.stderr.write(err)
+            sys.stderr.write(out.decode())
+            sys.stderr.write(err.decode())
 
         if self.check_status and self.exitstatus != 0:
             raise CommandFailedError(self.args, self.exitstatus)
@@ -119,8 +119,8 @@ class LocalRemoteProcess(object):
 
         if self.subproc.poll() is not None:
             out, err = self.subproc.communicate()
-            self.stdout.write(out)
-            self.stderr.write(err)
+            self.stdout.write(out.decode())
+            self.stderr.write(err.decode())
             self.exitstatus = self.returncode = self.subproc.returncode
             return True
         else:
@@ -206,7 +206,7 @@ class LocalRemote(object):
             log.info("Running {0}".format(args))
 
             for arg in args:
-                if not isinstance(arg, basestring):
+                if not isinstance(arg, string):
                     raise RuntimeError("Oops, can't handle arg {0} type {1}".format(
                         arg, arg.__class__
                     ))
@@ -218,7 +218,7 @@ class LocalRemote(object):
                                        cwd=cwd)
 
         if stdin:
-            if not isinstance(stdin, basestring):
+            if not isinstance(stdin, string):
                 raise RuntimeError("Can't handle non-string stdins on a vstart cluster")
 
             # Hack: writing to stdin is not deadlock-safe, but it "always" works
@@ -485,7 +485,7 @@ class LocalCephManager(CephManager):
         out = self.raw_cluster_cmd('mds', 'dump', '--format=json')
         j = json.loads(' '.join(out.splitlines()[1:]))
         # collate; for dup ids, larger gid wins.
-        for info in j['info'].itervalues():
+        for info in j['info'].values():
             if info['name'] == mds:
                 return info
         return None
@@ -498,7 +498,7 @@ class LocalCephManager(CephManager):
         """
         j = self.get_mds_status_all()
         # collate; for dup ids, larger gid wins.
-        for info in j['info'].itervalues():
+        for info in j['info'].values():
             if info['rank'] == rank:
                 return info
         return None
