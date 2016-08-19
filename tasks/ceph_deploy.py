@@ -5,6 +5,7 @@ from cStringIO import StringIO
 
 import contextlib
 import os
+import re
 import time
 import logging
 import traceback
@@ -15,7 +16,7 @@ from teuthology import contextutil
 from teuthology.task import ansible
 from teuthology.config import config as teuth_config
 from teuthology.task import install as install_fn
-from teuthology.orchestra import run
+from teuthology.orchestra.daemon import DaemonGroup, run
 from tasks.cephfs.filesystem import Filesystem
 from tasks import set_repo
 from ceph_manager import CephManager
@@ -441,9 +442,42 @@ def build_ceph_cluster(ctx, config):
         elif not config.get('only_mon'):
             raise RuntimeError(
                 "The cluster is NOT operational due to insufficient OSDs")
+        # Fix roles
+        for remote, roles in ctx.cluster.remotes.iteritems():
+            out = StringIO()
+            remote.run(
+                args=[
+                    'ps',
+                    '-eaf',
+                    run.Raw('|'),
+                    'grep',
+                    run.Raw('ceph.*id')],
+                stdout=out)
+            new_roles = []
+            for line in out:
+                m_d = re.search(
+                    r'ceph-(.*)\s+-f.*--id\s+(.*)\s+--setuser', line)
+                if m_d:
+                    role = m_d.group(1) + '.' + m_d.group(2)
+                    log.info("Appending role: %s", role)
+                    new_roles.append(role)
+            for r in roles:
+                if r.startswith('client'):
+                    new_roles.append(r)
+            ctx.cluster.remotes[remote] = new_roles
         if not hasattr(ctx, 'managers'):
             ctx.managers = {}
+        ctx.daemons = DaemonGroup(use_init=True)
         (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
+        for remote, roles_for_host in ctx.cluster.remotes.iteritems():
+            for role in roles_for_host:
+                _, type_, id_ = teuthology.split_role(role)
+                if ('mon' in type_) or ('osd' in type_) or (
+                        'mds' in type_) or ('rgw' in type_):
+                    ctx.daemons.add_daemon(remote, type_, id_,
+                                           cluster='ceph',
+                                           args=None,
+                                           logger=log.getChild(role),)
         ctx.managers['ceph'] = CephManager(
             mon,
             ctx=ctx,
@@ -657,15 +691,6 @@ def cli_test(ctx, config):
     execute_cdeploy(admin, rgw_install, path)
     execute_cdeploy(admin, rgw_create, path)
     log.info('All ceph-deploy cli tests passed')
-    if not hasattr(ctx, 'managers'):
-        ctx.managers = {}
-    (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
-    ctx.managers['ceph'] = CephManager(
-        mon,
-        ctx=ctx,
-        logger=log.getChild('ceph_manager.ceph'),
-        cluster='ceph',
-    )
     try:
         yield
     finally:
