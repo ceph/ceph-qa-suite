@@ -433,12 +433,6 @@ def build_ceph_cluster(ctx, config):
                         data=conf_data,
                         perms='0644'
                     )
-
-            if mds_nodes:
-                log.info('Configuring CephFS...')
-                ceph_fs = Filesystem(ctx)
-                if not ceph_fs.legacy_configured():
-                    ceph_fs.create()
         elif not config.get('only_mon'):
             raise RuntimeError(
                 "The cluster is NOT operational due to insufficient OSDs")
@@ -484,6 +478,11 @@ def build_ceph_cluster(ctx, config):
             logger=log.getChild('ceph_manager.ceph'),
             cluster='ceph',
         )
+        if mds_nodes:
+            log.info('Configuring CephFS...')
+            ceph_fs = Filesystem(ctx)
+            if not ceph_fs.legacy_configured():
+                ceph_fs.create()
         yield
 
     except Exception:
