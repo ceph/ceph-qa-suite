@@ -1,3 +1,10 @@
+overrides:
+  ceph-deploy:
+    conf:
+      global:
+        osd pool default size: 2
+        osd pool default pg num:  128
+        osd pool default pgp num:  128
 tasks:
 - ssh-keys:
 - ceph-deploy:
