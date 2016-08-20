@@ -6,8 +6,8 @@ overrides:
         osd pool default pg num:  128
         osd pool default pgp num:  128
 tasks:
-- install: null
-- ceph:
+-ssh-keys:
+-ceph-deploy:
     fs: ext4
     log-whitelist:
     - reached quota
