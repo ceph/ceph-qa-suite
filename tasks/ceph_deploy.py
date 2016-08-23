@@ -458,6 +458,7 @@ def build_ceph_cluster(ctx, config):
                     new_roles.append(role)
             for r in roles:
                 if r.startswith('client'):
+                    log.info("Restoring client role: %s", r)
                     new_roles.append(r)
             ctx.cluster.remotes[remote] = new_roles
         if not hasattr(ctx, 'managers'):
