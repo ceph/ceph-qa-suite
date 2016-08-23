@@ -1,5 +1,32 @@
 tasks:
 - install:
+    ceph:
+      packages:
+         deb:
+          - ceph
+          - ceph-mds
+          - ceph-common
+          - ceph-test
+          - ceph-fuse
+          - rbd-fuse
+          - python-ceph
+          - ceph-fs-common
+          - radosgw
+          - libcephfs1
+          - libcephfs-java
+          - libcephfs-dev
+         rpm:
+          - ceph
+          - ceph-common
+          - ceph-test
+          - ceph-fuse
+          - rbd-fuse
+          - python-ceph
+          - cephfs-java
+          - ceph-fs-common
+          - ceph-radosgw
+          - libcephfs_jni1
+          - libcephfs1
     branch: firefly
 - ceph:
     fs: xfs
