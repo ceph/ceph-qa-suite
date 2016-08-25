@@ -353,6 +353,8 @@ def build_ceph_cluster(ctx, config):
         log.info(traceback.format_exc())
         raise
     finally:
+        if config.get('use-upstream-ceph-deploy'):
+            ceph_admin.run(args=['sudo', 'pip', 'uninstall', 'ceph-deploy'])
         if config.get('wait-for-scrub', True):
             osd_scrub_pgs(ctx, config)
         if config.get('keep_running'):
