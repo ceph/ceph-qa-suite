@@ -280,6 +280,9 @@ def build_ceph_cluster(ctx, config):
                 osd_create_cmd += '--dmcrypt '
             osd_create_cmd += ":".join(d)
             estatus_osd = execute_ceph_deploy(osd_create_cmd)
+            # run activate for centos/hammer issue
+            osd_activate_cmd = 'ceph-deploy osd activate ' + node + ":" + disk + "1"
+            execute_ceph_deploy(osd_activate_cmd)
             if estatus_osd == 0:
                 log.info('successfully created osd')
                 no_of_osds += 1
