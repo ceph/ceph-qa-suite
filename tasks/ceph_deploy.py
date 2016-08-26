@@ -178,7 +178,7 @@ def build_ceph_cluster(ctx, config):
         if config.get('use-upstream-ceph-deploy'):
             ceph_admin.run(args=['sudo', 'pip', 'install', 'ceph-deploy'])
         else:
-            install_extra_packages(ceph_admin, 'ceph-deploy')
+            install_extra_packages(ceph_admin, ['ceph-deploy'])
         extra_packages = ['ceph-test', 'ceph-selinux', ]
         all_nodes = get_all_nodes(ctx, config)
         mon_node = get_nodes_using_role(ctx, 'mon')
