@@ -46,6 +46,11 @@ def setup_installer(ctx, config):
             ceph_installer.run(args=['sudo', 'yum', 'clean', 'metadata'])
             ceph_installer.run(args=['sudo', 'yum', 'install', '-y',
                                      'ceph-ansible'])
+        else:
+            # repo is set by internal tasks
+            ceph_installer.run(args=['sudo', 'yum', 'clean', 'metadata'])
+            ceph_installer.run(args=['sudo', 'yum', 'install', '-y',
+                                     'ceph-ansible'])
         if config.get('rhbuild_repo'):
             log.info("Setting up the rhbuild repo")
             rhbuild_repo = config.get('rhbuild_repo')
