@@ -615,9 +615,15 @@ class TestStrays(CephFSTestCase):
         self.mount_a.run_shell(["mkdir", "snapdir/subdir"])
         self.mount_a.write_test_pattern("snapdir/subdir/file_a", size_mb * 1024 * 1024)
         file_a_ino = self.mount_a.path_to_ino("snapdir/subdir/file_a")
+        # Validate that the data was written as expected
+        self.mount_a.validate_test_pattern("snapdir/subdir/file_a",
+                                           size_mb * 1024 * 1024)
 
         # Snapshot the dir
         self.mount_a.run_shell(["mkdir", "snapdir/.snap/snap1"])
+        # Validate that the snapshot reads as expected
+        self.mount_a.validate_test_pattern("snapdir/.snap/snap1/subdir/file_a",
+                                           size_mb * 1024 * 1024)
 
         # Cause the head revision to deviate from the snapshot
         self.mount_a.write_n_mb("snapdir/subdir/file_a", size_mb)

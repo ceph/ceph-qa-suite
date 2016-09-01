@@ -334,7 +334,7 @@ class CephFSMount(object):
             for i, b in enumerate(bytes):
                 val = zlib.crc32("%s" % i) & 7
                 if b != chr(val):
-                    raise RuntimeError("Bad data at offset {{0}}".format(i))
+                    raise RuntimeError("Bad data at offset {{0}}: got 0x{{1:x}} expected 0x{{2:x}}".format(i, ord(b), val))
         """.format(
             path=os.path.join(self.mountpoint, filename),
             size=size
