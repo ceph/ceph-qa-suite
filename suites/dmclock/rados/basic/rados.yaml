@@ -1,1 +1,6 @@
-../../../../config/rados.yaml
+overrides:
+  ceph:
+    conf:
+      osd:
+        osd op queue cut off: debug_random
+        osd debug verify missing on start: true
