@@ -64,7 +64,7 @@ class FuseMount(CephFSMount):
             self.mountpoint,
         ]
 
-        if client_mds_namespace:
+        if self.client_mds_namespace:
             fuse_cmd += ["--client-mds-namespace=" + self.client_mds_namespace]
 
         if self.client_config.get('valgrind') is not None:
