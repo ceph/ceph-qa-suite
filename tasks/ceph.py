@@ -112,13 +112,19 @@ def ceph_log(ctx, config):
             # 2) continuously loop over logrotate invocation with ceph-test.conf
             while not self.stop_event.is_set():
                 self.stop_event.wait(timeout=30)
-                run.wait(
-                    ctx.cluster.run(
-                        args=['sudo', 'logrotate', '/etc/logrotate.d/ceph-test.conf'
-                              ],
-                        wait=False,
+                try:
+                    run.wait(
+                        ctx.cluster.run(
+                            args=['sudo', 'logrotate', '/etc/logrotate.d/ceph-test.conf'
+                                  ],
+                            wait=False,
+                        )
                     )
-                )
+                except exceptions.ConnectionLostError as e:
+                    # Some tests may power off nodes during test, in which
+                    # case we will see connection errors that we should ignore.
+                    log.debug("Missed logrotate, node '{0}' is offline".format(
+                        e.node))
 
         def begin(self):
             self.thread = gevent.spawn(self.invoke_logrotate)
