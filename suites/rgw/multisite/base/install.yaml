@@ -1,0 +1,7 @@
+meta:
+- desc: run two ceph clusters 
+tasks:
+- ceph:
+    cluster: cluster1
+- ceph:
+    cluster: cluster2
