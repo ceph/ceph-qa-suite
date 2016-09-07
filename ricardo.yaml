@@ -1,0 +1,4 @@
+overrides:
+  ansible.cephlab:
+    repo: https://github.com/rjfd/ceph-cm-ansible
+    branch: wip-opensuse-upstream-pr
