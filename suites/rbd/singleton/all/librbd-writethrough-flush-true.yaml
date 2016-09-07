@@ -1,0 +1,19 @@
+roles:
+- [mon.a, osd.0, osd.1, osd.2]
+- [osd.3, osd.4, osd.5]
+- [client.0]
+tasks:
+- install:
+- ceph:
+    fs: xfs
+    conf:
+      client:
+        rbd cache writethrough until flush: true
+- rbd_fio:
+    client.0:
+      fio-io-size: 80%
+      formats: [2]
+      features: [[layering],[layering,exclusive-lock,object-map]]
+      io-engine: rbd
+      rw: randrw
+      runtime: 300
