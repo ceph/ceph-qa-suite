@@ -1,6 +1,4 @@
 tasks:
-- install:
-- ceph:
 - rgw: 
   - cluster1.client.0 
   - cluster2.client.0
