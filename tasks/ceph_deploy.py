@@ -981,7 +981,7 @@ def task(ctx, config):
     if config.get('rhbuild'):
         with contextutil.nested(
             lambda: install_fn.ship_utilities(ctx=ctx, config=None),
-            lambda: set_repo.task(ctx=ctx, config=config),
+            # lambda: set_repo.task(ctx=ctx, config=config),
             lambda: install_ceph_deploy(ctx=ctx, config=config),
             lambda: build_ceph_cluster(ctx=ctx, config=config),
         ):
