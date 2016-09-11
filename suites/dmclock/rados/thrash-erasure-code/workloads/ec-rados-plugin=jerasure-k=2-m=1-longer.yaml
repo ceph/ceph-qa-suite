@@ -1,7 +1,7 @@
 tasks:
 - rados:
     clients: [client.0]
-    ops: 50000
+    ops: 24000
     objects: 50
     ec_pool: true
     write_append_excl: false
