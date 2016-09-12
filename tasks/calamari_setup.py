@@ -7,6 +7,7 @@ import os
 import requests
 import shutil
 import webbrowser
+import json
 
 from cStringIO import StringIO
 from teuthology.orchestra import run
@@ -18,7 +19,9 @@ log = logging.getLogger(__name__)
 
 DEFAULTS = {
     'version': 'v0.80.9',
-    'test_image': None,
+    'calamari_branch': '1.3',
+    'calamari-clients_branch': 'master',
+    'diamond_branch': 'master',
     'start_browser': False,
     'email': 'x@y.com',
     'no_epel': True,
@@ -26,6 +29,11 @@ DEFAULTS = {
     'calamari_password': 'admin',
 }
 
+UPSTREAM_PROJECTS = (
+    'diamond',
+    'calamari',
+    'calamari-clients',
+)
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -33,14 +41,15 @@ def task(ctx, config):
     Do the setup of a calamari server.
 
     - calamari_setup:
-        version: 'v80.1'
-        test_image: <path to tarball or iso>
+        version: 'v0.80.9'
+        calamari_branch: '1.3'
 
     Options are (see DEFAULTS above):
 
     version -- ceph version we are testing against
-    test_image -- Can be an HTTP URL, in which case fetch from this
-                  http path; can also be local path
+    calamari_branch -- upstream calamari branch
+    calamari-clients_branch -- upstream calamari-clients branch
+    diamond_branch -- upstream diamond branch
     start_browser -- If True, start a browser.  To be used by runs that will
                      bring up a browser quickly for human use.  Set to False
                      for overnight suites that are testing for problems in
@@ -62,7 +71,7 @@ def task(ctx, config):
     if not cal_svr:
         raise RuntimeError('client.0 not found in roles')
     with contextutil.nested(
-        lambda: adjust_yum_repos(ctx, cal_svr, config['no_epel']),
+        lambda: adjust_yum_repos(ctx, cal_svr, config),
         lambda: calamari_install(config, cal_svr),
         lambda: ceph_install(ctx, cal_svr),
         # do it again because ceph-deploy installed epel for centos
@@ -74,82 +83,69 @@ def task(ctx, config):
 
 
 @contextlib.contextmanager
-def adjust_yum_repos(ctx, cal_svr, no_epel):
+def adjust_yum_repos(ctx, cal_svr, config):
     """
     For each remote machine, fix the repos if yum is used.
     """
-    ice_distro = str(cal_svr.os)
-    if ice_distro.startswith('rhel') or ice_distro.startswith('centos'):
-        if no_epel:
+    _distro = str(cal_svr.os)
+    if _distro.startswith('rhel') or _distro.startswith('centos'):
+        if config['no_epel']:
             for remote in ctx.cluster.remotes:
-                fix_yum_repos(remote, ice_distro)
+                fix_yum_repos(remote, _distro, config)
     try:
         yield
     finally:
-        if ice_distro.startswith('rhel') or ice_distro.startswith('centos'):
-            if no_epel:
+        if _distro.startswith('rhel') or _distro.startswith('centos'):
+            if config['no_epel']:
                 for remote in ctx.cluster.remotes:
-                    restore_yum_repos(remote)
+                    remove_yum_repos(remote)
 
 
-def restore_yum_repos(remote):
+def remove_yum_repos(remote):
     """
-    Copy the old saved repo back in.
+    Remove the repo file that we created.
     """
-    if remote.run(args=['sudo', 'rm', '-rf', '/etc/yum.repos.d']).exitstatus:
-        return False
-    if remote.run(args=['sudo', 'mv', '/etc/yum.repos.d.old',
-                        '/etc/yum.repos.d']).exitstatus:
-        return False
+    for project in UPSTREAM_PROJECTS:
+        if remote.run(args=['sudo', 'rm', '-f', '/etc/yum.repos.d/%s.repo' % project]).exitstatus:
+            return False
+    return True
 
 
-def fix_yum_repos(remote, distro):
+def fix_yum_repos(remote, distro, config):
     """
     For yum calamari installations, the repos.d directory should only
     contain a repo file named rhel<version-number>.repo
     """
-    if distro.startswith('centos'):
-        # hack alert: detour: install lttng for ceph
-        # this works because epel is preinstalled on the vpms
-        # this is not a generic solution
-        # this is here solely to test the one-off 1.3.0 release for centos6
-        remote.run(args="sudo yum -y install lttng-tools")
-        cmds = [
-            'sudo mkdir /etc/yum.repos.d.old'.split(),
-            ['sudo', 'cp', run.Raw('/etc/yum.repos.d/*'),
-             '/etc/yum.repos.d.old'],
-            ['sudo', 'rm', run.Raw('/etc/yum.repos.d/epel*')],
-        ]
-        for cmd in cmds:
-            if remote.run(args=cmd).exitstatus:
-                return False
-    else:
-        cmds = [
-            'sudo mv /etc/yum.repos.d /etc/yum.repos.d.old'.split(),
-            'sudo mkdir /etc/yum.repos.d'.split(),
-        ]
-        for cmd in cmds:
-            if remote.run(args=cmd).exitstatus:
-                return False
+    platform = distro.split(' ')[0]
+    if platform not in ['centos', 'rhel']:
+        raise RuntimeError('Unknow platform "%s"' % platform)
 
-        # map "distroversion" from Remote.os to a tuple of
-        # (repo title, repo name descriptor, apt-mirror repo path chunk)
-        yum_repo_params = {
-            'rhel 6.4': ('rhel6-server', 'RHEL', 'rhel6repo-server'),
-            'rhel 6.5': ('rhel6-server', 'RHEL', 'rhel6repo-server'),
-            'rhel 7.0': ('rhel7-server', 'RHEL', 'rhel7repo/server'),
-        }
-        repotitle, reponame, path = yum_repo_params[distro]
-        repopath = '/etc/yum.repos.d/%s.repo' % repotitle
-        # TO DO:  Make this data configurable too
-        repo_contents = '\n'.join(
-            ('[%s]' % repotitle,
-             'name=%s $releasever - $basearch' % reponame,
-             'baseurl=http://apt-mirror.front.sepia.ceph.com/' + path,
-             'gpgcheck=0',
-             'enabled=1')
-        )
-        misc.sudo_write_file(remote, repopath, repo_contents)
+    major = distro.split(' ')[1].split('.')[0]
+    minor = distro.split(' ')[1].split('.')[1]
+
+    # Query shaman for the diamond and calamari repo urls and create the repo files
+    url = {}
+    for project in UPSTREAM_PROJECTS:
+        _shaman_url = 'https://shaman.ceph.com/api/search/?project=%s&distros=centos/%s&ref=%s&sha1=latest' % (project, major, config[project + '_branch'])
+        _response = requests.get(_shaman_url)
+        if not _response.ok:
+            raise RuntimeError('Failed to query shaman (%s) for %s' % (_shaman_url, project))
+        _data = json.loads(_response.text)
+        if len(_data) != 1:
+            raise RuntimeError('Shaman did not return a single item for %s' % project)
+        _data = _data[0]
+        if not _data.has_key('url')
+            raise RuntimeError('Shaman response did not contain url for %s' % project)
+        _url = _data['url']
+        _contents = '\n'.join([
+            '[%s]' % project,
+            'name=%s $releasever - $basearch' % project,
+            'baseurl=' + _url,
+            'gpgcheck=0',
+            'enabled=1',
+        ])
+        misc.sudo_write_file(remote, '/etc/yum.repos.d/%s.repo' % project, _contents)
+
     cmds = [
         'sudo yum clean all'.split(),
         'sudo yum makecache'.split(),
@@ -161,48 +157,12 @@ def fix_yum_repos(remote, distro):
 
 
 @contextlib.contextmanager
-def remove_epel(ctx, no_epel):
-    """
-    just remove epel.  No undo; assumed that it's used after
-    adjust_yum_repos, and relies on its state-save/restore.
-    """
-    if no_epel:
-        for remote in ctx.cluster.remotes:
-            if remote.os.name.startswith('centos'):
-                remote.run(args=[
-                    'sudo', 'rm', '-f', run.Raw('/etc/yum.repos.d/epel*')
-                ])
-    try:
-        yield
-    finally:
-        pass
-
-
-def get_iceball_with_http(url, destdir):
-    '''
-    Copy iceball with http to destdir.  Try both .tar.gz and .iso.
-    '''
-    # stream=True means we don't download until copyfileobj below,
-    # and don't need a temp file
-    r = requests.get(url, stream=True)
-    if not r.ok:
-        raise RuntimeError("Failed to download %s", str(url))
-    filename = os.path.join(destdir, url.split('/')[-1])
-    with open(filename, 'w') as f:
-        shutil.copyfileobj(r.raw, f)
-    log.info('saved %s as %s' % (url, filename))
-    return filename
-
-
-@contextlib.contextmanager
 def calamari_install(config, cal_svr):
     """
     Install calamari
 
     The steps here are:
-        -- Get the iceball, locally or from http
-        -- Copy the iceball to the calamari server, and untar/mount it.
-        -- Run ice-setup on the calamari server.
+        -- Install calamari and calamari-clients from the chacra repos
         -- Run calamari-ctl initialize.
     """
     client_id = str(cal_svr)
@@ -210,85 +170,41 @@ def calamari_install(config, cal_svr):
     if at_loc > 0:
         client_id = client_id[at_loc + 1:]
 
-    test_image = config['test_image']
-
-    if not test_image:
-        raise RuntimeError('Must supply test image')
-    log.info('calamari test image: %s' % test_image)
-    delete_iceball = False
-
-    if test_image.startswith('http'):
-        iceball_file = get_iceball_with_http(test_image, '/tmp')
-        delete_iceball = True
-    else:
-        iceball_file = test_image
-
-    remote_iceball_file = os.path.join('/tmp', os.path.split(iceball_file)[1])
-    cal_svr.put_file(iceball_file, remote_iceball_file)
-    if iceball_file.endswith('.tar.gz'):   # XXX specify tar/iso in config?
-        icetype = 'tarball'
-    elif iceball_file.endswith('.iso'):
-        icetype = 'iso'
-    else:
-        raise RuntimeError('Can''t handle iceball {0}'.format(iceball_file))
-
-    if icetype == 'tarball':
-        ret = cal_svr.run(args=['gunzip', run.Raw('<'), remote_iceball_file,
-                          run.Raw('|'), 'tar', 'xvf', run.Raw('-')])
-        if ret.exitstatus:
-            raise RuntimeError('remote iceball untar failed')
-    elif icetype == 'iso':
-        mountpoint = '/mnt/'   # XXX create?
-        ret = cal_svr.run(
-            args=['sudo', 'mount', '-o', 'loop', '-r',
-                  remote_iceball_file, mountpoint]
-        )
-
-    # install ice_setup package
+    # install calamari packages
     args = {
-        'deb': 'sudo dpkg -i /mnt/ice-setup*deb',
-        'rpm': 'sudo yum -y localinstall /mnt/ice_setup*rpm'
+        'deb': 'sudo apt-get install calamari calamari-clients', # TODO: always say yes
+        'rpm': 'sudo yum -y install calamari calamari-clients'
     }.get(cal_svr.system_type, None)
     if not args:
         raise RuntimeError('{0}: unknown system type'.format(cal_svr))
     ret = cal_svr.run(args=args)
     if ret.exitstatus:
-        raise RuntimeError('ice_setup package install failed')
-
-    # Run ice_setup
-    icesetdata = 'yes\n\n%s\nhttp\n' % client_id
-    ice_in = StringIO(icesetdata)
-    ice_out = StringIO()
-    if icetype == 'tarball':
-        args = 'sudo python ice_setup.py'
-    else:
-        args = 'sudo ice_setup -d /mnt'
-    ret = cal_svr.run(args=args, stdin=ice_in, stdout=ice_out)
-    log.debug(ice_out.getvalue())
-    if ret.exitstatus:
-        raise RuntimeError('ice_setup failed')
+        raise RuntimeError('calamari package install failed')
 
     # Run calamari-ctl initialize.
-    icesetdata = '%s\n%s\n%s\n%s\n' % (
+    _data = '%s\n%s\n%s\n%s\n' % (
         config['calamari_user'],
         config['email'],
         config['calamari_password'],
         config['calamari_password'],
     )
-    ice_in = StringIO(icesetdata)
+    _in = StringIO(_data)
+    _out = StringIO()
     ret = cal_svr.run(args=['sudo', 'calamari-ctl', 'initialize'],
-                      stdin=ice_in, stdout=ice_out)
-    log.debug(ice_out.getvalue())
+                      stdin=_in, stdout=_out)
+    log.debug(_out.getvalue())
     if ret.exitstatus:
         raise RuntimeError('calamari-ctl initialize failed')
     try:
         yield
     finally:
         log.info('Cleaning up after Calamari installation')
-        if icetype == 'iso':
-            cal_svr.run(args=['sudo', 'umount', mountpoint])
-        if delete_iceball:
-            os.unlink(iceball_file)
+        # Remove calamari and calamari-clients
+        args = {
+            'deb': 'sudo apt-get remove calamari calamari-clients', # TODO: always say yes
+            'rpm': 'sudo yum -y remove calamari calamari-clients'
+        }.get(cal_svr.system_type, None)
+        cal_svr.run(args=args)
 
 
 @contextlib.contextmanager
