@@ -1,8 +1,0 @@
-
-overrides:
-  ceph:
-    log-whitelist:
-      - responding to mclientcaps\(revoke\)
-
-tasks:
-- mds_client_limits:
