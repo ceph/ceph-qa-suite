@@ -1,9 +1,9 @@
 roles:
 - - mon.a
-  - mon.b
   - mon.c
   - osd.0
   - osd.1
+- - mon.b
   - osd.2
   - osd.3
 tasks:
