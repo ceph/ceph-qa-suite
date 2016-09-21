@@ -243,7 +243,9 @@ def build_ceph_cluster(ctx, config):
 
         node_dev_list = get_dev_for_osd(ctx, config)
         for d in node_dev_list:
-            osd_create_cmd = 'ceph-deploy osd create --zap-disk '
+            disk_zap = 'ceph-deploy disk zap ' + d
+            execute_ceph_deploy(disk_zap)
+            osd_create_cmd = 'ceph-deploy osd prepare '
             if config.get('dmcrypt') is not None:
                 osd_create_cmd += '--dmcrypt '
             if config.get('fs'):
