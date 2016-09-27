@@ -15,4 +15,6 @@ tasks:
       clients:
         client.1:
           - rados/test-upgrade-v11.0.0.sh
+      env:
+        CLS_RBD_GTEST_FILTER: '*:-TestClsRbd.mirror_image'
   - print: "**** done rados/test-upgrade-v11.0.0.sh 4-final-workload"

@@ -86,6 +86,8 @@ tasks:
       client.1:
       - rados/test-upgrade-v11.0.0.sh
       - cls
+    env:
+      CLS_RBD_GTEST_FILTER: '*:-TestClsRbd.mirror_image'
 - print: "**** done final test on -x cluster"
 #######################
 workload:
@@ -162,6 +164,8 @@ workload_x:
          client.0:
          - rados/test-upgrade-v11.0.0.sh
          - cls
+       env:
+         CLS_RBD_GTEST_FILTER: '*:-TestClsRbd.mirror_image'
    - print: "**** done rados/test-upgrade-v11.0.0.sh &  cls workload_x upgraded client"
    - rgw: [client.1]
    - print: "**** done rgw workload_x"
