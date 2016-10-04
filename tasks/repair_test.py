@@ -261,13 +261,19 @@ def task(ctx, config):
     - install:
     - ceph:
         log-whitelist:
+          - slow request
           - 'candidate had a stat error'
           - 'candidate had a read error'
           - 'deep-scrub 0 missing, 1 inconsistent objects'
+          - 'deep-scrub 0 missing, 2 inconsistent objects'
+          - 'deep-scrub 0 missing, 3 inconsistent objects'
           - 'deep-scrub 0 missing, 4 inconsistent objects'
           - 'deep-scrub 1 errors'
+          - 'deep-scrub 2 errors'
+          - 'deep-scrub 3 errors'
           - 'deep-scrub 4 errors'
           - '!= known omap_digest'
+          - '!= known data_digest'
           - 'repair 0 missing, 1 inconsistent objects'
           - 'repair 0 missing, 4 inconsistent objects'
           - 'repair 1 errors, 1 fixed'
@@ -275,9 +281,11 @@ def task(ctx, config):
           - 'scrub 0 missing, 1 inconsistent'
           - 'scrub 1 errors'
           - 'size 1 != known size'
+          - '!= best guess'
         conf:
           osd:
             filestore debug inject read err: true
+            bluestore debug inject read err: true
     - repair_test:
 
     """
