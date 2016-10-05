@@ -20,6 +20,7 @@ from teuthology.orchestra.daemon import DaemonGroup, run
 from tasks.cephfs.filesystem import Filesystem
 from tasks import set_repo
 from ceph_manager import CephManager
+from tasks.set_repo import set_repo_simple
 
 log = logging.getLogger(__name__)
 ceph_admin = ''
