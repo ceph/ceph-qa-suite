@@ -37,12 +37,12 @@ def create_replicated_pool(remote, name, pgnum, cluster_name="ceph"):
         'sudo', 'ceph', 'osd', 'pool', 'create', name, str(pgnum), str(pgnum), '--cluster', cluster_name
         ])
 
-def create_cache_pool(remote, base_name, cache_name, pgnum, size):
+def create_cache_pool(remote, base_name, cache_name, pgnum, size, cluster_name="ceph"):
     remote.run(args=[
-        'sudo', 'ceph', 'osd', 'pool', 'create', cache_name, str(pgnum)
+        'sudo', 'ceph', 'osd', 'pool', 'create', cache_name, str(pgnum), '--cluster', cluster_name
     ])
     remote.run(args=[
-        'sudo', 'ceph', 'osd', 'tier', 'add-cache', base_name, cache_name,
+        'sudo', 'ceph', 'osd', 'tier', 'add-cache', base_name, cache_name, '--cluster', cluster_name
         str(size),
     ])
 
