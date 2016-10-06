@@ -42,8 +42,8 @@ def create_cache_pool(remote, base_name, cache_name, pgnum, size, cluster_name="
         'sudo', 'ceph', 'osd', 'pool', 'create', cache_name, str(pgnum), '--cluster', cluster_name
     ])
     remote.run(args=[
-        'sudo', 'ceph', 'osd', 'tier', 'add-cache', base_name, cache_name,
-        str(size), '--cluster', cluster_name
+        'sudo', 'ceph', 'osd', 'tier', 'add-cache', base_name, cache_name, '--cluster', cluster_name
+        str(size),
     ])
 
 def cmd_erasure_code_profile(profile_name, profile):
