@@ -24,12 +24,12 @@ def rados(ctx, remote, cmd, wait=True, check_status=False):
     else:
         return proc
 
-def create_ec_pool(remote, name, profile_name, pgnum, profile={}):
+def create_ec_pool(remote, name, profile_name, pgnum, profile={}, cluster_name="ceph"):
     remote.run(args=['sudo', 'ceph'] +
-               cmd_erasure_code_profile(profile_name, profile))
+               cmd_erasure_code_profile(profile_name, profile) + ['--cluster', cluster_name])
     remote.run(args=[
         'sudo', 'ceph', 'osd', 'pool', 'create', name,
-        str(pgnum), str(pgnum), 'erasure', profile_name,
+        str(pgnum), str(pgnum), 'erasure', profile_name, '--cluster', cluster_name
         ])
 
 def create_replicated_pool(remote, name, pgnum):
