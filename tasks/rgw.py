@@ -705,10 +705,10 @@ def create_nonregion_pools(ctx, config, regions):
             create_ec_pool(remote, data_pool, client, 64,
                            ctx.rgw.erasure_code_profile, cluster_name)
         else:
-            create_replicated_pool(remote, data_pool, 64)
+            create_replicated_pool(remote, data_pool, 64, cluster_name)
         if ctx.rgw.cache_pools:
             create_cache_pool(remote, data_pool, data_pool + '.cache', 64,
-                              64*1024*1024)
+                              64*1024*1024, cluster_name)
     yield
 
 @contextlib.contextmanager
