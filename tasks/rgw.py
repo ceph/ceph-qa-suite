@@ -270,9 +270,9 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         log.debug('client in clients to run is: %r', client)
         if client == except_client:
             continue
-        (remote,) = ctx.cluster.only(_is_instance).remotes.iterkeys()
+        #(remote,) = ctx.cluster.only(_is_instance).remotes.iterkeys()
         # get clients the new way
-        #remote = get_remote_for_role(ctx, client)
+        remote = get_remote_for_role(ctx, client)
         zone = rgw_utils.zone_for_client(ctx, client)
         log.debug('zone %s', zone)
 
@@ -702,10 +702,11 @@ def create_nonregion_pools(ctx, config, regions):
     log.info('creating data pools')
     for client in config.keys():
         log.debug('client: %r', client)
-        (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+        remote = get_remote_for_role(ctx, client)
         log.debug('remote: %r', remote)
+        #(remote,) = ctx.cluster.only(client).remotes.iterkeys()
         data_pool = '.rgw.buckets'
-        cluster_name, daemon_type, client_id = teuthology.split_role(client)
+        cluster_name, daemon_type, client_id = misc.split_role(client)
         log.debug('cluster: %r', cluster_name)
 
         if ctx.rgw.ec_data_pool:
