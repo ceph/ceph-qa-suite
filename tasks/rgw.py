@@ -267,12 +267,13 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         log.debug('client %r', clients_to_run)
     testdir = teuthology.get_testdir(ctx)
     for client in clients_to_run:
+        log.debug('client in clients to run is: %r', client)
         if client == except_client:
             continue
-        #(remote,) = ctx.cluster.only(_is_instance).remotes.iterkeys()
-        # get clients the new way
         remote = get_remote_for_role(ctx, client)
-        zone = rgw_utils.zone_for_client(ctx, client)
+        cluster_name, daemon_type, client_id = misc.split_role(client)
+        cluster_conf = ctx.ceph[cluster_name].conf
+        zone = rgw_utils.zone_for_client(cluster_conf, client)
         log.debug('zone %s', zone)
         client_config = config.get(client)
         if client_config is None:
@@ -348,8 +349,6 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
 
         run_cmd = list(cmd_prefix)
         run_cmd.extend(rgw_cmd)
-
-        cluster_name, daemon_type, client_id = misc.split_role(client)
 
         ctx.daemons.add_daemon(
             remote, 'rgw', client,
@@ -1236,6 +1235,7 @@ def task(ctx, config):
         lambda: create_nonregion_pools(
             ctx=ctx, config=config, regions=regions),
         ]
+    log.debug('Nonregion pools created')
 
     multisite = len(regions) > 1
 
