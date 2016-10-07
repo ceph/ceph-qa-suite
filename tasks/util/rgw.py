@@ -125,7 +125,7 @@ def get_zone_system_keys(ctx, client, zone):
 def zone_for_client(conf, client):
     ceph_config = conf.get('global', {})
     ceph_config.update(conf.get('client', {}))
-    ceph_config.update(conf.conf.get(client, {}))
+    ceph_config.update(conf.get(client, {}))
     return ceph_config.get('rgw zone')
 
 def region_for_client(ctx, client):
