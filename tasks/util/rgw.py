@@ -108,7 +108,9 @@ def get_master_client(ctx, clients):
         return None
 
     for client in clients:
-        zone = zone_for_client(ctx, client)
+        cluster_name, daemon_type, client_id = teuthology.split_role(client)
+        client_config = ctx.ceph[cluster_name].conf
+        zone = zone_for_client(client_config, client)
         if zone == master_zone:
             return client
 
