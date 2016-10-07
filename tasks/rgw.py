@@ -266,15 +266,16 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         clients_to_run = config.keys()
         log.debug('client %r', clients_to_run)
     testdir = teuthology.get_testdir(ctx)
-    for client in clients_to_run:
-        log.debug('client in clients to run is: %r', client)
-        if client == except_client:
+    for cluster_client in clients_to_run:
+        log.debug('client in clients to run is: %r', cluster_client)
+        if cluster_client == except_client:
             continue
-        remote = get_remote_for_role(ctx, client)
-        cluster_name, daemon_type, client_id = teuthology.split_role(client)
+        remote = get_remote_for_role(ctx, cluster_client)
+        cluster_name, client = teuthology.split_role(cluster_client)
         cluster_conf = ctx.ceph[cluster_name].conf
         zone = rgw_utils.zone_for_client(cluster_conf, client)
         log.debug('zone %s', zone)
+
         client_config = config.get(client)
         if client_config is None:
             client_config = {}
