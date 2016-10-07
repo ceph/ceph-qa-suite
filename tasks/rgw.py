@@ -271,7 +271,9 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         if cluster_client == except_client:
             continue
         remote = get_remote_for_role(ctx, cluster_client)
-        cluster_name, client = teuthology.split_role(cluster_client)
+        cluster_name, daemon_type, client_id = teuthology.split_role(cluster_client)
+        client = daemon_type + '.' + client_id
+        log.debug('client from cluster_client is: %r', client)
         cluster_conf = ctx.ceph[cluster_name].conf
         zone = rgw_utils.zone_for_client(cluster_conf, client)
         log.debug('zone %s', zone)
