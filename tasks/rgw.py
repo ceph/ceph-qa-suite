@@ -16,7 +16,6 @@ from teuthology.orchestra import run
 from teuthology import misc as teuthology
 from teuthology import contextutil
 from teuthology.orchestra.run import CommandFailedError
-from util import get_remote_for_role
 from util.rgw import rgwadmin
 from util.rados import (rados, create_ec_pool,
                                         create_replicated_pool,
@@ -270,7 +269,7 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         log.debug('client in clients to run is: %r', cluster_client)
         if cluster_client == except_client:
             continue
-        remote = get_remote_for_role(ctx, cluster_client)
+        (remote,) = ctx.cluster.only(_is_instance).remotes.iterkeys()
         cluster_name, daemon_type, client_id = teuthology.split_role(cluster_client)
         client = daemon_type + '.' + client_id
         log.debug('client from cluster_client is: %r', client)
@@ -696,9 +695,8 @@ def create_nonregion_pools(ctx, config, regions):
     log.info('creating data pools')
     for client in config.keys():
         log.debug('client: %r', client)
-        remote = get_remote_for_role(ctx, client)
         log.debug('remote: %r', remote)
-        #(remote,) = ctx.cluster.only(client).remotes.iterkeys()
+        (remote,) = ctx.cluster.only(client).remotes.iterkeys()
         data_pool = '.rgw.buckets'
         cluster_name, daemon_type, client_id = teuthology.split_role(client)
         log.debug('cluster: %r', cluster_name)
