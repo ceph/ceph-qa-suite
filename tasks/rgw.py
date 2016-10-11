@@ -701,8 +701,8 @@ def create_nonregion_pools(ctx, config, regions):
     log.info('creating data pools')
     for client in config.keys():
         log.debug('client: %r', client)
-        log.debug('remote: %r', remote)
         (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+        log.debug('remote: %r', remote)
         data_pool = '.rgw.buckets'
         cluster_name, daemon_type, client_id = teuthology.split_role(client)
         log.debug('cluster: %r', cluster_name)
