@@ -265,14 +265,12 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         clients_to_run = config.keys()
         log.debug('client %r', clients_to_run)
     testdir = teuthology.get_testdir(ctx)
-    for cluster_client in clients_to_run:
-        log.debug('client in clients to run is: %r', cluster_client)
-        if cluster_client == except_client:
+    for client in clients_to_run:
+        log.debug('client in clients to run is: %r', client)
+        if client == except_client:
             continue
-        (remote,) = ctx.cluster.only(cluster_client).remotes.iterkeys()
-        cluster_name, daemon_type, client_id = teuthology.split_role(cluster_client)
-        client = daemon_type + '.' + client_id
-        log.debug('client from cluster_client is: %r', client)
+        (remote,) = ctx.cluster.only(client).remotes.iterkeys()
+        cluster_name, daemon_type, client_id = teuthology.split_role(client)
         cluster_conf = ctx.ceph[cluster_name].conf
         zone = rgw_utils.zone_for_client(cluster_conf, client)
         log.debug('zone %s', zone)
@@ -644,6 +642,7 @@ def configure_users_for_client(ctx, config, client, everywhere=False):
                          '--secret', user_info['system_key']['secret_key'],
                          '--display-name', user_info['system_key']['user'],
                          '--system',
+                         '--cluster', cluster_name,
                      ],
                      check_status=True,
             )
@@ -685,6 +684,7 @@ def configure_users(ctx, config,  everywhere=False):
                          '--secret', user_info['system_key']['secret_key'],
                          '--display-name', user_info['system_key']['user'],
                          '--system',
+                         '--cluster', cluster_name,
                      ],
                      check_status=True,
                      )
