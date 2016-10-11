@@ -14,6 +14,12 @@ repos_13x = ['rhel-7-server-rhceph-1.3-mon-rpms',
              'rhel-7-server-rhceph-1.3-installer-rpms',
              'rhel-7-server-rhceph-1.3-tools-rpms']
 
+repos_20 = ['rhel-7-server-rhceph-2-mon-rpms',
+             'rhel-7-server-rhceph-2-osd-rpms',
+             'rhel-7-server-rhceph-2-tools-rpms',
+             'rhel-7-server-rhscon-2-agent-rpms',
+             'rhel-7-server-rhscon-2-installer-rpms',
+             'rhel-7-server-rhscon-2-main-rpms']
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -53,6 +59,8 @@ def task(ctx, config):
         if remote.os.package_type == 'rpm':
             if build == '1.3.2':
                 enable_cdn_repo(remote, repos_13x)
+            elif build == '2.0':
+                enable_cdn_repo(remote, repos_20)
             else:
                 remote.run(
                     args=[
