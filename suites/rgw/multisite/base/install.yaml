@@ -4,5 +4,9 @@ tasks:
 - install:
 - ceph:
     cluster: cluster1
+    conf:
+      cluster1.clint.0:
+        rgw region: jerry
+        rgw zone: seinfeld
 - ceph:
     cluster: cluster2
