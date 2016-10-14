@@ -460,8 +460,6 @@ def extract_zone_info(ctx, client, client_config):
     :returns: zone extracted from client and client_config information
     """
     cluster_name, daemon_type, client_id = teuthology.split_role(client)
-    log.debug('client in extract_zone_info is: %r', client)
-    log.debug('cluster_name in extract_zone_info is: %r', cluster_name)
     ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
     ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
     ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
