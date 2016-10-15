@@ -1,3 +1,11 @@
 tasks:
   - rgw: 
-    - cluster1.client.0 
+      realm:
+        realm0
+      regions:
+        jerry:
+          api name: api1
+          is master: True
+          master zone: seinfeld
+          zones: [seinfeld]
+      cluster1.client.0:
