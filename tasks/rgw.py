@@ -464,6 +464,8 @@ def extract_zone_info(ctx, client, client_config):
     ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
     ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
     ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
+    log.debug('client in extract_zone_info is: %r', client)
+    log.debug('ceph_config in extract_zone_info is: %r', ceph_config)
     for key in ['rgw zone', 'rgw region', 'rgw zone root pool']:
         assert key in ceph_config, \
             'ceph conf must contain {key} for {client}'.format(key=key,
@@ -741,6 +743,12 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
     log.debug('regions are %r', regions)
     log.debug('role_endpoints = %r', role_endpoints)
     log.debug('realm is %r', realm)
+
+    # see what the client and c_config are in configure_regions_and_zones
+    for client, c_config in config.iteritems():
+        log.debug('client in configure_regions_and_zones is %r', client)
+        log.debug('c_config in configure_regions_and_zones is %r', c_config)
+
     # extract the zone info
     role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
                        for client, c_config in config.iteritems()])
