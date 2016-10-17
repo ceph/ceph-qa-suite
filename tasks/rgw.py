@@ -910,7 +910,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     log.debug('master client = %r', master_client)
     log.debug('config %r ', config)
 
-    (ret, out)=rgwadmin(ctx, client_with_id,
+    (ret, out)=rgwadmin(ctx, client,
                         cmd=['realm', 'create', '--rgw-realm', realm, '--default', '--cluster', cluster_name])
     log.debug('realm create ret %r exists %r', -ret, errno.EEXIST)
     assert ret == 0 or ret != -errno.EEXIST
@@ -939,7 +939,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
                         64)
             zone_json = json.dumps(dict(zone_info.items() + user_info.items()))
             log.debug('zone info is: %r', zone_json)
-            rgwadmin(ctx, client_with_id,
+            rgwadmin(ctx, client,
                  cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
                       '--rgw-zone', zone, '--cluster', cluster_name],
                  stdin=StringIO(zone_json),
@@ -948,22 +948,22 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
         for region, info in region_info.iteritems():
             region_json = json.dumps(info)
             log.debug('region info is: %s', region_json)
-            rgwadmin(ctx, client_with_id,
+            rgwadmin(ctx, client,
                      cmd=['zonegroup', 'set', '--cluster', cluster_name],
                      stdin=StringIO(region_json),
                      check_status=True)
             if info['is_master']:
-                rgwadmin(ctx, client_with_id,
+                rgwadmin(ctx, client,
                          cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup, '--cluster', cluster_name],
                          check_status=True)
 
         (zonegroup, zone, zone_info, user_info) = role_zones[client]
-        rgwadmin(ctx, client_with_id,
+        rgwadmin(ctx, client,
                  cmd=['zone', 'default', zone, '--cluster', cluster_name],
                  check_status=True)
 
     #this used to take master_client, need to edit that accordingly
-    rgwadmin(ctx, client_with_id,
+    rgwadmin(ctx, client,
              cmd=['period', 'update', '--commit', '--cluster', cluster_name],
              check_status=True)
 
