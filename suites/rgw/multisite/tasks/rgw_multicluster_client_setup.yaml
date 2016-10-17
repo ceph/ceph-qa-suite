@@ -1,7 +1,19 @@
 tasks:
+  - ceph:
+      conf:
+        cluster1.client.0:
+          rgw region: jerry
+          rgw zone: seinfeld
+          rgw region root pool: .rgw.region.0
+          rgw zone root pool: .rgw.zone.0
+          rgw gc pool: .rgw.gc.0
+          rgw user uid pool: .users.uid.0
+          rgw user keys pool: .users.0
+          rgw log data: True
+          rgw log meta: True
   - rgw: 
       realm:
-        realm0
+        restaurant
       regions:
         jerry:
           api name: api1
