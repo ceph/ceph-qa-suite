@@ -932,11 +932,11 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
                                  pool_info['val']['index_pool'], '64', '64', '--cluster', cluster_name])
                 if ctx.rgw.ec_data_pool:
                     create_ec_pool(remote, pool_info['val']['data_pool'],
-                                   zone, 64, ctx.rgw.erasure_code_profile)
+                                   zone, 64, ctx.rgw.erasure_code_profile, cluster_name)
                 else:
                     create_replicated_pool(
                         remote, pool_info['val']['data_pool'],
-                        64)
+                        64, cluster_name)
             zone_json = json.dumps(dict(zone_info.items() + user_info.items()))
             log.debug('zone info is: %r', zone_json)
             rgwadmin(ctx, client,
