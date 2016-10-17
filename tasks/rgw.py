@@ -888,7 +888,6 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
 
     # clear out the old defaults
     cluster_name, daemon_type, client_id = teuthology.split_role(client)
-    client_with_id = daemon_type + '.' + client_id
     first_mon = teuthology.get_first_mon(ctx, config, cluster_name)
     log.debug('first_mon in configure_regions_and_zones is %r', first_mon)
     (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
@@ -917,8 +916,8 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     log.debug('master client = %r', master_client)
     log.debug('config %r ', config)
 
-    (ret, out)=rgwadmin(ctx, client,
-                        cmd=['realm', 'create', '--rgw-realm', realm, '--default'])
+    (ret, out)=rgwadmin(ctx, master_client,
+                        cmd=['realm', 'create', '--rgw-realm', realm, '--default', '--cluster', cluster_name])
     log.debug('realm create ret %r exists %r', -ret, errno.EEXIST)
     assert ret == 0 or ret != -errno.EEXIST
     if ret is -errno.EEXIST:
@@ -948,7 +947,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
             log.debug('zone info is: %r', zone_json)
             rgwadmin(ctx, client,
                  cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
-                      '--rgw-zone', zone],
+                      '--rgw-zone', zone, '--cluster', cluster_name],
                  stdin=StringIO(zone_json),
                  check_status=True)
 
@@ -956,22 +955,21 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
             region_json = json.dumps(info)
             log.debug('region info is: %s', region_json)
             rgwadmin(ctx, client,
-                     cmd=['zonegroup', 'set'],
+                     cmd=['zonegroup', 'set', '--cluster', cluster_name],
                      stdin=StringIO(region_json),
                      check_status=True)
             if info['is_master']:
                 rgwadmin(ctx, client,
-                         cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup],
+                         cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup, '--cluster', cluster_name],
                          check_status=True)
 
         (zonegroup, zone, zone_info, user_info) = role_zones[client]
         rgwadmin(ctx, client,
-                 cmd=['zone', 'default', '--rgw-zone', zone],
+                 cmd=['zone', 'default', zone, '--cluster', cluster_name],
                  check_status=True)
 
-    #this used to take master_client, need to edit that accordingly
-    rgwadmin(ctx, client,
-             cmd=['period', 'update', '--commit'],
+    rgwadmin(ctx, master_client,
+             cmd=['-n', master_client, 'period', 'update', '--commit', '--cluster', cluster_name],
              check_status=True)
 
     yield
