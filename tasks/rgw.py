@@ -959,7 +959,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
 
         (zonegroup, zone, zone_info, user_info) = role_zones[client]
         rgwadmin(ctx, client,
-                 cmd=['zonegroup', 'default', zonegroup, '--cluster', cluster_name],
+                 cmd=['zone', 'default', '--rgw-zone', zone, '--cluster', cluster_name],
                  check_status=True)
 
     #this used to take master_client, need to edit that accordingly
