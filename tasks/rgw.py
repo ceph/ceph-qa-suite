@@ -1268,22 +1268,18 @@ def task(ctx, config):
 
     log.debug('multisite %s', multisite)
 
-    if 'roles' in config
-        roles = config['roles']
-        log.debug('roles in config are: %s', roles)
-
     multi_cluster = False
     if multisite:
         prev_cluster_name = None
-        for role in roles
+        #check if any roles have a different cluster_name from eachother
+        for role in ctx.config['roles']:
             cluster_name, daemon_type, client_id = teuthology.split_role(role)
-            #check if any roles have a different cluster_name from eachother
             if cluster_name != prev_cluster_name && prev_cluster_name != None:
                 multi_cluster = True
                 break
             prev_cluster_name = cluster_name
 
-    log.debug('multi_cluster is %s', multi_cluster)
+    log.debug('multi_cluster %s', multi_cluster)
     master_client = None
 
     if multi_cluster:
