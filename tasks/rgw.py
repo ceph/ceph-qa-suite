@@ -1288,7 +1288,7 @@ def task(ctx, config):
         #check if any roles have a different cluster_name from eachother
         for role in ctx.config['roles']:
             cluster_name, daemon_type, client_id = teuthology.split_role(role)
-            if cluster_name != prev_cluster_name && prev_cluster_name != None:
+            if cluster_name != prev_cluster_name and prev_cluster_name != None:
                 multi_cluster = True
                 break
             prev_cluster_name = cluster_name
