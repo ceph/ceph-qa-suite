@@ -766,7 +766,8 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
     fill_in_endpoints(region_info, role_zones, role_endpoints)
 
     # clear out the old defaults
-    first_mon = teuthology.get_first_mon(ctx, config)
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    first_mon = teuthology.get_first_mon(ctx, config, cluster_name)
     (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
 
     # read master zonegroup and master_zone
@@ -781,47 +782,47 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
     log.debug('master client = %r', master_client)
 
     rgwadmin(ctx, master_client,
-             cmd=['realm', 'create', '--rgw-realm', realm, '--default'],
+             cmd=['realm', 'create', '--rgw-realm', realm, '--default', '--cluster', cluster_name],
              check_status=True)
 
     for region, info in region_info.iteritems():
         region_json = json.dumps(info)
         log.debug('region info is: %s', region_json)
         rgwadmin(ctx, master_client,
-                 cmd=['zonegroup', 'set'],
+                 cmd=['zonegroup', 'set', '--cluster', cluster_name],
                  stdin=StringIO(region_json),
                  check_status=True)
 
     rgwadmin(ctx, master_client,
-             cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup],
+             cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup, '--cluster', cluster_name],
              check_status=True)
 
     for role, (zonegroup, zone, zone_info, user_info) in role_zones.iteritems():
         (remote,) = ctx.cluster.only(role).remotes.keys()
         for pool_info in zone_info['placement_pools']:
             remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'create',
-                             pool_info['val']['index_pool'], '64', '64'])
+                             pool_info['val']['index_pool'], '64', '64', '--cluster', cluster_name])
             if ctx.rgw.ec_data_pool:
                 create_ec_pool(remote, pool_info['val']['data_pool'],
-                               zone, 64, ctx.rgw.erasure_code_profile)
+                               zone, 64, ctx.rgw.erasure_code_profile, cluster_name)
             else:
-                create_replicated_pool(remote, pool_info['val']['data_pool'], 64)
+                create_replicated_pool(remote, pool_info['val']['data_pool'], 64, cluster_name)
 
     (zonegroup, zone, zone_info, user_info) = role_zones[master_client]
     zone_json = json.dumps(dict(zone_info.items() + user_info.items()))
     log.debug("zone info is: %r", zone_json)
     rgwadmin(ctx, master_client,
              cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
-                  '--rgw-zone', zone],
+                  '--rgw-zone', zone, '--cluster', cluster_name],
              stdin=StringIO(zone_json),
              check_status=True)
 
     rgwadmin(ctx, master_client,
-             cmd=['-n', master_client, 'zone', 'default', zone],
+             cmd=['-n', master_client, 'zone', 'default', zone, '--cluster', cluster_name],
              check_status=True)
 
     rgwadmin(ctx, master_client,
-             cmd=['-n', master_client, 'period', 'update', '--commit'],
+             cmd=['-n', master_client, 'period', 'update', '--commit', '--cluster', cluster_name],
              check_status=True)
 
     yield
@@ -1020,14 +1021,15 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
 
     for client in config.iterkeys():
         if client != master_client:
+            cluster_name, daemon_type, client_id = teuthology.split_role(client)
             host, port = role_endpoints[master_client]
             endpoint = 'http://{host}:{port}/'.format(host=host, port=port)
             log.debug("endpoint: %s", endpoint)
             rgwadmin(ctx, client,
-                cmd=['-n', client, 'realm', 'pull', '--rgw-realm', realm, '--default', '--url',
+                cmd=['realm', 'pull', '--rgw-realm', realm, '--default', '--url',
                      endpoint, '--access_key',
                      user_info['system_key']['access_key'], '--secret',
-                     user_info['system_key']['secret_key']],
+                     user_info['system_key']['secret_key'], '--cluster', cluster_name],
                      check_status=True)
 
             (zonegroup, zone, zone_info, zone_user_info) = role_zones[client]
@@ -1035,7 +1037,7 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
             log.debug("zone info is: %r"), zone_json
             rgwadmin(ctx, client,
                      cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
-                          '--rgw-zone', zone],
+                          '--rgw-zone', zone, '--cluster', cluster_name],
                      stdin=StringIO(zone_json),
                      check_status=True)
 
@@ -1043,7 +1045,7 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
                      cmd=['period', 'update', '--commit', '--url',
                           endpoint, '--access_key',
                           user_info['system_key']['access_key'], '--secret',
-                          user_info['system_key']['secret_key']],
+                          user_info['system_key']['secret_key'], '--cluster', cluster_name],
                      check_status=True)
 
     yield
@@ -1265,8 +1267,23 @@ def task(ctx, config):
                 break
 
     log.debug('multisite %s', multisite)
-    multi_cluster = multisite and len(ctx.config['roles']) > 1
-    log.debug('multi_cluster %s', multi_cluster)
+
+    if 'roles' in config
+        roles = config['roles']
+        log.debug('roles in config are: %s', roles)
+
+    multi_cluster = False
+    if multisite:
+        prev_cluster_name = None
+        for role in roles
+            cluster_name, daemon_type, client_id = teuthology.split_role(role)
+            #check if any roles have a different cluster_name from eachother
+            if cluster_name != prev_cluster_name && prev_cluster_name != None:
+                multi_cluster = True
+                break
+            prev_cluster_name = cluster_name
+
+    log.debug('multi_cluster is %s', multi_cluster)
     master_client = None
 
     if multi_cluster:

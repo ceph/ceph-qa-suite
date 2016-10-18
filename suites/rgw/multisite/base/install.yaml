@@ -17,3 +17,14 @@ tasks:
         rgw log meta: True
 - ceph:
     cluster: cluster2
+    conf:
+      cluster2.client.0:
+        rgw region: george
+        rgw zone: constanza
+        rgw region root pool: .rgw.region.1
+        rgw zone root pool: .rgw.zone.1
+        rgw gc pool: .rgw.gc.1
+        rgw user uid pool: .users.uid.1
+        rgw user keys pool: .users.1
+        rgw log data: False
+        rgw log meta: False
