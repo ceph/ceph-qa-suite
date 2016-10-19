@@ -464,8 +464,6 @@ def extract_zone_info(ctx, client, client_config):
     ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
     ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
     ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
-    log.debug('client in extract_zone_info is: %r', client)
-    log.debug('ceph_config in extract_zone_info is: %r', ceph_config)
     for key in ['rgw zone', 'rgw region', 'rgw zone root pool']:
         assert key in ceph_config, \
             'ceph conf must contain {key} for {client}'.format(key=key,
@@ -818,11 +816,11 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
              check_status=True)
 
     rgwadmin(ctx, master_client,
-             cmd=['-n', master_client, 'zone', 'default', zone, '--cluster', cluster_name],
+             cmd=['zone', 'default', zone, '--cluster', cluster_name],
              check_status=True)
 
     rgwadmin(ctx, master_client,
-             cmd=['-n', master_client, 'period', 'update', '--commit', '--cluster', cluster_name],
+             cmd=['period', 'update', '--commit', '--cluster', cluster_name],
              check_status=True)
 
     yield
@@ -1272,10 +1270,6 @@ def task(ctx, config):
     if multisite:
         prev_cluster_name = None
         roles = ctx.config['roles']
-        log.debug("roles are: %r", roles)
-        log.debug("ctx.config looks like: %r", ctx.config)
-        log.debug("ctx.config[ looks like: %r", ctx.config)
-        log.debug("config looks like: %r", config)
         #check if any roles have a different cluster_name from eachother
         for lst in roles:
             for role in lst:
@@ -1286,6 +1280,8 @@ def task(ctx, config):
                     multi_cluster = True
                     break
                 prev_cluster_name = cluster_name
+            if multi_cluster:
+                break
 
     log.debug('multi_cluster %s', multi_cluster)
     master_client = None
