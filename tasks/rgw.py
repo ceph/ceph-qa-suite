@@ -1274,16 +1274,18 @@ def task(ctx, config):
         roles = ctx.config['roles']
         log.debug("roles are: %r", roles)
         log.debug("ctx.config looks like: %r", ctx.config)
+        log.debug("ctx.config[ looks like: %r", ctx.config)
         log.debug("config looks like: %r", config)
         #check if any roles have a different cluster_name from eachother
-        for role in roles:
-            log.debug("role is: %r", role)
-            cluster_name, daemon_type, client_id = teuthology.split_role(role)
-            log.debug("cluster_name is: %r", cluster_name)
-            if cluster_name != prev_cluster_name and prev_cluster_name != None:
-                multi_cluster = True
-                break
-            prev_cluster_name = cluster_name
+        for lst in roles:
+            for role in lst:
+                log.debug("role is: %r", role)
+                cluster_name, daemon_type, client_id = teuthology.split_role(role)
+                log.debug("cluster_name is: %r", cluster_name)
+                if cluster_name != prev_cluster_name and prev_cluster_name != None:
+                    multi_cluster = True
+                    break
+                prev_cluster_name = cluster_name
 
     log.debug('multi_cluster %s', multi_cluster)
     master_client = None
