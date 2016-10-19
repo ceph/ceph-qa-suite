@@ -48,12 +48,12 @@ def task(ctx, config):
     for remote in ctx.cluster.remotes.iterkeys():
         if remote.os.package_type == 'rpm':
             remote.run(args=['mkdir', 'repo'], check_status=False)
-            remote.run(args=['sudo', 'cp', run.Raw('/etc/yum.repos.d/*'), 'repo/'])
+            remote.run(args=['sudo', 'mv', run.Raw('/etc/yum.repos.d/*'), 'repo/'])
             remote.run(args=['sudo', 'yum', 'clean', 'metadata'])
             remote.run(args=['sudo', 'systemctl', 'stop', 'firewalld'], check_status=False)
 
     build = config.get('rhbuild')
-    repo_url = supported_repos[build]
+    repo_url = supported_repos.get(build, None)
     log.info("Setting the repo for build %s", build)
     for remote in ctx.cluster.remotes.iterkeys():
         if remote.os.package_type == 'rpm':
