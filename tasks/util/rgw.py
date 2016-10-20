@@ -72,7 +72,7 @@ def get_user_successful_ops(out, user):
 
 def get_zone_host_and_port(ctx, client, zone):
     _, region_map = rgwadmin(ctx, client, check_status=True,
-                             cmd=['-n', client, 'region-map', 'get'])
+                             cmd=['region-map', 'get'])
     regions = region_map['zonegroups']
     for region in regions:
         for zone_info in region['val']['zones']:
@@ -86,7 +86,7 @@ def get_zone_host_and_port(ctx, client, zone):
 
 def get_master_zone(ctx, client):
     _, region_map = rgwadmin(ctx, client, check_status=True,
-                             cmd=['-n', client, 'region-map', 'get'])
+                             cmd=['region-map', 'get'])
     regions = region_map['zonegroups']
     for region in regions:
         is_master = (region['val']['is_master'] == "true")
@@ -117,8 +117,7 @@ def get_master_client(ctx, clients):
 
 def get_zone_system_keys(ctx, client, zone):
     _, zone_info = rgwadmin(ctx, client, check_status=True,
-                            cmd=['-n', client,
-                                 'zone', 'get', '--rgw-zone', zone])
+                            cmd=['zone', 'get', '--rgw-zone', zone])
     system_key = zone_info['system_key']
     return system_key['access_key'], system_key['secret_key']
 
