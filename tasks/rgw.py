@@ -770,7 +770,7 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
     fill_in_endpoints(region_info, role_zones, role_endpoints)
 
     # clear out the old defaults
-    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    cluster_name, daemon_type, client_id = teuthology.split_role(master_client)
     first_mon = teuthology.get_first_mon(ctx, config, cluster_name)
     (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
 
