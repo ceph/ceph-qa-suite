@@ -1032,11 +1032,15 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
 
             (zonegroup, zone, zone_info, zone_user_info) = role_zones[client]
             zone_json = json.dumps(dict(zone_info.items() + zone_user_info.items()))
-            log.debug("zone info is: %r"), zone_json
+            log.debug("zone info is: %r", zone_json)
             rgwadmin(ctx, client,
-                     cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
+                     cmd=['zone', 'set', '--default',
                           '--rgw-zone', zone, '--cluster', cluster_name],
                      stdin=StringIO(zone_json),
+                     check_status=True)
+
+            rgwadmin(ctx, client,
+                     cmd=['zonegroup', 'add', '--rgw-zonegroup', zonegroup, '--rgw-zone', zone, '--cluster', cluster_name],
                      check_status=True)
 
             rgwadmin(ctx, client,
