@@ -826,7 +826,7 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
              check_status=True)
 
     rgwadmin(ctx, master_client,
-             cmd=['period', 'update', '--commit', '--cluster', cluster_name],
+             cmd=['period', 'update', '--commit', '--cluster', cluster_name, '--debug-rgw=20', '--debug-ms=1'],
              check_status=True)
 
     yield
