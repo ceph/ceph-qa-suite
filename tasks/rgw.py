@@ -326,7 +326,7 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         rgw_cmd.extend([
             '-n', client_with_id,
             '--cluster', cluster_name,
-            '-k', '/etc/ceph/ceph.{client}.keyring'.format(client=client),
+            '-k', '/etc/ceph/{client}.keyring'.format(client=client),
             '--log-file',
             '/var/log/ceph/rgw.{client}.log'.format(client=client),
             '--rgw_ops_log_socket_path',
