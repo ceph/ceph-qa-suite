@@ -1051,7 +1051,7 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
                      cmd=['period', 'update', '--commit', '--url',
                           endpoint, '--access_key',
                           user_info['system_key']['access_key'], '--secret',
-                          user_info['system_key']['secret_key'], '--cluster', cluster_name, '--debug-rgw=20', '--debug-ms=1'],
+                          user_info['system_key']['secret_key'], '--cluster', cluster_name],
                      check_status=True)
 
     yield

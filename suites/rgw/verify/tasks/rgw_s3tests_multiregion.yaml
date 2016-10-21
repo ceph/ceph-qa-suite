@@ -1,10 +1,10 @@
 tasks:
 - install:
-    flavor: notcmalloc
     debuginfo: true
 - ceph:
+    cluster: cluster1
     conf:
-      client.0: 
+      cluster1.client.0:
         rgw region:  zero
         rgw zone: r0z1
         rgw region root pool: .rgw.region.0
@@ -14,7 +14,11 @@ tasks:
         rgw user keys pool: .users.0
         rgw log data: True
         rgw log meta: True
-      client.1: 
+        rgw lc debug interval: 10
+- ceph:
+    cluster: cluster2
+    conf:
+      cluster2.client.0: 
         rgw region: one
         rgw zone: r1z1
         rgw region root pool: .rgw.region.1
@@ -24,6 +28,7 @@ tasks:
         rgw user keys pool: .users.1
         rgw log data: False
         rgw log meta: False
+        rgw lc debug interval: 10
 - rgw:
     default_idle_timeout: 300
     realm:
@@ -54,17 +59,12 @@ tasks:
 - sleep:
     duration: 5
 - radosgw-agent:
-    client.0:
-      src: client.0
-      dest: client.1
+    cluster1.client.0:
+      src: cluster1.client.0
+      dest: cluster2.client.0
       metadata-only: true
 - s3tests:
-    client.0:
+    cluster1.client.0:
       force-branch: ceph-master
       idle_timeout: 300
-      rgw_server: client.0
-overrides:
-  ceph:
-    conf:
-      client:
-        rgw lc debug interval: 10
+      rgw_server: cluster1.client.0
