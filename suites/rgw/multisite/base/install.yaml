@@ -15,6 +15,7 @@ tasks:
         rgw user keys pool: .users.0
         rgw log data: True
         rgw log meta: True
+        rgw lc debug interval: 10
 - ceph:
     cluster: cluster2
     conf:
@@ -28,3 +29,4 @@ tasks:
         rgw user keys pool: .users.1
         rgw log data: False
         rgw log meta: False
+        rgw lc debug interval: 10
