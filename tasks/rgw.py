@@ -1044,6 +1044,10 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
                      check_status=True)
 
             rgwadmin(ctx, client,
+                     cmd=['zonegroup', 'default', '--rgw-zonegroup', zonegroup, '--cluster', cluster_name],
+                     check_status=True)
+
+            rgwadmin(ctx, client,
                      cmd=['period', 'update', '--commit', '--url',
                           endpoint, '--access_key',
                           user_info['system_key']['access_key'], '--secret',
