@@ -3,6 +3,10 @@ overrides:
   install:
     ceph:
       extra_packages: [rbd-nbd]
+  ceph:
+    conf:
+      client:
+        debug rbd: 20
 tasks:
 - rbd_fsx:
     clients: [client.0]
