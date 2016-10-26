@@ -5,5 +5,6 @@ overrides:
         debug objclass: 20
       client:
         debug rgw: 20
+        rgw md log max shards: 2
   rgw:
     frontend: civetweb
