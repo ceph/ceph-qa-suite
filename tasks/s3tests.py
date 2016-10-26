@@ -213,9 +213,11 @@ def create_users(ctx, config):
     try:
         yield
     finally:
+        log.info(config)
         for client in config['clients']:
             for user in users.itervalues():
                 uid = '{user}.{client}'.format(user=user, client=client)
+                log.info("Running on client: " + client)
                 ctx.cluster.only(client).run(
                     args=[
                         'adjust-ulimits',
