@@ -18,7 +18,7 @@ from teuthology.task import ansible
 from teuthology.orchestra import run
 from teuthology.packaging import install_package
 from teuthology.parallel import parallel
-from teuthology.nuke.actions import remove_ceph_packages, reboot
+from teuthology.nuke.actions import remove_ceph_packages, reboot, remove_osd_mounts
 
 log = logging.getLogger(__name__)
 
