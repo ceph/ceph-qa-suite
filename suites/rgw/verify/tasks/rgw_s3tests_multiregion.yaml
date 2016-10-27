@@ -44,13 +44,13 @@ tasks:
         is master: False
         master zone: r1z1
         zones: [r1z1]
-    client.0:
+    cluster1.client.0:
       valgrind: [--tool=memcheck]
       system user:
         name: client0-system-user
         access key: 1te6NH5mcdcq0Tc5i8i2
         secret key: 1y4IOauQoL18Gp2zM7lC1vLmoawgqcYPbYGcWfXv
-    client.1:
+    cluster2.client.0:
       valgrind: [--tool=memcheck]
       system user:
         name: client1-system-user
