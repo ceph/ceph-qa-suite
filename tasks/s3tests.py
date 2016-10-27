@@ -274,6 +274,8 @@ def configure(ctx, config):
             path='{tdir}/archive/s3-tests.{client}.conf'.format(tdir=testdir, client=client),
             data=conf_fp.getvalue(),
             )
+        path='{tdir}/archive/s3-tests.{client}.conf'.format(tdir=testdir, client=client)
+        remote.run(args=['cat', run.Raw(path)], check_status=False)
 
     log.info('Configuring boto...')
     boto_src = os.path.join(os.path.dirname(__file__), 'boto.cfg.template')
@@ -288,6 +290,8 @@ def configure(ctx, config):
                 path='{tdir}/boto.cfg'.format(tdir=testdir),
                 data=conf,
                 )
+            path='{tdir}/boto.cfg'.format(tdir=testdir)
+            remote.run(args=['cat', run.Raw(path)], check_status=False)
 
     try:
         yield
