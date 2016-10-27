@@ -18,6 +18,7 @@ from teuthology.task import ansible
 from teuthology.orchestra import run
 from teuthology.packaging import install_package
 from teuthology.parallel import parallel
+from teuthology.nuke.actions import remove_ceph_packages, reboot
 
 log = logging.getLogger(__name__)
 
@@ -455,11 +456,16 @@ def build_ceph_cluster(ctx, config):
         all_nodes = get_all_nodes(ctx, config)
         purge_nodes = 'ceph-deploy purge' + " " + all_nodes
         purgedata_nodes = 'ceph-deploy purgedata' + " " + all_nodes
-
         log.info('Purging package...')
         execute_ceph_deploy(purge_nodes)
-        log.info('Purging data...')
-        execute_ceph_deploy(purgedata_nodes)
+	# reboot and cleanup as 1.3.3 has issues with osd locks
+        reboot(ctx, ctx.cluster.remotes)
+        log.info('Unmount any osd data directories...')
+	remove_osd_mounts(ctx)
+	log.info("Force remove ceph packages")
+	remove_ceph_packages(ctx)
+	log.info('Purging data...')
+	execute_ceph_deploy(purgedata_nodes)
 
 
 def first_in_ceph_log(remote, pattern, excludes):
@@ -805,7 +811,6 @@ def task(ctx, config):
 
     with contextutil.nested(
         lambda: install_fn.ship_utilities(ctx=ctx, config=None),
-        lambda: ansible.CephLab(ctx, config=ansible_config),
         lambda: build_ceph_cluster(ctx=ctx, config=config),
     ):
         yield
