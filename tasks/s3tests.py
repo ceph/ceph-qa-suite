@@ -29,7 +29,11 @@ def extract_sync_client_data(ctx, client_name):
     """
     return_region_name = None
     return_dict = None
-    client = ctx.ceph['ceph'].conf.get(client_name, None)
+    log.debug('', client_name)
+    log.debug('client_name passed into extract_sync_client_data in s3tests.py is: %r', client_name)
+    cluster_name, daemon_type, client_id = teuthology.split_role(client_name)
+    client = ctx.ceph[cluster_name].conf.get(client_name, None)
+    log.debug('client gotten from conf.get in extract_sync_client_data in s3tests.py is: %r', client)
     if client:
         current_client_zone = client.get('rgw zone', None)
         if current_client_zone:
