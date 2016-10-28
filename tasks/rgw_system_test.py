@@ -66,7 +66,7 @@ def test_Mbuckets(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_Mbuckets.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_Mbuckets.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_Mbuckets.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -138,7 +138,7 @@ def test_Mbuckets_with_Nobjects(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_Mbuckets_with_Nobjects.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_Mbuckets_with_Nobjects.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_Mbuckets_with_Nobjects.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -210,7 +210,7 @@ def test_bucket_with_delete(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_bucket_with_delete.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_bucket_with_delete.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_bucket_with_delete.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -280,7 +280,7 @@ def test_multipart_upload(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_multipart_upload.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_multipart_upload.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_multipart_upload.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -350,7 +350,7 @@ def test_multipart_upload_download(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_multipart_upload_download.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_multipart_upload_download.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_multipart_upload_download.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -422,7 +422,7 @@ def test_multpart_upload_cancel(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_multpart_upload_cancel.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_multipart_upload_cancel.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_multipart_upload_cancel.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -496,7 +496,7 @@ def test_basic_versioning(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_basic_versioning.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_basic_versioning.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_basic_versioning.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -565,7 +565,7 @@ def test_delete_key_versions(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_delete_key_versions.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_delete_key_versions.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_delete_key_versions.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -639,7 +639,7 @@ def test_suspend_versioning(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_suspend_versioning.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_suspend_versioning.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_suspend_versioning.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -713,7 +713,7 @@ def test_version_with_revert(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_version_with_revert.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_version_with_revert.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_version_with_revert.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -782,7 +782,7 @@ def test_basic_acls(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_acls.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_acls.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_acls.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -853,7 +853,7 @@ def test_acls_all_usrs(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_acls_all_usrs.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_acls_all_usrs.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_acls_all_usrs.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -918,7 +918,7 @@ def test_acls_copy_obj(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_acls_copy_obj.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_acls_copy_obj.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_acls_copy_obj.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
@@ -985,7 +985,7 @@ def test_acls_reset(config, clients):
         args=[
             run.Raw(
                 'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/test_acls_reset.py '
-                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_acls_reset.yaml -p 7280')])
+                '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/test_acls_reset.yaml -p 8080')])
 
     if os.path.exists('/tmp/rgwtmp'):
         shutil.rmtree('/tmp/rgwtmp')
