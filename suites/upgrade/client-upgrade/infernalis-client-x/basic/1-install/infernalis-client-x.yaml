@@ -1,6 +1,6 @@
 tasks:
 - install:
-    branch: infernalis 
+    branch: wip-mgolub-testing-infernalis
 - print: "**** done install infernalis"
 upgrade_workload:
   sequential:

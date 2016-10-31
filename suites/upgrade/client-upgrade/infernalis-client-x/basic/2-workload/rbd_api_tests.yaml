@@ -12,7 +12,7 @@ tasks:
     - "rm -rf $TESTDIR/ceph_test_librbd_api"
 - print: "**** done reverting to hammer ceph_test_librbd_api"
 - workunit:
-    branch: infernalis
+    branch: wip-mgolub-testing-infernalis
     clients:
       client.0:
       - rbd/test_librbd_api.sh
