@@ -642,7 +642,6 @@ def configure_users_for_client(ctx, config, client, everywhere=False):
                          '--secret', user_info['system_key']['secret_key'],
                          '--display-name', user_info['system_key']['user'],
                          '--system',
-                         '--cluster', cluster_name,
                      ],
                      check_status=True,
             )
@@ -684,7 +683,6 @@ def configure_users(ctx, config,  everywhere=False):
                          '--secret', user_info['system_key']['secret_key'],
                          '--display-name', user_info['system_key']['user'],
                          '--system',
-                         '--cluster', cluster_name,
                      ],
                      check_status=True,
                      )
@@ -787,26 +785,26 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
     log.debug('master client = %r', master_client)
 
     rgwadmin(ctx, master_client,
-             cmd=['realm', 'create', '--rgw-realm', realm, '--default', '--cluster', cluster_name],
+             cmd=['realm', 'create', '--rgw-realm', realm, '--default'],
              check_status=True)
 
     for region, info in region_info.iteritems():
         region_json = json.dumps(info)
         log.debug('region info is: %s', region_json)
         rgwadmin(ctx, master_client,
-                 cmd=['zonegroup', 'set', '--cluster', cluster_name],
+                 cmd=['zonegroup', 'set'],
                  stdin=StringIO(region_json),
                  check_status=True)
 
     rgwadmin(ctx, master_client,
-             cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup, '--cluster', cluster_name],
+             cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup],
              check_status=True)
 
     for role, (zonegroup, zone, zone_info, user_info) in role_zones.iteritems():
         (remote,) = ctx.cluster.only(role).remotes.keys()
         for pool_info in zone_info['placement_pools']:
             remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'create',
-                             pool_info['val']['index_pool'], '64', '64', '--cluster', cluster_name])
+                             pool_info['val']['index_pool'], '64', '64'])
             if ctx.rgw.ec_data_pool:
                 create_ec_pool(remote, pool_info['val']['data_pool'],
                                zone, 64, ctx.rgw.erasure_code_profile, cluster_name)
@@ -818,16 +816,16 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
     log.debug("zone info is: %r", zone_json)
     rgwadmin(ctx, master_client,
              cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
-                  '--rgw-zone', zone, '--cluster', cluster_name],
+                  '--rgw-zone', zone],
              stdin=StringIO(zone_json),
              check_status=True)
 
     rgwadmin(ctx, master_client,
-             cmd=['zone', 'default', '--rgw-zone', zone, '--cluster', cluster_name],
+             cmd=['zone', 'default', '--rgw-zone', zone],
              check_status=True)
 
     rgwadmin(ctx, master_client,
-             cmd=['period', 'update', '--commit', '--cluster', cluster_name],
+             cmd=['period', 'update', '--commit'],
              check_status=True)
 
     yield
@@ -894,9 +892,9 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     # removing these objects from .rgw.root and the per-zone root pools
     # may or may not matter
     rados(ctx, mon,
-          cmd=['-p', '.rgw.root', 'rm', 'region_info.default', '--cluster', cluster_name])
+          cmd=['-p', '.rgw.root', 'rm', 'region_info.default'])
     rados(ctx, mon,
-          cmd=['-p', '.rgw.root', 'rm', 'zone_info.default', '--cluster', cluster_name])
+          cmd=['-p', '.rgw.root', 'rm', 'zone_info.default'])
 
     # read master zonegroup and master_zone
     for zonegroup, zg_info in region_info.iteritems():
@@ -917,7 +915,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     log.debug('config %r ', config)
 
     (ret, out)=rgwadmin(ctx, client,
-                        cmd=['realm', 'create', '--rgw-realm', realm, '--default', '--cluster', cluster_name])
+                        cmd=['realm', 'create', '--rgw-realm', realm, '--default'])
     log.debug('realm create ret %r exists %r', -ret, errno.EEXIST)
     assert ret == 0 or ret != -errno.EEXIST
     if ret is -errno.EEXIST:
@@ -927,15 +925,15 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
         for role, (zonegroup, zone, zone_info, user_info) in role_zones.iteritems():
             rados(ctx, mon,
                   cmd=['-p', zone_info['domain_root'],
-                       'rm', 'region_info.default', '--cluster', cluster_name])
+                       'rm', 'region_info.default'])
             rados(ctx, mon,
                   cmd=['-p', zone_info['domain_root'],
-                       'rm', 'zone_info.default', '--cluster', cluster_name])
+                       'rm', 'zone_info.default'])
 
             (remote,) = ctx.cluster.only(role).remotes.keys()
             for pool_info in zone_info['placement_pools']:
                 remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'create',
-                                 pool_info['val']['index_pool'], '64', '64', '--cluster', cluster_name])
+                                 pool_info['val']['index_pool'], '64', '64'])
                 if ctx.rgw.ec_data_pool:
                     create_ec_pool(remote, pool_info['val']['data_pool'],
                                    zone, 64, ctx.rgw.erasure_code_profile, cluster_name)
@@ -947,7 +945,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
             log.debug('zone info is: %r', zone_json)
             rgwadmin(ctx, client,
                  cmd=['zone', 'set', '--rgw-zonegroup', zonegroup,
-                      '--rgw-zone', zone, '--cluster', cluster_name],
+                      '--rgw-zone', zone],
                  stdin=StringIO(zone_json),
                  check_status=True)
 
@@ -955,22 +953,22 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
             region_json = json.dumps(info)
             log.debug('region info is: %s', region_json)
             rgwadmin(ctx, client,
-                     cmd=['zonegroup', 'set', '--cluster', cluster_name],
+                     cmd=['zonegroup', 'set'],
                      stdin=StringIO(region_json),
                      check_status=True)
             if info['is_master']:
                 rgwadmin(ctx, client,
-                         cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup, '--cluster', cluster_name],
+                         cmd=['zonegroup', 'default', '--rgw-zonegroup', master_zonegroup],
                          check_status=True)
 
         (zonegroup, zone, zone_info, user_info) = role_zones[client]
         rgwadmin(ctx, client,
-                 cmd=['zone', 'default', '--rgw-zone', zone, '--cluster', cluster_name],
+                 cmd=['zone', 'default', '--rgw-zone', zone],
                  check_status=True)
 
     #this used to take master_client, need to edit that accordingly
     rgwadmin(ctx, client,
-             cmd=['period', 'update', '--commit', '--cluster', cluster_name],
+             cmd=['period', 'update', '--commit'],
              check_status=True)
 
     yield
@@ -1034,7 +1032,7 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
                 cmd=['realm', 'pull', '--rgw-realm', realm, '--default', '--url',
                      endpoint, '--access_key',
                      user_info['system_key']['access_key'], '--secret',
-                     user_info['system_key']['secret_key'], '--cluster', cluster_name],
+                     user_info['system_key']['secret_key']],
                      check_status=True)
 
             (zonegroup, zone, zone_info, zone_user_info) = role_zones[client]
@@ -1042,23 +1040,23 @@ def pull_configuration(ctx, config, regions, role_endpoints, realm, master_clien
             log.debug("zone info is: %r", zone_json)
             rgwadmin(ctx, client,
                      cmd=['zone', 'set', '--default',
-                          '--rgw-zone', zone, '--cluster', cluster_name],
+                          '--rgw-zone', zone],
                      stdin=StringIO(zone_json),
                      check_status=True)
 
             rgwadmin(ctx, client,
-                     cmd=['zonegroup', 'add', '--rgw-zonegroup', zonegroup, '--rgw-zone', zone, '--cluster', cluster_name],
+                     cmd=['zonegroup', 'add', '--rgw-zonegroup', zonegroup, '--rgw-zone', zone],
                      check_status=True)
 
             rgwadmin(ctx, client,
-                     cmd=['zonegroup', 'default', '--rgw-zonegroup', zonegroup, '--cluster', cluster_name],
+                     cmd=['zonegroup', 'default', '--rgw-zonegroup', zonegroup],
                      check_status=True)
 
             rgwadmin(ctx, client,
                      cmd=['period', 'update', '--commit', '--url',
                           endpoint, '--access_key',
                           user_info['system_key']['access_key'], '--secret',
-                          user_info['system_key']['secret_key'], '--cluster', cluster_name],
+                          user_info['system_key']['secret_key']],
                      check_status=True)
 
     yield
