@@ -328,7 +328,7 @@ def test_list_inconsistent_obj(ctx, manager, osd_remote, pg, acting, osd_id,
             assert len(objs['inconsistents']) == 1
 
             checker = InconsistentObjChecker(osd_id, acting, obj_name)
-            inc_obj = objs[0]
+            inc_obj = objs['inconsistents'][0]
             log.info('inc = %r', inc_obj)
             checker.basic_checks(inc_obj)
             for check in checks:
