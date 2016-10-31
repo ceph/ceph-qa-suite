@@ -121,9 +121,9 @@ def get_zone_system_keys(ctx, client, zone):
 
 def zone_for_client(ctx, client):
     cluster_name, daemon_type, client_id = teuthology.split_role(client)
-    ceph_config = ctx.ceph[cluster_name].get('global', {})
-    ceph_config.update(ctx.ceph[cluster_name].get('client', {}))
-    ceph_config.update(ctx.ceph[cluster_name].get(client, {}))
+    ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
+    ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
+    ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
     return ceph_config.get('rgw zone')
 
 def region_for_client(ctx, client):
