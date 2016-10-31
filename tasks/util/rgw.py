@@ -29,7 +29,7 @@ def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
         '--log-to-stderr',
         '--format', format,
         '-n',  client_with_id,
-        '-c', cluster_name,
+        '--cluster', cluster_name,
         ]
     pre.extend(cmd)
     log.info('rgwadmin: cmd=%s' % pre)
