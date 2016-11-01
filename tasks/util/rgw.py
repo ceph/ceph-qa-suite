@@ -128,15 +128,17 @@ def zone_for_client(ctx, client):
     return ceph_config.get('rgw zone')
 
 def region_for_client(ctx, client):
-    ceph_config = ctx.ceph['ceph'].conf.get('global', {})
-    ceph_config.update(ctx.ceph['ceph'].conf.get('client', {}))
-    ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
+    ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
+    ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
     return ceph_config.get('rgw region')
 
 def radosgw_data_log_window(ctx, client):
-    ceph_config = ctx.ceph['ceph'].conf.get('global', {})
-    ceph_config.update(ctx.ceph['ceph'].conf.get('client', {}))
-    ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
+    ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
+    ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
     return ceph_config.get('rgw data log window', 30)
 
 def radosgw_agent_sync_data(ctx, agent_host, agent_port, full=False):
