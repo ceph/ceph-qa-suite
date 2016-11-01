@@ -58,11 +58,6 @@ tasks:
         secret key: Oy4IOauQoL18Gp2zM7lC1vLmoawgqcYPbYGcWfXv
 - sleep:
     duration: 5
-- radosgw-agent:
-    cluster1.client.0:
-      src: cluster1.client.0
-      dest: cluster2.client.0
-      metadata-only: true
 - s3tests:
     cluster1.client.0:
       force-branch: ceph-master
