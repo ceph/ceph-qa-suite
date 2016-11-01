@@ -798,7 +798,7 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
         (remote,) = ctx.cluster.only(role).remotes.keys()
         for pool_info in zone_info['placement_pools']:
             remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'create',
-                             pool_info['val']['index_pool'], '64', '64'])
+                             pool_info['val']['index_pool'], '64', '64', '--cluster', cluster_name])
             if ctx.rgw.ec_data_pool:
                 create_ec_pool(remote, pool_info['val']['data_pool'],
                                zone, 64, ctx.rgw.erasure_code_profile, cluster_name)
@@ -927,7 +927,7 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
             (remote,) = ctx.cluster.only(role).remotes.keys()
             for pool_info in zone_info['placement_pools']:
                 remote.run(args=['sudo', 'ceph', 'osd', 'pool', 'create',
-                                 pool_info['val']['index_pool'], '64', '64'])
+                                 pool_info['val']['index_pool'], '64', '64', '--cluster', cluster_name])
                 if ctx.rgw.ec_data_pool:
                     create_ec_pool(remote, pool_info['val']['data_pool'],
                                    zone, 64, ctx.rgw.erasure_code_profile, cluster_name)
