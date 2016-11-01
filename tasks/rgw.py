@@ -886,9 +886,9 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     # removing these objects from .rgw.root and the per-zone root pools
     # may or may not matter
     rados(ctx, mon,
-          cmd=['-p', '.rgw.root', 'rm', 'region_info.default'])
+          cmd=['-p', '.rgw.root', 'rm', 'region_info.default', '--cluster', cluster_name])
     rados(ctx, mon,
-          cmd=['-p', '.rgw.root', 'rm', 'zone_info.default'])
+          cmd=['-p', '.rgw.root', 'rm', 'zone_info.default', '--cluster', cluster_name])
 
     # read master zonegroup and master_zone
     for zonegroup, zg_info in region_info.iteritems():
@@ -919,10 +919,10 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
         for role, (zonegroup, zone, zone_info, user_info) in role_zones.iteritems():
             rados(ctx, mon,
                   cmd=['-p', zone_info['domain_root'],
-                       'rm', 'region_info.default'])
+                       'rm', 'region_info.default', '--cluster', cluster_name])
             rados(ctx, mon,
                   cmd=['-p', zone_info['domain_root'],
-                       'rm', 'zone_info.default'])
+                       'rm', 'zone_info.default', '--cluster', cluster_name])
 
             (remote,) = ctx.cluster.only(role).remotes.keys()
             for pool_info in zone_info['placement_pools']:
