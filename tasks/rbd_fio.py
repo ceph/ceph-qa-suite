@@ -101,13 +101,13 @@ def run_fio(remote, config, rbd_test_dir):
         
     formats=[1,2]
     features=[1,2,4]
-    fio_version='2.5'
+    fio_version='2.15'
     if config.get('formats'):
         formats=config['formats']
     if config.get('features'):
         features=config['features']
-    if config.get('fio-version'):
-        fio_version=config['fio-version']
+    #if config.get('fio-version'):
+    #    fio_version=config['fio-version']
     
     fio_config.write('norandommap\n')
     if ioengine == 'rbd':
