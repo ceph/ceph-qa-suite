@@ -266,7 +266,6 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         log.debug('client %r', clients_to_run)
     testdir = teuthology.get_testdir(ctx)
     for client in clients_to_run:
-        log.debug('client in clients to run is: %r', client)
         if client == except_client:
             continue
         (remote,) = ctx.cluster.only(client).remotes.iterkeys()
@@ -460,8 +459,6 @@ def extract_zone_info(ctx, client, client_config):
     :returns: zone extracted from client and client_config information
     """
     cluster_name, daemon_type, client_id = teuthology.split_role(client)
-    log.debug('client in extract_zone_info is: %r', client)
-    log.debug('cluster_name in extract_zone_info is: %r', cluster_name)
     ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
     ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
     ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
@@ -698,12 +695,9 @@ def create_nonregion_pools(ctx, config, regions):
 
     log.info('creating data pools')
     for client in config.keys():
-        log.debug('client: %r', client)
         (remote,) = ctx.cluster.only(client).remotes.iterkeys()
-        log.debug('remote: %r', remote)
         data_pool = '.rgw.buckets'
         cluster_name, daemon_type, client_id = teuthology.split_role(client)
-        log.debug('cluster: %r', cluster_name)
 
         if ctx.rgw.ec_data_pool:
             create_ec_pool(remote, data_pool, client, 64,
@@ -852,8 +846,6 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
 
     # see what the client and c_config are in configure_regions_and_zones
     for client, c_config in config.iteritems():
-        log.debug('client in configure_regions_and_zones is %r', client)
-        log.debug('c_config in configure_regions_and_zones is %r', c_config)
 
     # extract the zone info
     role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
@@ -881,7 +873,6 @@ def configure_regions_and_zones(ctx, config, regions, role_endpoints, realm):
     cluster_name, daemon_type, client_id = teuthology.split_role(client)
     client_with_id = daemon_type + '.' + client_id
     first_mon = teuthology.get_first_mon(ctx, config, cluster_name)
-    log.debug('first_mon in configure_regions_and_zones is %r', first_mon)
     (mon,) = ctx.cluster.only(first_mon).remotes.iterkeys()
     # removing these objects from .rgw.root and the per-zone root pools
     # may or may not matter
@@ -1280,9 +1271,7 @@ def task(ctx, config):
         #check if any roles have a different cluster_name from eachother
         for lst in roles:
             for role in lst:
-                log.debug("role is: %r", role)
                 cluster_name, daemon_type, client_id = teuthology.split_role(role)
-                log.debug("cluster_name is: %r", cluster_name)
                 if cluster_name != prev_cluster_name and prev_cluster_name != None:
                     multi_cluster = True
                     break

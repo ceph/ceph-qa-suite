@@ -154,7 +154,6 @@ def radosgw_agent_sync_metadata(ctx, agent_host, agent_port, full=False):
 def radosgw_agent_sync_all(ctx, full=False, data=False):
     if ctx.radosgw_agent.procs:
         for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
-            #what is the purpose of this function not returning a zone?
             zone_for_client(ctx, agent_client)
             sync_host, sync_port = get_sync_agent(ctx, agent_client)
             log.debug('doing a sync via {host1}'.format(host1=sync_host))
