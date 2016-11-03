@@ -438,6 +438,7 @@ def build_ceph_cluster(ctx, config):
                 "The cluster is NOT operational due to insufficient OSDs")
         # Fix roles
         (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
+        num=97 # char 'a' 
         for remote, roles in ctx.cluster.remotes.iteritems():
             out = StringIO()
             remote.run(
@@ -456,6 +457,12 @@ def build_ceph_cluster(ctx, config):
                     role = m_d.group(1) + '.' + m_d.group(2)
                     log.info("Appending role: %s", role)
                     new_roles.append(role)
+                    if m_d.group(1) == 'mon':
+                        # keep the old mon role name for compatibility with old code
+                        role = 'mon.' + chr(num)
+                        num = num + 1
+                        log.info("old mon role: %s", role)
+                        new_roles.append(role)
             for r in roles:
                 if r.startswith('client'):
                     log.info("Restoring client role: %s", r)
