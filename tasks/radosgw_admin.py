@@ -79,12 +79,14 @@ def task(ctx, config):
     if isinstance(config, list):
         config = dict.fromkeys(config)
     clients = config.keys()
+    log.debug('ALI ADDED, clients are: %r', clients)
 
-    multi_region_run = rgw_utils.multi_region_enabled(ctx)
+    multi_region_run = multi_region_enabled(config)
 
     client = clients[0]; # default choice, multi-region code may overwrite this
     if multi_region_run:
         client = rgw_utils.get_master_client(ctx, clients)
+        log.debug('ALI ADDED, master_client is: %r', client)
 
     # once the client is chosen, pull the host name and  assigned port out of
     # the role_endpoints that were assigned by the rgw task
