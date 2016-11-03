@@ -57,7 +57,7 @@ def task(ctx, config):
     log.info("Setting the repo for build %s", build)
     for remote in ctx.cluster.remotes.iterkeys():
         if remote.os.package_type == 'rpm':
-            if build == '1.3.2':
+            if build == '1.3.2' or build == '1.3.3':
                 enable_cdn_repo(remote, repos_13x)
             elif build == '2.0':
                 enable_cdn_repo(remote, repos_20)
