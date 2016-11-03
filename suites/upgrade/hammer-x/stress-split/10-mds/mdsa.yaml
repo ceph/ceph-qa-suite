@@ -1,0 +1,4 @@
+tasks:
+- ceph.restart:
+    daemons: [mds.a]
+- print: "**** done ceph.restart mds.a"

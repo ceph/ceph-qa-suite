@@ -1,0 +1,7 @@
+tasks:
+- ceph-fuse:
+- workunit:
+    clients:
+      client.0:
+        - suites/blogbench.sh
+- print: "**** done rbd/import_export.sh 5-workload"
