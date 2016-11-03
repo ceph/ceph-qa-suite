@@ -31,46 +31,28 @@ upgrade-sequence:
 upgrade-first-half:
   sequential:
   - install.upgrade:
-      mon.a:
-  - print: "**** done install.upgrade mon.{a,b,c} and osd.{0,1}"
+      osd.0:
+      osd.3:
   - ceph.restart:
-      daemons: [mon.a]
+      daemons: [osd.0, osd.1, osd.2]
       wait-for-healthy: true
   - sleep:
       duration: 60
   - ceph.restart:
-      daemons: [osd.0]
-      wait-for-healthy: true
-  - sleep:
-      duration: 60
-  - ceph.restart:
-      daemons: [osd.1]
-      wait-for-healthy: true
-  - sleep:
-      duration: 60
-  - ceph.restart:
-      daemons: [mon.b]
-      wait-for-healthy: true
-  - sleep:
-      duration: 60
-  - ceph.restart:
-      daemons: [mon.c]
+      daemons: [osd.3, osd.4, osd.5]
       wait-for-healthy: true
   - sleep:
       duration: 60
 
 upgrade-second-half:
   sequential:
-  - install.upgrade:
-      osd.2:
-  - print: "**** done install.upgrade osd.{2,3}"
   - ceph.restart:
-      daemons: [osd.2]
+      daemons: [mon.a]
       wait-for-healthy: true
   - sleep:
       duration: 60
   - ceph.restart:
-      daemons: [osd.3]
+      daemons: [mon.b, mon.c]
       wait-for-healthy: true
   - sleep:
       duration: 60

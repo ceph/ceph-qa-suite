@@ -14,4 +14,4 @@ tasks:
     - upgrade-sequence
 - print: "**** done parallel"
 - install.upgrade:
-    client.0:
+    client.1:

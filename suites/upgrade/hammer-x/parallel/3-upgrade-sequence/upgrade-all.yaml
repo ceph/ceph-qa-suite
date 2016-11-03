@@ -1,4 +1,4 @@
 upgrade-sequence:
    sequential:
-   - ceph.restart: [mon.a, mon.b, mon.c, mds.a, osd.0, osd.1, osd.2, osd.3]
+   - ceph.restart: [osd.0, osd.1, osd.2, osd.3, osd.4, osd.5, mon.a, mon.b, mon.c, mds.a]
    - print: "**** done ceph.restart all"

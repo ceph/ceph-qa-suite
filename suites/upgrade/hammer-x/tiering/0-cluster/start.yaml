@@ -5,15 +5,16 @@ roles:
   - mds.a
   - osd.0
   - osd.1
-- - osd.2
-  - osd.3
+  - osd.2
+- - osd.3
+  - osd.4
+  - osd.5
 - - client.0
 overrides:
   ceph:
     log-whitelist:
     - scrub mismatch
     - ScrubResult
-    - failed to encode map
     - wrongly marked me down
     - soft lockup
     - detected stalls on CPUs

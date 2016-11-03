@@ -1,7 +1,7 @@
 workload:
   full_sequential:
   - rados:
-      clients: [client.0]
+      clients: [client.1]
       ops: 4000
       objects: 50
       ec_pool: true
