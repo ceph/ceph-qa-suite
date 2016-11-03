@@ -18,7 +18,6 @@ from teuthology.config import config as teuth_config
 from teuthology.task import install as install_fn
 from teuthology.orchestra.daemon import DaemonGroup, run
 from tasks.cephfs.filesystem import Filesystem
-from tasks import set_repo
 from ceph_manager import CephManager
 from tasks.set_repo import set_repo_simple
 
@@ -438,7 +437,7 @@ def build_ceph_cluster(ctx, config):
                 "The cluster is NOT operational due to insufficient OSDs")
         # Fix roles
         (mon,) = ctx.cluster.only('mon.a').remotes.iterkeys()
-        num=97 # char 'a' 
+        num = 97  # char 'a'
         for remote, roles in ctx.cluster.remotes.iteritems():
             out = StringIO()
             remote.run(
@@ -453,12 +452,17 @@ def build_ceph_cluster(ctx, config):
             for line in out:
                 m_d = re.search(
                     r'ceph-(.*)\s+-f.*--id\s+(.*)\s+--setuser', line)
+                if m_d is None:
+                    # try 1.3.x
+                    m_d = re.search(
+                        r'\d\d /usr/bin/ceph-(.*)\s+-i\s+(.*)\s+--pid', line)
                 if m_d:
                     role = m_d.group(1) + '.' + m_d.group(2)
                     log.info("Appending role: %s", role)
                     new_roles.append(role)
                     if m_d.group(1) == 'mon':
-                        # keep the old mon role name for compatibility with old code
+                        # keep the old mon role name for compatibility with old
+                        # code
                         role = 'mon.' + chr(num)
                         num = num + 1
                         log.info("old mon role: %s", role)
