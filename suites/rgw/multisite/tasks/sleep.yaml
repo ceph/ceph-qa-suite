@@ -1,0 +1,3 @@
+tasks:
+- sleep:
+    duration: 5

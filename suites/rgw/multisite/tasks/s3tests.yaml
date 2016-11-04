@@ -1,0 +1,6 @@
+tasks:
+- s3tests:
+    cluster1.client.0:
+      force-branch: ceph-master
+      idle_timeout: 300
+      rgw_server: cluster1.client.0
