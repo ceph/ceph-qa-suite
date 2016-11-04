@@ -1,0 +1,4 @@
+tasks:
+- sleep:
+    duration: 5
+- radosgw_admin:

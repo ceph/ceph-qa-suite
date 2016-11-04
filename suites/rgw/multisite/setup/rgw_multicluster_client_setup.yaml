@@ -25,11 +25,3 @@ tasks:
         name: client1-system-user
         access key: 0te6NH5mcdcq0Tc5i8i2
         secret key: Oy4IOauQoL18Gp2zM7lC1vLmoawgqcYPbYGcWfXv
-- sleep:
-    duration: 5
-- radosgw_admin:
-- s3tests:
-    cluster1.client.0:
-      force-branch: ceph-master
-      idle_timeout: 300
-      rgw_server: cluster1.client.0
