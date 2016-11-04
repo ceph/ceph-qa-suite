@@ -928,6 +928,62 @@ def upgrade(ctx, config):
 
 
 @contextlib.contextmanager
+def upgrade_simple(ctx, config):
+    roles = config.get('roles')
+    for role in roles:
+        remotes_and_roles = ctx.cluster.only(role).remotes
+        for remote, roles in remotes_and_roles.iteritems():
+            config['rhbuild-latest'] = ctx.config.get('rhbuild-latest')
+            set_repo_simple(remote, config)
+            stopceph(remote)
+            nodename = remote.shortname
+            log.info("Upgrading ceph on  %s", nodename)
+            remote.run(
+                args=[
+                    'sudo',
+                    'yum',
+                    'install',
+                    '-y',
+                    'ceph-mon',
+                    'ceph-osd',
+                    'ceph-radosgw',
+                    'ceph-test'])
+            if 'osd' in role:
+                remote.run(args=['sudo', 'systemctl', 'start', 'ceph.target'])
+                time.sleep(5)
+                remote.run(args=['sudo', 'systemctl', 'start', 'ceph-osd.target'])
+            if 'mds' in role:
+                remote.run(args=['sudo', 'systemctl', 'start', 'ceph-mds.target'])
+                time.sleep(5)
+            if 'rgw' in role:
+                remote.run(args=['sudo', 'systemctl', 'start', 'ceph-radosgw.target'])
+                time.sleep(5)
+            if 'mon' in role:
+                remote.run(args=['sudo', 'systemctl', 'start', 'ceph-mon.target'])
+                time.sleep(5)
+                remote.run(
+                    args=[
+                        'sudo',
+                        'systemctl',
+                        'start',
+                        run.Raw('ceph-mon@`hostname`.service')])
+                time.sleep(5)
+                remote.run(
+                    args=[
+                        'sudo',
+                        'systemctl',
+                        'status',
+                        run.Raw('ceph-mon@`hostname`.service')])
+            remote.run(
+                args=[
+                    'ps',
+                    run.Raw('-eaf'),
+                    run.Raw('|'),
+                    'grep',
+                    'ceph'], check_status=False)
+    yield
+
+@contextlib.contextmanager
 def task(ctx, config):
     """
     Set up and tear down a Ceph cluster.
