@@ -19,7 +19,8 @@ from teuthology.task import install as install_fn
 from teuthology.orchestra.daemon import DaemonGroup, run
 from tasks.cephfs.filesystem import Filesystem
 from ceph_manager import CephManager
-from tasks.set_repo import set_repo_simple
+from tasks.set_repo import GA_BUILDS, set_cdn_repo
+from teuthology.task.internal import setup_latest_rh_repo
 
 log = logging.getLogger(__name__)
 ceph_admin = ''
@@ -865,8 +866,11 @@ def upgrade(ctx, config):
     for role in roles:
         remotes_and_roles = ctx.cluster.only(role).remotes
         for remote, roles in remotes_and_roles.iteritems():
-            config['rhbuild-latest'] = ctx.config.get('rhbuild-latest')
-            set_repo_simple(remote, config)
+            rhbuild = config.get('rhbuild')
+            if rhbuild in GA_BUILDS:
+                set_cdn_repo(ctx)
+            else:
+                setup_latest_rh_repo(ctx, config)
             stopceph(remote)
             nodename = remote.shortname
             log.info("Upgrading ceph on  %s", nodename)
@@ -914,6 +918,11 @@ def upgrade(ctx, config):
                     run.Raw('|'),
                     'grep',
                     'ceph'])
+    wait_for_ceph_health(ctx)
+    yield
+
+
+def wait_for_ceph_health(ctx, state=None):
     (remote,) = ctx.cluster.only('mon.a').remotes
     with contextutil.safe_while(sleep=20, tries=6,
                                 action='check health') as proceed:
@@ -924,8 +933,6 @@ def upgrade(ctx, config):
                 break
             elif (out.split(None, 1)[0] == 'HEALTH_WARN'):
                 break
-    yield
-
 
 @contextlib.contextmanager
 def upgrade_simple(ctx, config):
@@ -933,8 +940,11 @@ def upgrade_simple(ctx, config):
     for role in roles:
         remotes_and_roles = ctx.cluster.only(role).remotes
         for remote, roles in remotes_and_roles.iteritems():
-            config['rhbuild-latest'] = ctx.config.get('rhbuild-latest')
-            set_repo_simple(remote, config)
+            rhbuild = config.get('rhbuild')
+            if rhbuild in GA_BUILDS:
+                set_cdn_repo(ctx)
+            else:
+                setup_latest_rh_repo(ctx, config)
             stopceph(remote)
             nodename = remote.shortname
             log.info("Upgrading ceph on  %s", nodename)
@@ -981,6 +991,7 @@ def upgrade_simple(ctx, config):
                     run.Raw('|'),
                     'grep',
                     'ceph'], check_status=False)
+    wait_for_ceph_health(ctx)
     yield
 
 @contextlib.contextmanager
