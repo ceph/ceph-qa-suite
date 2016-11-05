@@ -798,6 +798,7 @@ def restart(ctx, config):
 def stopceph(remote):
     if remote.os.package_type == 'rpm':
         log.info("Fix directory permission to be owned by ceph")
+        remote.run(args=['ps', '-eaf', run.Raw('|'), 'grep', 'ceph'])
         remote.run(
             args=[
                 'sudo',
@@ -958,9 +959,16 @@ def upgrade_simple(ctx, config):
                     'ceph-osd',
                     'ceph-radosgw',
                     'ceph-test'])
+            log.info("Rebooting node %s", nodename)
+            try:
+                remote.run(args=['sudo', 'reboot'], wait=False)
+            except Exception:
+                log.info("Ignoring exceptions in reboot")
+            # wait for reboot to happen and avoid immediate connect
+            time.sleep(60)
+            remote.reconnect(timeout=300)
+            remote.run(args=['sudo', 'systemctl', 'start', 'ceph.target'])
             if 'osd' in role:
-                remote.run(args=['sudo', 'systemctl', 'start', 'ceph.target'])
-                time.sleep(5)
                 remote.run(args=['sudo', 'systemctl', 'start', 'ceph-osd.target'])
             if 'mds' in role:
                 remote.run(args=['sudo', 'systemctl', 'start', 'ceph-mds.target'])
