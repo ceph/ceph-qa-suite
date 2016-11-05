@@ -317,16 +317,16 @@ def build_ceph_cluster(ctx, config):
         # try the next block which will wait up to 15 minutes to gatherkeys.
         execute_ceph_deploy(mon_create_nodes)
 
-        estatus_gather = execute_ceph_deploy(gather_keys)
-        max_gather_tries = 90
-        gather_tries = 0
-        while (estatus_gather != 0):
-            gather_tries += 1
-            if gather_tries >= max_gather_tries:
-                msg = 'ceph-deploy was not able to gatherkeys after 15 minutes'
-                raise RuntimeError(msg)
-            estatus_gather = execute_ceph_deploy(gather_keys)
-            time.sleep(10)
+        #estatus_gather = execute_ceph_deploy(gather_keys)
+        #max_gather_tries = 90
+        #gather_tries = 0
+        #while (estatus_gather != 0):
+        #    gather_tries += 1
+        #    if gather_tries >= max_gather_tries:
+        #        msg = 'ceph-deploy was not able to gatherkeys after 15 minutes'
+        #        raise RuntimeError(msg)
+        #    estatus_gather = execute_ceph_deploy(gather_keys)
+        #    time.sleep(10)
 
         if mds_nodes:
             estatus_mds = execute_ceph_deploy(deploy_mds)
@@ -349,7 +349,8 @@ def build_ceph_cluster(ctx, config):
                 estatus = execute_ceph_deploy(zap)
                 if estatus != 0:
                     raise RuntimeError("ceph-deploy: Failed to zap osds")
-            if config.get('prepare_activate'):
+            rhbuild = config.get('rhbuild')
+            if rhbuild.startswith('1.3'):
                 osd_create_cmd = rel_path + 'ceph-deploy osd prepare '
             else:
                 osd_create_cmd = rel_path + 'ceph-deploy osd create '
