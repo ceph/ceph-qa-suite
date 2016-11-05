@@ -9,6 +9,11 @@ log = logging.getLogger(__name__)
 supported_repos = {'1.3.1': 'https://paste.fedoraproject.org/350766/14600017/raw/',
                    '1.3.2': 'http://paste.fedoraproject.org/354418/4224131/raw/',
                    }
+
+rhel_7_rpms = ['rhel-7-server-rpms',
+               'rhel-7-server-optional-rpms',
+               'rhel-7-server-extras-rpms']
+
 repos_13x = ['rhel-7-server-rhceph-1.3-mon-rpms',
              'rhel-7-server-rhceph-1.3-osd-rpms',
              'rhel-7-server-rhceph-1.3-calamari-rpms',
@@ -101,6 +106,9 @@ def set_cdn_repo(ctx, config):
                         p.spawn(enable_cdn_repo, remote, repos_20)
 
 def enable_cdn_repo(remote, repos):
+    remote.run(args=['sudo', 'subscription-manager', 'repos', run.Raw('--disable=*')])
+    for repo in rhel_7_rpms:
+        remote.run(args=['sudo', 'subscription-manager', 'repos', '--enable={r}'.format(r=repo)])
     for repo in repos:
         remote.run(args=['sudo', 'subscription-manager', 'repos', '--enable={r}'.format(r=repo)])
     remote.run(args=['sudo', 'subscription-manager', 'refresh'])
