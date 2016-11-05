@@ -107,11 +107,14 @@ def set_cdn_repo(ctx, config):
 
 def enable_cdn_repo(remote, repos):
     remote.run(args=['sudo', 'subscription-manager', 'repos', run.Raw('--disable=*')])
+    remote.run(args=['sudo', 'rm', '-rf', run.Raw('/etc/yum.repos.d/*')],
+               check_status=False)
     for repo in rhel_7_rpms:
         remote.run(args=['sudo', 'subscription-manager', 'repos', '--enable={r}'.format(r=repo)])
     for repo in repos:
         remote.run(args=['sudo', 'subscription-manager', 'repos', '--enable={r}'.format(r=repo)])
     remote.run(args=['sudo', 'subscription-manager', 'refresh'])
+    remote.run(args=['sudo', 'yum', 'update', 'metadata'])
 
 
 def disable_cdn_repo(remote, repos):
