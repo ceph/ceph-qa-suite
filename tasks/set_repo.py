@@ -2,6 +2,7 @@ import contextlib
 import logging
 from teuthology import misc as teuthology
 from teuthology.orchestra import run
+from teuthology.parallel import parallel
 
 log = logging.getLogger(__name__)
 
@@ -20,6 +21,10 @@ repos_20 = ['rhel-7-server-rhceph-2-mon-rpms',
              'rhel-7-server-rhscon-2-agent-rpms',
              'rhel-7-server-rhscon-2-installer-rpms',
              'rhel-7-server-rhscon-2-main-rpms']
+
+GA_BUILDS = ['1.3.2',
+             '1.3.3',
+             '2.0']
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -85,6 +90,15 @@ def task(ctx, config):
                 if build == '1.3.2':
                     disable_cdn_repo(remote, repos_13x)
 
+def set_cdn_repo(ctx, config):
+    build = config.get('rhbuild')
+    with parallel() as p:
+        for remote in ctx.cluster.remotes.iterkeys():
+            if remote.os.package_type == 'rpm':
+                    if build == '1.3.2' or build == '1.3.3':
+                        p.spawn(enable_cdn_repo, remote, repos_13x)
+                    elif build == '2.0':
+                        p.spawn(enable_cdn_repo, remote, repos_20)
 
 def enable_cdn_repo(remote, repos):
     for repo in repos:
