@@ -220,7 +220,7 @@ class TestJournalRepair(CephFSTestCase):
         try:
             # Now that the mount is dead, the ls -R should error out.
             blocked_ls.wait()
-        except CommandFailedError, ConnectionLostError:
+        except (CommandFailedError, ConnectionLostError):
             # The ConnectionLostError case is for kernel client, where
             # killing the mount also means killing the node.
             pass
