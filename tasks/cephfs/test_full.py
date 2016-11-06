@@ -2,11 +2,11 @@
 
 import json
 import logging
-from cephfs.fuse_mount import FuseMount
 import os
 from textwrap import dedent
 import time
 from teuthology.orchestra.run import CommandFailedError
+from tasks.cephfs.fuse_mount import FuseMount
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
 
 
