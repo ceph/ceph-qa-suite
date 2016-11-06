@@ -30,9 +30,6 @@ class FullnessTestCase(CephFSTestCase):
     def setUp(self):
         CephFSTestCase.setUp(self)
 
-        if not isinstance(self.mount_a, FuseMount):
-            self.skipTest("FUSE needed: ENOSPC handling in kclient is tracker #17204")
-
         # These tests just use a single active MDS throughout, so remember its ID
         # for use in mds_asok calls
         self.active_mds_id = self.fs.get_active_names()[0]
@@ -55,6 +52,9 @@ class FullnessTestCase(CephFSTestCase):
         issued capabilities cause clients to update their OSD map to that
         epoch.
         """
+
+        if not isinstance(self.mount_a, FuseMount):
+            self.skipTest("FUSE needed: ENOSPC handling in kclient is tracker #17204")
 
         # Sync up clients with initial MDS OSD map barrier
         self.mount_a.open_no_data("foo")
