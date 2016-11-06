@@ -258,6 +258,7 @@ def build_ceph_cluster(ctx, config):
         mon_node = get_nodes_using_role(ctx, 'mon')
         mon_nodes = " ".join(mon_node)
         # use rpm path in case of rhbuild instead of git path
+        build = config.get('rhbuild')
         if config.get('rhbuild'):
             rel_path = ''
             ctx.config['rhbuild'] = True
@@ -349,8 +350,7 @@ def build_ceph_cluster(ctx, config):
                 estatus = execute_ceph_deploy(zap)
                 if estatus != 0:
                     raise RuntimeError("ceph-deploy: Failed to zap osds")
-            rhbuild = config.get('rhbuild')
-            if rhbuild.startswith('1.3'):
+            if build.startswith('1.3'):
                 osd_create_cmd = rel_path + 'ceph-deploy osd prepare '
             else:
                 osd_create_cmd = rel_path + 'ceph-deploy osd create '
