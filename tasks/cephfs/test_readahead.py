@@ -1,5 +1,5 @@
 import logging
-from cephfs.fuse_mount import FuseMount
+from tasks.cephfs.fuse_mount import FuseMount
 from tasks.cephfs.cephfs_test_case import CephFSTestCase
 
 log = logging.getLogger(__name__)
