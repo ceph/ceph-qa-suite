@@ -244,7 +244,6 @@ def build_ceph_cluster(ctx, config):
         new_mon = './ceph-deploy new' + " " + mon_nodes
         mon_hostname = mon_nodes.split(' ')[0]
         mon_hostname = str(mon_hostname)
-        gather_keys = './ceph-deploy gatherkeys' + " " + mon_hostname
         deploy_mds = './ceph-deploy mds create' + " " + mds_nodes
         no_of_osds = 0
 
@@ -294,17 +293,6 @@ def build_ceph_cluster(ctx, config):
         # are taking way more than a minute/monitor to form quorum, so lets
         # try the next block which will wait up to 15 minutes to gatherkeys.
         execute_ceph_deploy(mon_create_nodes)
-
-        estatus_gather = execute_ceph_deploy(gather_keys)
-        max_gather_tries = 90
-        gather_tries = 0
-        while (estatus_gather != 0):
-            gather_tries += 1
-            if gather_tries >= max_gather_tries:
-                msg = 'ceph-deploy was not able to gatherkeys after 15 minutes'
-                raise RuntimeError(msg)
-            estatus_gather = execute_ceph_deploy(gather_keys)
-            time.sleep(10)
 
         if mds_nodes:
             estatus_mds = execute_ceph_deploy(deploy_mds)
