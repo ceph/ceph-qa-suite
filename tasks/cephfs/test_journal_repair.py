@@ -230,7 +230,9 @@ class TestJournalRepair(CephFSTestCase):
             spammer_proc.stdin.close()
             try:
                 spammer_proc.wait()
-            except CommandFailedError:
+            except (CommandFailedError, ConnectionLostError):
+                # The ConnectionLostError case is for kernel client, where
+                # killing the mount also means killing the node.
                 pass
 
         # See that the second MDS will crash when it starts and tries to
