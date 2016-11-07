@@ -125,6 +125,12 @@ def ceph_log(ctx, config):
                     # case we will see connection errors that we should ignore.
                     log.debug("Missed logrotate, node '{0}' is offline".format(
                         e.node))
+                except EOFError as e:
+                    # Paramiko sometimes raises this when it fails to
+                    # connect to a node during open_session.  As with
+                    # ConnectionLostError, we ignore this because nodes
+                    # are allowed to get power cycled during tests.
+                    log.debug("Missed logrotate, EOFError")
 
         def begin(self):
             self.thread = gevent.spawn(self.invoke_logrotate)
