@@ -16,6 +16,9 @@ tasks:
         - rbd/notify_slave.sh
       client.1:
         - rbd/notify_master.sh
+    conf:
+      client:
+        debug rbd: 30
     env:
       RBD_FEATURES: "13"
 - print: "**** done rbd: new librbd -> old librbd"
