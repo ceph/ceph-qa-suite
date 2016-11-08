@@ -5,6 +5,6 @@ tasks:
   config:
     user_count: 100
     bucket_count: 500
-    object_count: 100
+    objects_count: 100
     min_file_size: 1000
     max_file_size: 1500

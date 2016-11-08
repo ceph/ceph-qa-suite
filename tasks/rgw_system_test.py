@@ -91,7 +91,7 @@ def task(ctx, config):
         config:
             user_count: 3
             bucket_count: 5
-            object_count: 5
+            objects_count: 5
             min_file_size: 5
             max_file_size: 10
 
@@ -101,7 +101,7 @@ def task(ctx, config):
         config:
             user_count: 3
             bucket_count: 5
-            object_count: 5
+            objects_count: 5
             min_file_size: 5
             max_file_size: 10
 
@@ -126,7 +126,7 @@ def task(ctx, config):
 
     tasks:
     - rgw-system-test:
-       test-name: test_multipart_upload_download
+       test-name: test_multipart_upload_cancel
        config:
            user_count: 3
            bucket_count: 5
