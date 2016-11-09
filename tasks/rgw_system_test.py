@@ -62,8 +62,7 @@ class Test(object):
 
 def test_exec(config, data, clients):
 
-    if data is None :
-        assert "Got no test in configuration"
+    assert data is not None, "Got no test in configuration"
 
     log.info('test name :%s' % config['test-name'])
 
@@ -397,7 +396,7 @@ def task(ctx, config):
             )
         )
 
-    if config['test-name'] == ' test_suspend_versioning':
+    if config['test-name'] == 'test_suspend_versioning':
 
         data = dict(
             config=dict(
@@ -413,7 +412,7 @@ def task(ctx, config):
             )
         )
 
-    if config['test-name'] == ' test_version_with_revert':
+    if config['test-name'] == 'test_version_with_revert':
 
         data = dict(
             config=dict(
