@@ -570,3 +570,57 @@ class TestMultiFilesystems(CephFSTestCase):
         fs_b.wait_for_daemons()
         self.assertEqual(set(fs_a.get_active_names()), {mds_a, mds_b})
         self.assertEqual(set(fs_b.get_active_names()), {mds_c, mds_d})
+
+    def test_standby_for_invalid_fscid(self):
+        '''
+        Set invalid standby_fscid with other mds standby_rank
+        stopping active mds service should not end up in mon crash
+        '''
+        active_mons = [f.split('.')[1] for f in teuthology.get_mon_names(self.ctx)]
+        log.info("mon ids = %s" % active_mons)
+        active_mon_num = len(active_mons)
+        log.info("Mon quorum lenth: {0}".format(active_mon_num))
+
+        use_daemons = sorted(self.mds_cluster.mds_ids[0:3])
+        mds_a, mds_b, mds_c = use_daemons
+        log.info("Using MDS daemons: {0}".format(use_daemons))
+
+        def set_standby_for_rank(leader_rank, follower_id):
+            self.set_conf("mds.{0}".format(follower_id),
+                          "mds_standby_for_rank", leader_rank)
+
+        # Create one fs
+        fs_a = self.mds_cluster.get_filesystem("cephfs")
+        fs_a.create()
+
+        # Set all the daemons to have a rank assignment but no other
+        # standby preferences.
+        set_standby_for_rank(0, mds_a)
+        set_standby_for_rank(0, mds_b)
+
+        # Set third daemon to have invalid fscid assignment and no other
+        # standby preferences
+        invalid_fscid = 123
+        self.set_conf("mds.{0}".format(mds_c), "mds_standby_for_fscid", invalid_fscid)
+
+        #Restart all the daemons to make the standby preference applied
+        self.mds_cluster.mds_restart(mds_a)
+        self.mds_cluster.mds_restart(mds_b)
+        self.mds_cluster.mds_restart(mds_c)
+        self.wait_for_daemon_start([mds_a, mds_b, mds_c])
+
+        #Stop active mds daemon service of fs
+        if (fs_a.get_active_names(), [mds_a]):
+            self.mds_cluster.mds_stop(mds_a)
+            self.mds_cluster.mds_fail(mds_a)
+            fs_a.wait_for_daemons()
+        else:
+            self.mds_cluster.mds_stop(mds_b)
+            self.mds_cluster.mds_fail(mds_b)
+            fs_a.wait_for_daemons()
+
+        #Check for active mon status, mon should not be down because of invalid fscid
+        if active_mon_num == len([f.split('.')[1] for f in teuthology.get_mon_names(self.ctx)]):
+            log.info("Invalid fscid Test passed")
+        else:
+            self.assertEqual("Invalid fscid test failed", [])
