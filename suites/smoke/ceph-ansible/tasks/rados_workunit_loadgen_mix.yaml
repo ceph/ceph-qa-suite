@@ -1,0 +1,7 @@
+tasks:
+- ssh-keys:
+- ceph-ansible:
+- workunit:
+    clients:
+      all:
+        - rados/load-gen-mix.sh
