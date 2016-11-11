@@ -74,14 +74,17 @@ def task(ctx, config):
         "task s3tests only supports a list or dictionary for configuration"
     all_clients = ['client.{id}'.format(id=id_)
                    for id_ in teuthology.all_roles_of_type(ctx.cluster, 'client')]
+    log.debug('ALI ADDED, all_clients are: %r', all_clients)
     if config is None:
         config = all_clients
+        log.debug('ALI ADDED, got here 1, all_clients is: %r', all_clients)
     if isinstance(config, list):
         config = dict.fromkeys(config)
+        log.debug('ALI ADDED, got here 2, config is: %r', config)
     clients = config.keys()
     log.debug('ALI ADDED, clients are: %r', clients)
 
-    multi_region_run = multi_region_enabled(config)
+    multi_region_run = rgw_utils.multi_region_enabled(config)
 
     client = clients[0]; # default choice, multi-region code may overwrite this
     if multi_region_run:
