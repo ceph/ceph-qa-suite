@@ -113,6 +113,7 @@ class Thrasher:
         self.minin = self.config.get("min_in", 3)
         self.chance_move_pg = self.config.get('chance_move_pg', 1.0)
         self.sighup_delay = self.config.get('sighup_delay')
+        self.disable_ceph_objectstore_tool_test = self.config.get('disable_ceph_objectstore_tool_test', False)
 
         num_osds = self.in_osds + self.out_osds
         self.max_pgs = self.config.get("max_pgs_per_pool_osd", 1200) * num_osds
@@ -138,15 +139,18 @@ class Thrasher:
         self.thread = gevent.spawn(self.do_thrash)
         if self.sighup_delay:
             self.sighup_thread = gevent.spawn(self.do_sighup)
-        if self.config.get('powercycle') or not self.cmd_exists_on_osds("ceph-objectstore-tool"):
+        if self.config.get('powercycle') or not self.cmd_exists_on_osds("ceph-objectstore-tool") or self.disable_ceph_objectstore_tool_test:
             self.ceph_objectstore_tool = False
             self.test_rm_past_intervals = False
             if self.config.get('powercycle'):
                 self.log("Unable to test ceph-objectstore-tool, "
                          "powercycle testing")
-            else:
+            if not self.cmd_exists_on_osds("ceph-objectstore-tool"):
                 self.log("Unable to test ceph-objectstore-tool, "
                          "not available on all OSD nodes")
+            if self.disable_ceph_objectstore_tool_test:
+                self.log("Not testing ceph-objectstore-tool, "
+                         "test explicitly disabled")
         else:
             self.ceph_objectstore_tool = \
                 self.config.get('ceph_objectstore_tool', True)
