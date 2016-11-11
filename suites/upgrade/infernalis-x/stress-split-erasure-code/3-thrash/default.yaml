@@ -15,4 +15,5 @@ tasks:
     chance_pgnum_grow: 1
     chance_pgpnum_fix: 1
     min_in: 4
+    disable_ceph_objectstore_tool_test: true
 - print: "**** done thrashosds 3-thrash"
