@@ -26,6 +26,7 @@ tasks:
 - ssh-keys:
 - ceph-ansible:
     rhbuild: '2.0'
+- install.ship_utilities: 
 - ceph-deploy.upgrade_simple:
       latest: true
       roles:
