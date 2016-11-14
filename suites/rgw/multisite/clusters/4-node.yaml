@@ -1,0 +1,13 @@
+roles:
+- - master.mon.a
+  - master.mon.b
+  - master.osd.0
+  - master.osd.1
+  - master.osd.2
+- - master.client.0
+- - slave.mon.a
+  - slave.mon.b
+  - slave.osd.0
+  - slave.osd.1
+  - slave.osd.2
+- - slave.client.1

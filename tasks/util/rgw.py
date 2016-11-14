@@ -19,6 +19,8 @@ def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
              format='json'):
     log.info('rgwadmin: {client} : {cmd}'.format(client=client,cmd=cmd))
     testdir = teuthology.get_testdir(ctx)
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    client_with_id = daemon_type + '.' + client_id
     pre = [
         'adjust-ulimits',
         'ceph-coverage'.format(tdir=testdir),
@@ -26,7 +28,7 @@ def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
         'radosgw-admin'.format(tdir=testdir),
         '--log-to-stderr',
         '--format', format,
-        '-n',  client,
+        '-n',  client_with_id,
         ]
     pre.extend(cmd)
     log.info('rgwadmin: cmd=%s' % pre)
@@ -70,7 +72,7 @@ def get_user_successful_ops(out, user):
 
 def get_zone_host_and_port(ctx, client, zone):
     _, region_map = rgwadmin(ctx, client, check_status=True,
-                             cmd=['-n', client, 'region-map', 'get'])
+                             cmd=['region-map', 'get'])
     regions = region_map['zonegroups']
     for region in regions:
         for zone_info in region['val']['zones']:
@@ -84,7 +86,7 @@ def get_zone_host_and_port(ctx, client, zone):
 
 def get_master_zone(ctx, client):
     _, region_map = rgwadmin(ctx, client, check_status=True,
-                             cmd=['-n', client, 'region-map', 'get'])
+                             cmd=['region-map', 'get'])
     regions = region_map['zonegroups']
     for region in regions:
         is_master = (region['val']['is_master'] == "true")
@@ -105,7 +107,9 @@ def get_master_client(ctx, clients):
         return None
 
     for client in clients:
-        zone = zone_for_client(ctx, client)
+        cluster_name, daemon_type, client_id = teuthology.split_role(client)
+        client_config = ctx.ceph[cluster_name].conf
+        zone = zone_for_client(client_config, client)
         if zone == master_zone:
             return client
 
@@ -113,15 +117,14 @@ def get_master_client(ctx, clients):
 
 def get_zone_system_keys(ctx, client, zone):
     _, zone_info = rgwadmin(ctx, client, check_status=True,
-                            cmd=['-n', client,
-                                 'zone', 'get', '--rgw-zone', zone])
+                            cmd=['zone', 'get', '--rgw-zone', zone])
     system_key = zone_info['system_key']
     return system_key['access_key'], system_key['secret_key']
 
-def zone_for_client(ctx, client):
-    ceph_config = ctx.ceph['ceph'].conf.get('global', {})
-    ceph_config.update(ctx.ceph['ceph'].conf.get('client', {}))
-    ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
+def zone_for_client(conf, client):
+    ceph_config = conf.get('global', {})
+    ceph_config.update(conf.get('client', {}))
+    ceph_config.update(conf.get(client, {}))
     return ceph_config.get('rgw zone')
 
 def region_for_client(ctx, client):
@@ -149,6 +152,7 @@ def radosgw_agent_sync_metadata(ctx, agent_host, agent_port, full=False):
 def radosgw_agent_sync_all(ctx, full=False, data=False):
     if ctx.radosgw_agent.procs:
         for agent_client, c_config in ctx.radosgw_agent.config.iteritems():
+            #what is the purpose of this function not returning a zone?
             zone_for_client(ctx, agent_client)
             sync_host, sync_port = get_sync_agent(ctx, agent_client)
             log.debug('doing a sync via {host1}'.format(host1=sync_host))
