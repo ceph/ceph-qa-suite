@@ -1,8 +1,11 @@
 import json
 import logging
+
+from teuthology import misc as teuthology
 from unittest import case
 from cephfs_test_case import CephFSTestCase
 from teuthology.exceptions import CommandFailedError
+from tasks.ceph_manager import CephManager
 
 log = logging.getLogger(__name__)
 
@@ -98,14 +101,17 @@ class TestStandbyReplay(CephFSTestCase):
         if replay:
             self.set_conf("mds.{0}".format(follower), "mds_standby_replay", "true")
 
-    def get_info_by_name(self, mds_name):
-        status = self.mds_cluster.status()
-        info = status.get_mds(mds_name)
-        if info is None:
-            log.warn(str(status))
-            raise RuntimeError("MDS '{0}' not found".format(mds_name))
+    def get_info_by_name(self, fs, mds_name):
+        if fs is None:
+            mds_info = self.mds_cluster.get_fs_map()['standbys']
         else:
-            return info
+            mds_info = fs.get_mds_map()['info'].values()
+        for info in mds_info:
+            if info['name'] == mds_name:
+                return info
+
+        log.warn(json.dumps(mds_info, indent=2))
+        raise RuntimeError("MDS '{0}' not found".format(mds_name))
 
     def test_standby_replay_unused(self):
         # Pick out exactly 3 daemons to be run during test
@@ -119,7 +125,8 @@ class TestStandbyReplay(CephFSTestCase):
         self.set_standby_for(mds_a, mds_c, True)
 
         # Create FS and start A
-        fs_a = self.mds_cluster.newfs("alpha")
+        fs_a = self.mds_cluster.get_filesystem("alpha")
+        fs_a.create()
         self.mds_cluster.mds_restart(mds_a)
         fs_a.wait_for_daemons()
         self.assertEqual(fs_a.get_active_names(), [mds_a])
@@ -127,7 +134,7 @@ class TestStandbyReplay(CephFSTestCase):
         # Start B, he should go into standby replay
         self.mds_cluster.mds_restart(mds_b)
         self.wait_for_daemon_start([mds_b])
-        info_b = self.get_info_by_name(mds_b)
+        info_b = self.get_info_by_name(fs_a, mds_b)
         self.assertEqual(info_b['state'], "up:standby-replay")
         self.assertEqual(info_b['standby_for_name'], mds_a)
         self.assertEqual(info_b['rank'], 0)
@@ -135,7 +142,7 @@ class TestStandbyReplay(CephFSTestCase):
         # Start C, he should go into standby (*not* replay)
         self.mds_cluster.mds_restart(mds_c)
         self.wait_for_daemon_start([mds_c])
-        info_c = self.get_info_by_name(mds_c)
+        info_c = self.get_info_by_name(None, mds_c)
         self.assertEqual(info_c['state'], "up:standby")
         self.assertEqual(info_c['standby_for_name'], mds_a)
         self.assertEqual(info_c['rank'], -1)
@@ -144,10 +151,10 @@ class TestStandbyReplay(CephFSTestCase):
         self.mds_cluster.mds_stop(mds_b)
         self.mds_cluster.mds_fail(mds_b)
         self.wait_until_equal(
-                lambda: self.get_info_by_name(mds_c)['state'],
+                lambda: self.get_info_by_name(fs_a, mds_c)['state'],
                 "up:standby-replay",
                 60)
-        info_c = self.get_info_by_name(mds_c)
+        info_c = self.get_info_by_name(fs_a, mds_c)
         self.assertEqual(info_c['state'], "up:standby-replay")
         self.assertEqual(info_c['standby_for_name'], mds_a)
         self.assertEqual(info_c['rank'], 0)
@@ -167,7 +174,8 @@ class TestStandbyReplay(CephFSTestCase):
         self.set_standby_for(mds_b, mds_a, False)
 
         # Create FS alpha and get mds_a to come up as active
-        fs_a = self.mds_cluster.newfs("alpha")
+        fs_a = self.mds_cluster.get_filesystem("alpha")
+        fs_a.create()
         self.mds_cluster.mds_restart(mds_a)
         fs_a.wait_for_daemons()
         self.assertEqual(fs_a.get_active_names(), [mds_a])
@@ -177,7 +185,7 @@ class TestStandbyReplay(CephFSTestCase):
         self.wait_for_daemon_start([mds_b])
 
         # See the standby come up as the correct rank
-        info_b = self.get_info_by_name(mds_b)
+        info_b = self.get_info_by_name(fs_a, mds_b)
         self.assertEqual(info_b['state'], "up:standby-replay")
         self.assertEqual(info_b['standby_for_name'], mds_a)
         self.assertEqual(info_b['rank'], 0)
@@ -209,7 +217,8 @@ class TestStandbyReplay(CephFSTestCase):
         self.set_standby_for(mds_b, mds_b_s, True)
 
         # Create FS alpha and get mds_a to come up as active
-        fs_a = self.mds_cluster.newfs("alpha")
+        fs_a = self.mds_cluster.get_filesystem("alpha")
+        fs_a.create()
         fs_a.mon_manager.raw_cluster_cmd('fs', 'set', fs_a.name,
                                          'allow_multimds', "true",
                                          "--yes-i-really-mean-it")
@@ -226,9 +235,9 @@ class TestStandbyReplay(CephFSTestCase):
         self.wait_for_daemon_start([mds_b_s])
         self.mds_cluster.mds_restart(mds_a_s)
         self.wait_for_daemon_start([mds_a_s])
-        info_b_s = self.get_info_by_name(mds_b_s)
+        info_b_s = self.get_info_by_name(fs_a, mds_b_s)
         self.assertEqual(info_b_s['state'], "up:standby-replay")
-        info_a_s = self.get_info_by_name(mds_a_s)
+        info_a_s = self.get_info_by_name(fs_a, mds_a_s)
         self.assertEqual(info_a_s['state'], "up:standby-replay")
 
         # Shrink the cluster
@@ -255,13 +264,14 @@ class TestMultiFilesystems(CephFSTestCase):
 
     def setUp(self):
         super(TestMultiFilesystems, self).setUp()
-        self.mds_cluster.mon_manager.raw_cluster_cmd("fs", "flag", "set",
-            "enable_multiple", "true",
-            "--yes-i-really-mean-it")
-
+        self.fs.mon_manager.raw_cluster_cmd("fs", "flag", "set",
+                                            "enable_multiple", "true",
+                                            "--yes-i-really-mean-it")
     def _setup_two(self):
-        fs_a = self.mds_cluster.newfs("alpha")
-        fs_b = self.mds_cluster.newfs("bravo")
+        fs_a = self.mds_cluster.get_filesystem("alpha")
+        fs_b = self.mds_cluster.get_filesystem("bravo")
+        fs_a.create()
+        fs_b.create()
 
         self.mds_cluster.mds_restart()
 
@@ -271,7 +281,7 @@ class TestMultiFilesystems(CephFSTestCase):
 
         # Reconfigure client auth caps
         for mount in self.mounts:
-            self.mds_cluster.mon_manager.raw_cluster_cmd_result(
+            self.fs.mon_manager.raw_cluster_cmd_result(
                 'auth', 'caps', "client.{0}".format(mount.client_id),
                 'mds', 'allow',
                 'mon', 'allow r',
@@ -422,13 +432,15 @@ class TestMultiFilesystems(CephFSTestCase):
         set_standby_for(mds_d, mds_c, False)
 
         # Create FS alpha and get mds_a to come up as active
-        fs_a = self.mds_cluster.newfs("alpha")
+        fs_a = self.mds_cluster.get_filesystem("alpha")
+        fs_a.create()
         self.mds_cluster.mds_restart(mds_a)
         fs_a.wait_for_daemons()
         self.assertEqual(fs_a.get_active_names(), [mds_a])
 
         # Create FS bravo and get mds_c to come up as active
-        fs_b = self.mds_cluster.newfs("bravo")
+        fs_b = self.mds_cluster.get_filesystem("bravo")
+        fs_b.create()
         self.mds_cluster.mds_restart(mds_c)
         fs_b.wait_for_daemons()
         self.assertEqual(fs_b.get_active_names(), [mds_c])
@@ -492,8 +504,10 @@ class TestMultiFilesystems(CephFSTestCase):
             self.set_conf("mds.{0}".format(follower_id),
                           "mds_standby_for_fscid", fscid)
 
-        fs_a = self.mds_cluster.newfs("alpha")
-        fs_b = self.mds_cluster.newfs("bravo")
+        fs_a = self.mds_cluster.get_filesystem("alpha")
+        fs_a.create()
+        fs_b = self.mds_cluster.get_filesystem("bravo")
+        fs_b.create()
         set_standby_for(0, fs_a, mds_a)
         set_standby_for(0, fs_a, mds_b)
         set_standby_for(0, fs_b, mds_c)
@@ -537,12 +551,14 @@ class TestMultiFilesystems(CephFSTestCase):
                           "mds_standby_for_fscid", fscid)
 
         # Create two filesystems which should have two ranks each
-        fs_a = self.mds_cluster.newfs("alpha")
+        fs_a = self.mds_cluster.get_filesystem("alpha")
+        fs_a.create()
         fs_a.mon_manager.raw_cluster_cmd("fs", "set", fs_a.name,
                                          "allow_multimds", "true",
                                          "--yes-i-really-mean-it")
 
-        fs_b = self.mds_cluster.newfs("bravo")
+        fs_b = self.mds_cluster.get_filesystem("bravo")
+        fs_b.create()
         fs_b.mon_manager.raw_cluster_cmd("fs", "set", fs_b.name,
                                          "allow_multimds", "true",
                                          "--yes-i-really-mean-it")
@@ -572,14 +588,18 @@ class TestMultiFilesystems(CephFSTestCase):
         self.assertEqual(set(fs_b.get_active_names()), {mds_c, mds_d})
 
     def test_standby_for_invalid_fscid(self):
-        '''
-        Set invalid standby_fscid with other mds standby_rank
-        stopping active mds service should not end up in mon crash
-        '''
-        active_mons = [f.split('.')[1] for f in teuthology.get_mon_names(self.ctx)]
-        log.info("mon ids = %s" % active_mons)
-        active_mon_num = len(active_mons)
-        log.info("Mon quorum lenth: {0}".format(active_mon_num))
+        # Set invalid standby_fscid with other mds standby_rank
+        # stopping active mds service should not end up in mon crash
+
+        # Get configured mons in the cluster
+        first_mon = teuthology.get_first_mon(self.ctx, self.configs_set)
+        (mon,) = self.ctx.cluster.only(first_mon).remotes.iterkeys()
+        manager = CephManager(
+            mon,
+            ctx=self.ctx,
+            logger=log.getChild('ceph_manager'),
+        )
+        configured_mons = manager.get_mon_quorum()
 
         use_daemons = sorted(self.mds_cluster.mds_ids[0:3])
         mds_a, mds_b, mds_c = use_daemons
@@ -619,8 +639,8 @@ class TestMultiFilesystems(CephFSTestCase):
             self.mds_cluster.mds_fail(mds_b)
             fs_a.wait_for_daemons()
 
-        #Check for active mon status, mon should not be down because of invalid fscid
-        if active_mon_num == len([f.split('.')[1] for f in teuthology.get_mon_names(self.ctx)]):
-            log.info("Invalid fscid Test passed")
-        else:
-            self.assertEqual("Invalid fscid test failed", [])
+        #Get active mons from cluster
+        active_mons = manager.get_mon_quorum()
+
+        #Check for active quorum mon status and configured mon status
+        self.assertEqual(active_mons, configured_mons, "Not all mons are in quorum, Invalid standby invalid fscid test failed!")
