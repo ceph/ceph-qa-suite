@@ -1,7 +1,5 @@
 import json
 import logging
-
-from teuthology import misc as teuthology
 from unittest import case
 from cephfs_test_case import CephFSTestCase
 from teuthology.exceptions import CommandFailedError
