@@ -16,35 +16,12 @@ from teuthology.orchestra import run
 from teuthology import misc as teuthology
 from teuthology import contextutil
 from teuthology.orchestra.run import CommandFailedError
-from util.rgw import rgwadmin
+from util.rgw import rgwadmin, get_config_master_client
 from util.rados import (rados, create_ec_pool,
                                         create_replicated_pool,
                                         create_cache_pool)
 
 log = logging.getLogger(__name__)
-
-def get_config_master_client(ctx, config, regions):
-
-    role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
-                       for client, c_config in config.iteritems()])
-    log.debug('roles_zones = %r', role_zones)
-    region_info = dict([
-        (region_name, extract_region_info(region_name, r_config))
-        for region_name, r_config in regions.iteritems()])
-
-     # read master zonegroup and master_zone
-    for zonegroup, zg_info in region_info.iteritems():
-        if zg_info['is_master']:
-            master_zonegroup = zonegroup
-            master_zone = zg_info['master_zone']
-            break
-
-    for client in config.iterkeys():
-        (zonegroup, zone, zone_info) = role_zones[client]
-        if zonegroup == master_zonegroup and zone == master_zone:
-            return client
-
-    return None
 
 @contextlib.contextmanager
 def create_apache_dirs(ctx, config, on_client = None, except_client = None):
@@ -1200,7 +1177,6 @@ def task(ctx, config):
     if 'regions' in config:
         # separate region info so only clients are keys in config
         regions = config['regions']
-        del config['regions']
 
     role_endpoints = assign_ports(ctx, config)
     ctx.rgw = argparse.Namespace()

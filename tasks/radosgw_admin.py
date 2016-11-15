@@ -69,24 +69,20 @@ def task(ctx, config):
     Test radosgw-admin functionality against a running rgw instance.
     """
     global log
+
     assert config is None or isinstance(config, list) \
         or isinstance(config, dict), \
         "task s3tests only supports a list or dictionary for configuration"
-    all_clients = ['client.{id}'.format(id=id_)
-                   for id_ in teuthology.all_roles_of_type(ctx.cluster, 'client')]
-    if config is None:
-        config = all_clients
-    if isinstance(config, list):
-        config = dict.fromkeys(config)
-    clients = config.keys()
-    log.debug('ALI ADDED, clients are: %r', clients)
 
-    multi_region_run = multi_region_enabled(config)
+    log.debug('ALI ADDED, Config is: %r', config)
+    # ctx.rgw.regions set in the rgw task
+    regions = ctx.rgw.regions
+    log.debug('ALI ADDED, regions are: %r', regions)
+    if len(regions) > 1:
+        multi_region_run = True
 
-    client = clients[0]; # default choice, multi-region code may overwrite this
-    if multi_region_run:
-        client = rgw_utils.get_master_client(ctx, clients)
-        log.debug('ALI ADDED, master_client is: %r', client)
+    client = rgw_utils.get_config_master_client(ctx, config, regions)
+    log.debug('ALI ADDED, master_client is: %r', client)
 
     # once the client is chosen, pull the host name and  assigned port out of
     # the role_endpoints that were assigned by the rgw task

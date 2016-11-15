@@ -312,6 +312,7 @@ def configure(ctx, config):
                     ],
                 )
 
+# ALI TO DO: figure out what to do about multi_region_enabled
 @contextlib.contextmanager
 def sync_users(ctx, config):
     """

@@ -9,11 +9,11 @@ from teuthology import misc as teuthology
 
 log = logging.getLogger(__name__)
 
-# simple test to indicate if multi-region testing should occur
-def multi_region_enabled(config):
+# ALI TO DO: figure out whether or not I can delete this
+def multi_region_enabled(ctx):
     # this is populated by the radosgw-agent task, seems reasonable to
     # use that as an indicator that we're testing multi-region sync
-    return len(config['regions']) > 1
+    return 'radosgw_agent' in ctx
 
 def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
              format='json'):
@@ -175,3 +175,26 @@ def get_sync_agent(ctx, source):
             if conf['src'] == source:
                 return host_for_role(ctx, source), conf.get('port', 8000)
     return None, None
+
+def get_config_master_client(ctx, config, regions):
+
+    role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
+                       for client, c_config in config.iteritems()])
+    log.debug('roles_zones = %r', role_zones)
+    region_info = dict([
+        (region_name, extract_region_info(region_name, r_config))
+        for region_name, r_config in regions.iteritems()])
+
+     # read master zonegroup and master_zone
+    for zonegroup, zg_info in region_info.iteritems():
+        if zg_info['is_master']:
+            master_zonegroup = zonegroup
+            master_zone = zg_info['master_zone']
+            break
+
+    for client in config.iterkeys():
+        (zonegroup, zone, zone_info) = role_zones[client]
+        if zonegroup == master_zonegroup and zone == master_zone:
+            return client
+
+    return None
