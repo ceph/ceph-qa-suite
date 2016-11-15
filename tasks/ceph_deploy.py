@@ -322,6 +322,13 @@ def build_ceph_cluster(ctx, config):
         node_dev_list = get_dev_for_osd(ctx, config)
         for d in node_dev_list:
             node = d[0]
+            # Start work around for http://tracker.ceph.com/issues/17849
+            if config.get('dmcrypt') is not None:
+                admin = './ceph-deploy admin ' + node
+                estatus = execute_ceph_deploy(admin)
+                if estatus != 0:
+                    raise RuntimeError("ceph-deploy: Failed to give admin role to osd node")
+            # End work around for http://tracker.ceph.com/issues/17849
             for disk in d[1:]:
                 zap = './ceph-deploy disk zap ' + node + ':' + disk
                 estatus = execute_ceph_deploy(zap)
