@@ -5,6 +5,8 @@ meta:
    Use xfs beneath the osds.
    install ceph/jewel v10.2.0 point version
    run workload and upgrade-sequence in parallel
+   install ceph/jewel v10.2.1 point version
+   run workload and upgrade-sequence in parallel
    install ceph/jewel latest version
    run workload and upgrade-sequence in parallel
    install ceph/-x version (jewel or kraken)
@@ -53,10 +55,22 @@ tasks:
 - print: "**** done workload v10.2.0"
 - install.upgrade:
     mon.a:
-      branch: jewel
+      tag: 10.2.1 
       exclude_packages: ['ceph-mgr']
     mon.b:
-      branch: jewel
+      tag: 10.2.1 
+      exclude_packages: ['ceph-mgr']
+- ceph.restart: [osd.0, osd.1, osd.2, osd.3, osd.4, osd.5, mon.a, mon.b, mon.c, mds.a] 
+- sequential:
+   - workload
+- install.upgrade:
+    mon.a:
+      tag: 10.2.3
+      #branch: jewel
+      exclude_packages: ['ceph-mgr']
+    mon.b:
+      tag: 10.2.3
+      #branch: jewel
       exclude_packages: ['ceph-mgr']
     # Note that client.a IS NOT upgraded at this point
     #client.1:
@@ -117,9 +131,6 @@ workload_jewel:
 upgrade-sequence_jewel:
    sequential:
    - print: "**** done branch: jewel install.upgrade"
-   - ceph.restart: [mds.a]
-   - sleep:
-       duration: 60
    - ceph.restart: [osd.0]
    - sleep:
        duration: 30
@@ -147,7 +158,10 @@ upgrade-sequence_jewel:
    - ceph.restart: [mon.c]
    - sleep:
        duration: 60
-   - print: "**** done ceph.restart all jewel branch mds/osd/mon"
+   - ceph.restart: [mds.a]
+   - sleep:
+       duration: 60
+   - print: "**** done ceph.restart all jewel branch osd/mon/mds"
 workload_x:
    sequential:
    - workunit:
@@ -175,18 +189,6 @@ workload_x:
    - print: "**** done s3tests workload_x"
 upgrade-sequence_x:
    sequential:
-   - ceph.restart: [mds.a]
-   - sleep:
-       duration: 60
-   - ceph.restart: [mon.a]
-   - sleep:
-       duration: 60
-   - ceph.restart: [mon.b]
-   - sleep:
-       duration: 60
-   - ceph.restart: [mon.c]
-   - sleep:
-       duration: 60
    - ceph.restart: [osd.0]
    - sleep:
        duration: 30
@@ -202,13 +204,26 @@ upgrade-sequence_x:
    - ceph.restart: [osd.4]
    - sleep:
        duration: 30
-   - ceph.restart:
-       daemons: [osd.5]
-       wait-for-healthy: false
-       wait-for-up-osds: true
-   - exec:
-       mon.a:
-         - ceph osd set require_kraken_osds
+   - ceph.restart: [osd.5]
+   - sleep:
+       duration: 30
+   - ceph.restart: [mon.a]
    - sleep:
        duration: 60
-   - print: "**** done ceph.restart all -x branch mds/osd/mon"
+   - ceph.restart: [mon.b]
+   - sleep:
+       duration: 60
+   - ceph.restart:
+       daemons: [mon.c]
+   - sleep:
+       duration: 60
+   - ceph.restart:
+       daemons: [mds.a]
+       wait-for-healthy: false
+       wait-for-up-osds: true
+   #- exec:
+   #    mon.a:
+   #      - ceph osd set require_kraken_osds
+   - sleep:
+       duration: 60
+   - print: "**** done ceph.restart all -x branch osd/mon/mds"
