@@ -711,6 +711,12 @@ def configure_multisite_regions_and_zones(ctx, config, regions, role_endpoints, 
     log.debug('regions are %r', regions)
     log.debug('role_endpoints = %r', role_endpoints)
     log.debug('realm is %r', realm)
+
+    # see what the client and c_config are in configure_regions_and_zones
+    for client, c_config in config.iteritems():
+        log.debug('client in configure_regions_and_zones is %r', client)
+        log.debug('c_config in configure_regions_and_zones is %r', c_config)
+
     # extract the zone info
     role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
                        for client, c_config in config.iteritems()])

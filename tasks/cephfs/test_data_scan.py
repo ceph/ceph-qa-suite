@@ -2,12 +2,13 @@
 """
 Test our tools for recovering metadata from the data pool
 """
+import json
 
 import logging
 import os
 from textwrap import dedent
 import traceback
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 from teuthology.orchestra.run import CommandFailedError
 from tasks.cephfs.cephfs_test_case import CephFSTestCase, for_teuthology
@@ -375,8 +376,7 @@ class TestDataScan(CephFSTestCase):
         # Start the MDS
         self.fs.mds_restart()
         self.fs.wait_for_daemons()
-        import json
-        log.info(json.dumps(self.mds_cluster.get_fs_map(), indent=2))
+        log.info(str(self.mds_cluster.status()))
 
         # Mount a client
         self.mount_a.mount()
@@ -509,3 +509,94 @@ class TestDataScan(CephFSTestCase):
     @for_teuthology
     def test_parallel_execution(self):
         self._rebuild_metadata(ManyFilesWorkload(self.fs, self.mount_a, 25), workers=7)
+
+    def test_pg_files(self):
+        """
+        That the pg files command tells us which files are associated with
+        a particular PG
+        """
+        file_count = 20
+        self.mount_a.run_shell(["mkdir", "mydir"])
+        self.mount_a.create_n_files("mydir/myfile", file_count)
+
+        # Some files elsewhere in the system that we will ignore
+        # to check that the tool is filtering properly
+        self.mount_a.run_shell(["mkdir", "otherdir"])
+        self.mount_a.create_n_files("otherdir/otherfile", file_count)
+
+        pgs_to_files = defaultdict(list)
+        # Rough (slow) reimplementation of the logic
+        for i in range(0, file_count):
+            file_path = "mydir/myfile_{0}".format(i)
+            ino = self.mount_a.path_to_ino(file_path)
+            obj = "{0:x}.{1:08x}".format(ino, 0)
+            pgid = json.loads(self.fs.mon_manager.raw_cluster_cmd(
+                "osd", "map", self.fs.get_data_pool_name(), obj,
+                "--format=json-pretty"
+            ))['pgid']
+            pgs_to_files[pgid].append(file_path)
+            log.info("{0}: {1}".format(file_path, pgid))
+
+        pg_count = self.fs.get_pgs_per_fs_pool()
+        for pg_n in range(0, pg_count):
+            pg_str = "{0}.{1}".format(self.fs.get_data_pool_id(), pg_n)
+            out = self.fs.data_scan(["pg_files", "mydir", pg_str])
+            lines = [l for l in out.split("\n") if l]
+            log.info("{0}: {1}".format(pg_str, lines))
+            self.assertSetEqual(set(lines), set(pgs_to_files[pg_str]))
+
+    def test_scan_links(self):
+        """
+        The scan_links command fixes linkage errors
+        """
+        self.mount_a.run_shell(["mkdir", "testdir1"])
+        self.mount_a.run_shell(["mkdir", "testdir2"])
+        dir1_ino = self.mount_a.path_to_ino("testdir1")
+        dir2_ino = self.mount_a.path_to_ino("testdir2")
+        dirfrag1_oid = "{0:x}.00000000".format(dir1_ino)
+        dirfrag2_oid = "{0:x}.00000000".format(dir2_ino)
+
+        self.mount_a.run_shell(["touch", "testdir1/file1"])
+        self.mount_a.run_shell(["ln", "testdir1/file1", "testdir1/link1"])
+        self.mount_a.run_shell(["ln", "testdir1/file1", "testdir2/link2"])
+
+        mds_id = self.fs.get_active_names()[0]
+        self.fs.mds_asok(["flush", "journal"], mds_id)
+
+        dirfrag1_keys = self._dirfrag_keys(dirfrag1_oid)
+
+        # introduce duplicated primary link
+        file1_key = "file1_head"
+        self.assertIn(file1_key, dirfrag1_keys)
+        file1_omap_data = self.fs.rados(["getomapval", dirfrag1_oid, file1_key, '-'])
+        self.fs.rados(["setomapval", dirfrag2_oid, file1_key], stdin_data=file1_omap_data)
+        self.assertIn(file1_key, self._dirfrag_keys(dirfrag2_oid))
+
+        # remove a remote link, make inode link count incorrect
+        link1_key = 'link1_head'
+        self.assertIn(link1_key, dirfrag1_keys)
+        self.fs.rados(["rmomapkey", dirfrag1_oid, link1_key])
+
+        # increase good primary link's version
+        self.mount_a.run_shell(["touch", "testdir1/file1"])
+        self.mount_a.umount_wait()
+
+        self.fs.mds_asok(["flush", "journal"], mds_id)
+        self.fs.mds_stop()
+        self.fs.mds_fail()
+
+        # repair linkage errors
+        self.fs.data_scan(["scan_links"])
+
+        # primary link in testdir2 was deleted?
+        self.assertNotIn(file1_key, self._dirfrag_keys(dirfrag2_oid))
+
+        self.fs.mds_restart()
+        self.fs.wait_for_daemons()
+
+        self.mount_a.mount()
+        self.mount_a.wait_until_mounted()
+
+        # link count was adjusted?
+        file1_nlink = self.mount_a.path_to_nlink("testdir1/file1")
+        self.assertEqual(file1_nlink, 2)

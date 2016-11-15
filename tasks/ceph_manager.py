@@ -888,6 +888,9 @@ class CephManager:
     """
     Ceph manager object.
     Contains several local functions that form a bulk of this module.
+
+    Note: this class has nothing to do with the Ceph daemon (ceph-mgr) of
+    the same name.
     """
 
     REPLICATED_POOL = 1
@@ -1561,10 +1564,20 @@ class CephManager:
         Scrub pg and wait for scrubbing to finish
         """
         init = self.get_last_scrub_stamp(pool, pgnum)
+        RESEND_TIMEOUT = 120    # Must be a multiple of SLEEP_TIME
+        FATAL_TIMEOUT = RESEND_TIMEOUT * 3
+        SLEEP_TIME = 10
+        timer = 0
         while init == self.get_last_scrub_stamp(pool, pgnum):
+            assert timer < FATAL_TIMEOUT, "fatal timeout trying to " + stype
             self.log("waiting for scrub type %s" % (stype,))
-            self.raw_cluster_cmd('pg', stype, self.get_pgid(pool, pgnum))
-            time.sleep(10)
+            if (timer % RESEND_TIMEOUT) == 0:
+                self.raw_cluster_cmd('pg', stype, self.get_pgid(pool, pgnum))
+                # The first time in this loop is the actual request
+                if timer != 0 and stype == "repair":
+                    self.log("WARNING: Resubmitted a non-idempotent repair")
+            time.sleep(SLEEP_TIME)
+            timer += SLEEP_TIME
 
     def get_single_pg_stats(self, pgid):
         """
@@ -1953,7 +1966,8 @@ class CephManager:
         Stop osd if nothing else works.
         """
         self.raw_cluster_cmd('--', 'tell', 'osd.%d' % osd,
-                             'injectargs', '--filestore-blackhole')
+                             'injectargs',
+                             '--objectstore-blackhole')
         time.sleep(2)
         self.ctx.daemons.get_daemon('osd', osd, self.cluster).stop()
 
