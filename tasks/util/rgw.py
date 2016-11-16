@@ -266,6 +266,10 @@ def extract_region_info(region, region_info):
 
 
 def get_config_master_client(ctx, config, regions):
+    log.debug('ALI DEBUG STATEMENT: config in get_config_master_client is: %r', config)
+    for client, c_config in config.iteritems():
+        log.debug('ALI DEBUG STATEMENT: c_config in loop through config is: %r', c_config)
+        log.debug('ALI DEBUG STATEMENT: client in loop through config is: %r', client)
 
     role_zones = dict([(client, extract_zone_info(ctx, client, c_config))
                        for client, c_config in config.iteritems()])
