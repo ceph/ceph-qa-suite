@@ -183,6 +183,7 @@ def extract_zone_info(ctx, client, client_config):
     :param client_config: dictionary of client configuration information
     :returns: zone extracted from client and client_config information
     """
+    log.debug('ALI DEBUG STATEMENT: client in extract_zone_info is: %r', client)
     cluster_name, daemon_type, client_id = teuthology.split_role(client)
     ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
     ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
