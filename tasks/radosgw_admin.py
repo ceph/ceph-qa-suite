@@ -74,12 +74,24 @@ def task(ctx, config):
         or isinstance(config, dict), \
         "task s3tests only supports a list or dictionary for configuration"
 
-    log.debug('ALI ADDED, Config is: %r', config)
+    config = ctx.rgw.config
+    log.debug('ALI ADDED, config is: %r', config)
+
+    regions = ctx.rgw.regions
+    log.debug('ALI ADDED, regions #1 are: %r', regions)
+
     # regions found just like in the rgw task
     regions = {}
     if 'regions' in config:
+        # separate region info so only clients are keys in config
         regions = config['regions']
-    log.debug('ALI ADDED, regions are: %r', regions)
+        del config['regions']
+
+    log.debug('ALI ADDED, regions #2 are: %r', regions)
+
+
+    # NEED regions from rgw config, clients from rgw config the same way they came into rgw.py
+
     if len(regions) > 1:
         multi_region_run = True
 
