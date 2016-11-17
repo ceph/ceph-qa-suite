@@ -75,8 +75,10 @@ def task(ctx, config):
         "task s3tests only supports a list or dictionary for configuration"
 
     log.debug('ALI ADDED, Config is: %r', config)
-    # ctx.rgw.regions set in the rgw task
-    regions = ctx.rgw.regions
+    # regions found just like in the rgw task
+    regions = {}
+    if 'regions' in config:
+        regions = config['regions']
     log.debug('ALI ADDED, regions are: %r', regions)
     if len(regions) > 1:
         multi_region_run = True

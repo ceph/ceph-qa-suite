@@ -1095,6 +1095,7 @@ def task(ctx, config):
     if 'regions' in config:
         # separate region info so only clients are keys in config
         regions = config['regions']
+        del config['regions']
 
     role_endpoints = assign_ports(ctx, config)
     ctx.rgw = argparse.Namespace()
