@@ -323,25 +323,46 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         if zone is not None:
             rgw_cmd.extend(['--rgw-zone', zone])
 
-        rgw_cmd.extend([
-            '-n', client_with_id,
-            '--cluster', cluster_name,
-            '-k', '/etc/ceph/'+ cluster_name + '.{client}.keyring'.format(client=client),
-            '--log-file',
-            '/var/log/ceph/rgw.{client}.log'.format(client=client),
-            '--rgw_ops_log_socket_path',
-            '{tdir}/rgw.opslog.{client}.sock'.format(tdir=testdir,
-                                                     client=client),
-            '--foreground',
-            run.Raw('|'),
-            'sudo',
-            'tee',
-            '/var/log/ceph/rgw.{client}.stdout'.format(tdir=testdir,
-                                                       client=client),
-            run.Raw('2>&1'),
+
+	if cluster_name != 'ceph':
+       	    rgw_cmd.extend([
+                '-n', client_with_id,
+                '--cluster', cluster_name,
+                '-k', '/etc/ceph/{client}.keyring'.format(client=client),
+                '--log-file',
+                '/var/log/ceph/rgw.{client}.log'.format(client=client),
+                '--rgw_ops_log_socket_path',
+                '{tdir}/rgw.opslog.{client}.sock'.format(tdir=testdir,
+                                                         client=client),
+                '--foreground',
+                run.Raw('|'),
+                'sudo',
+                'tee',
+                '/var/log/ceph/rgw.{client}.stdout'.format(tdir=testdir,
+                                                           client=client),
+                run.Raw('2>&1'),
             ])
 
-        if client_config.get('valgrind'):
+	else:
+            rgw_cmd.extend([
+                '-n', client_with_id,
+                '--cluster', cluster_name,
+                '-k', '/etc/ceph/' + cluster_name + '.{client}.keyring'.format(client=client),
+                '--log-file',
+                '/var/log/ceph/rgw.{client}.log'.format(client=client),
+                '--rgw_ops_log_socket_path',
+                '{tdir}/rgw.opslog.{client}.sock'.format(tdir=testdir,
+                                                         client=client),
+                '--foreground',
+                run.Raw('|'),
+                'sudo',
+                'tee',
+                '/var/log/ceph/rgw.{client}.stdout'.format(tdir=testdir,
+                                                           client=client),
+                run.Raw('2>&1'),
+            ])
+	            
+	if client_config.get('valgrind'):
             cmd_prefix = teuthology.get_valgrind_args(
                 testdir,
                 client,
