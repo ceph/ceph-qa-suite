@@ -71,8 +71,8 @@ def task(ctx, config):
     """
     global log
 
+    config = ctx.config.get('rgw', {})
     log.debug('ALI ADDED, config is: %r', config)
-    config = ctx.config.get('rgw', None)
     assert config is None or isinstance(config, list) \
         or isinstance(config, dict), \
         "task s3tests only supports a list or dictionary for configuration"
