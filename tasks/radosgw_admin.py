@@ -79,6 +79,7 @@ def task(ctx, config):
     # regions found just like in the rgw task
     regions = {}
     if 'regions' in config:
+        # separate region info so only clients are keys in config
         regions = config['regions']
         del config['regions']
     log.debug('ALI ADDED, config after regions del is: %r', config)
