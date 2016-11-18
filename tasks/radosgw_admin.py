@@ -63,22 +63,26 @@ def get_acl(key):
         remove_newlines(raw_acl)
     )
 
-
+@contextlib.contextmanager
 def task(ctx, config):
     """
     Test radosgw-admin functionality against a running rgw instance.
     """
     global log
 
+    log.debug('ALI ADDED, config is: %r', config)
+    config = ctx.config.get('rgw', None)
     assert config is None or isinstance(config, list) \
         or isinstance(config, dict), \
         "task s3tests only supports a list or dictionary for configuration"
 
-    log.debug('ALI ADDED, Config is: %r', config)
     # regions found just like in the rgw task
     regions = {}
     if 'regions' in config:
         regions = config['regions']
+        del config['regions']
+    log.debug('ALI ADDED, config after regions del is: %r', config)
+
     log.debug('ALI ADDED, regions are: %r', regions)
     if len(regions) > 1:
         multi_region_run = True
