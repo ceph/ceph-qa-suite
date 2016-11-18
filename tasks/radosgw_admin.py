@@ -12,6 +12,7 @@ import json
 import logging
 import time
 import datetime
+import contextlib
 
 from cStringIO import StringIO
 
