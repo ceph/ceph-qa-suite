@@ -466,6 +466,9 @@ def build_ceph_cluster(ctx, config):
 	remove_ceph_packages(ctx)
 	log.info('Purging data...')
 	execute_ceph_deploy(purgedata_nodes)
+        ctx.cluster.run(args=['ls', '/var/lib/ceph'], check_status=False)
+        ctx.cluster.run(args=['rm', '-rf', '/var/lib/ceph'],
+			     check_status=False)
 
 
 def first_in_ceph_log(remote, pattern, excludes):
