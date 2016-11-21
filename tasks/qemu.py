@@ -292,6 +292,7 @@ def run_qemu(ctx, config):
             tdir=testdir,
             client=client
         )
+        remote.run(args='ls -l /dev/kvm')
         qemu_cmd = 'qemu-system-x86_64'
         if remote.os.package_type == "rpm":
             qemu_cmd = "/usr/libexec/qemu-kvm"
