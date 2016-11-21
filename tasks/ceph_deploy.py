@@ -467,7 +467,7 @@ def build_ceph_cluster(ctx, config):
 	log.info('Purging data...')
 	execute_ceph_deploy(purgedata_nodes)
         ctx.cluster.run(args=['ls', '/var/lib/ceph'], check_status=False)
-        ctx.cluster.run(args=['rm', '-rf', '/var/lib/ceph'],
+        ctx.cluster.run(args=['sudo', 'rm', '-rf', '/var/lib/ceph'],
 			     check_status=False)
 
 
