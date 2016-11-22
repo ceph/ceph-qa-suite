@@ -76,6 +76,8 @@ def task(ctx, config):
         or isinstance(config, dict), \
         "task s3tests only supports a list or dictionary for configuration"
 
+    config = {'regions': {'george': {'zones': ['constanza'], 'api name': 'api1', 'is master': False, 'master zone': 'constanza'}, 'jerry': {'zones': ['seinfeld'], 'api name': 'api1', 'is master': True, 'master zone': 'seinfeld'}}, 'cluster1.client.0': {'system user': {'secret key': '1y4IOauQoL18Gp2zM7lC1vLmoawgqcYPbYGcWfXv', 'access key': '1te6NH5mcdcq0Tc5i8i2', 'name': 'client0-system-user'}, 'valgrind': ['--tool=memcheck']}, 'realm': 'apartment', 'cluster2.client.0': {'system user': {'secret key': 'Oy4IOauQoL18Gp2zM7lC1vLmoawgqcYPbYGcWfXv', 'access key': '0te6NH5mcdcq0Tc5i8i2', 'name': 'client1-system-user'}, 'valgrind': ['--tool=memcheck']}}
+
     # regions found just like in the rgw task
     regions = {}
     if 'regions' in config:
