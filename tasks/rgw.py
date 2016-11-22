@@ -1100,6 +1100,7 @@ def task(ctx, config):
 
     role_endpoints = assign_ports(ctx, config)
     ctx.rgw = argparse.Namespace()
+    ctx.rgw.config = config
     ctx.rgw.role_endpoints = role_endpoints
     # stash the region info for later, since it was deleted from the config
     # structure

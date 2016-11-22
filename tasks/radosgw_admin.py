@@ -78,13 +78,17 @@ def task(ctx, config):
 
     config = {'regions': {'george': {'zones': ['constanza'], 'api name': 'api1', 'is master': False, 'master zone': 'constanza'}, 'jerry': {'zones': ['seinfeld'], 'api name': 'api1', 'is master': True, 'master zone': 'seinfeld'}}, 'cluster1.client.0': {'system user': {'secret key': '1y4IOauQoL18Gp2zM7lC1vLmoawgqcYPbYGcWfXv', 'access key': '1te6NH5mcdcq0Tc5i8i2', 'name': 'client0-system-user'}, 'valgrind': ['--tool=memcheck']}, 'realm': 'apartment', 'cluster2.client.0': {'system user': {'secret key': 'Oy4IOauQoL18Gp2zM7lC1vLmoawgqcYPbYGcWfXv', 'access key': '0te6NH5mcdcq0Tc5i8i2', 'name': 'client1-system-user'}, 'valgrind': ['--tool=memcheck']}}
 
+    config_is_same = (config == ctx.rgw.config)
+    log.debug('ALI ADDED, config_is_same is: %r', config_is_same)
+
     # regions found just like in the rgw task
     regions = {}
     if 'regions' in config:
         # separate region info so only clients are keys in config
         regions = config['regions']
+	regions_are_same = (regions == ctx.rgw.regions)
+	log.debug('ALI ADDED, regions_are_same is: %r', regions_are_same)
         del config['regions']
-    ctx.radosgw_admin.regions = regions
     log.debug('ALI ADDED, config after regions del is: %r', config)
 
     log.debug('ALI ADDED, regions are: %r', regions)
@@ -102,8 +106,9 @@ def task(ctx, config):
     if 'realm' in config:
         # separate region info so only clients are keys in config
         realm = config['realm']
+	realm_is_same = (realm == ctx.rgw.realm)
+	log.debug('ALI ADDED, realm_is_same is: %r', realm_is_same)
         del config['realm']
-    ctx.radosgw_admin.realm = realm
 
     log.debug('radosgw-admin: realm %r', realm)
     
