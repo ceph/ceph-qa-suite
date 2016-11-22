@@ -1088,6 +1088,7 @@ def task(ctx, config):
     elif isinstance(config, list):
         config = dict((name, None) for name in config)
 
+    log.debug("ALI ADDED config in the beginning of rgw.py is: %r", config)
     overrides = ctx.config.get('overrides', {})
     teuthology.deep_merge(config, overrides.get('rgw', {}))
 
@@ -1172,6 +1173,7 @@ def task(ctx, config):
                 break
 
     log.debug('multi_cluster %s', multi_cluster)
+    log.debug("ALI ADDED config in rgw.py going into get_config_master_client is: %r", config)
     master_client = None
 
     if multi_cluster:

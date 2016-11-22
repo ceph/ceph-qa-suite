@@ -71,7 +71,6 @@ def task(ctx, config):
     """
     global log
 
-    config = ctx.config.get('rgw', {})
     log.debug('ALI ADDED, config is: %r', config)
     assert config is None or isinstance(config, list) \
         or isinstance(config, dict), \
@@ -83,6 +82,7 @@ def task(ctx, config):
         # separate region info so only clients are keys in config
         regions = config['regions']
         del config['regions']
+    ctx.radosgw_admin.regions = regions
     log.debug('ALI ADDED, config after regions del is: %r', config)
 
     log.debug('ALI ADDED, regions are: %r', regions)
@@ -96,7 +96,13 @@ def task(ctx, config):
     # the role_endpoints that were assigned by the rgw task
     (remote_host, remote_port) = ctx.rgw.role_endpoints[client]
 
-    realm = ctx.rgw.realm
+    realm = None
+    if 'realm' in config:
+        # separate region info so only clients are keys in config
+        realm = config['realm']
+        del config['realm']
+    ctx.radosgw_admin.realm = realm
+
     log.debug('radosgw-admin: realm %r', realm)
     
     ##
