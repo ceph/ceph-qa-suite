@@ -1100,7 +1100,6 @@ def task(ctx, config):
 
     role_endpoints = assign_ports(ctx, config)
     ctx.rgw = argparse.Namespace()
-    ctx.rgw.config = config
     ctx.rgw.role_endpoints = role_endpoints
     # stash the region info for later, since it was deleted from the config
     # structure
@@ -1175,6 +1174,7 @@ def task(ctx, config):
 
     log.debug('multi_cluster %s', multi_cluster)
     log.debug("ALI ADDED config in rgw.py going into get_config_master_client is: %r", config)
+    ctx.rgw.config = config
     master_client = None
 
     if multi_cluster:
