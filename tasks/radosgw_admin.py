@@ -909,6 +909,8 @@ def task(ctx, config):
 
     (err, out) = rgwadmin(ctx, client, ['gc', 'list'])
 
+    log.debug("ALI DEBUG: out from gc list is: %r", out)
+
     assert len(out) > 0
 
     # TESTCASE 'gc-process', 'gc', 'process', 'manually collect garbage'
