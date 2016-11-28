@@ -10,11 +10,11 @@ log = logging.getLogger(__name__)
 
 class Test(object):
 
-    def __init__(self, script_name, configuration, port_number):
+    def __init__(self, script_name, configuration, port_number = None):
         self.script_fname = script_name + ".py"
         self.yaml_fname = script_name + ".yaml"
         self.configuration = configuration
-        self.port_number = port_number
+        # self.port_number = port_number
 
     def execution(self, clients):
 
@@ -53,8 +53,8 @@ class Test(object):
         clients[0].run(
             args=[
                 run.Raw(
-                    'source venv/bin/activate; python ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/%s '
-                    '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/%s -p %s' % (self.script_fname, self.yaml_fname, self.port_number))])
+                    'sudo venv/bin/python2.7 ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/%s '
+                    '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/%s ' % (self.script_fname, self.yaml_fname))])
 
         if os.path.exists('/tmp/rgwtmp'):
             shutil.rmtree('/tmp/rgwtmp')
@@ -67,9 +67,9 @@ def test_exec(config, data, clients):
     log.info('test name :%s' % config['test-name'])
 
     script_name = config['test-name']
-    port_number = config['port_number']
+    # port_number = config['port_number']
 
-    test = Test(script_name, data, port_number)
+    test = Test(script_name, data)
     test.execution(clients)
 
 
@@ -265,7 +265,7 @@ def task(ctx, config):
             'source',
             'venv/bin/activate',
             run.Raw(';'),
-            run.Raw('pip install boto names PyYaml'),
+            run.Raw('pip install boto names PyYaml ConfigParser'),
             run.Raw(';'),
             'deactivate'])
 
@@ -292,6 +292,28 @@ def task(ctx, config):
         data = dict(
             config=dict(
                 user_count=test_config['user_count'],
+                bucket_count=test_config['bucket_count'],
+                objects_count=test_config['objects_count'],
+                objects_size_range=dict(
+                    min=test_config['min_file_size'],
+                    max=test_config['max_file_size']
+                )
+
+            )
+        )
+
+    if config['test-name'] == 'test_Mbuckets_with_Nobjects_shards':
+
+        # changing the value of config['test-name'] to take test_Mbuckets_with_Nobjects,
+        # since this test also takes the following configuration
+
+        config['test-name'] = 'test_Mbuckets_with_Nobjects'
+
+        data = dict(
+            config=dict(
+                user_count=test_config['user_count'],
+                shards=test_config['shards'],
+                max_objects=test_config['max_objects'],
                 bucket_count=test_config['bucket_count'],
                 objects_count=test_config['objects_count'],
                 objects_size_range=dict(
