@@ -5,7 +5,7 @@ tasks:
 - ceph:
     cluster: cluster1
     conf:
-      cluster1.client.0:
+      client.0:
         rgw region: jerry
         rgw zone: seinfeld
         rgw region root pool: .rgw.region.0
@@ -20,7 +20,7 @@ tasks:
 - ceph:
     cluster: cluster2
     conf:
-      cluster2.client.0:
+      client.0:
         rgw region: george
         rgw zone: constanza
         rgw region root pool: .rgw.region.1
