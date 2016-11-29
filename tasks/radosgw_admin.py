@@ -12,7 +12,6 @@ import json
 import logging
 import time
 import datetime
-import contextlib
 
 from cStringIO import StringIO
 
@@ -64,7 +63,6 @@ def get_acl(key):
         remove_newlines(raw_acl)
     )
 
-@contextlib.contextmanager
 def task(ctx, config):
     """
     Test radosgw-admin functionality against a running rgw instance.
