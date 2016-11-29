@@ -185,12 +185,13 @@ def extract_zone_info(ctx, client, client_config):
     """
     log.debug('ALI DEBUG STATEMENT: client in extract_zone_info is: %r', client)
     cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    client_with_id = daemon_type + '.' + client_id
     ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
     log.debug('ALI DEBUG STATEMENT: ceph_config in extract_zone_info is: %r', ceph_config)
     ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
     log.debug('ALI DEBUG STATEMENT: ceph_config after `client` update in extract_zone_info is: %r', ceph_config)
-    ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
-    log.debug('ALI DEBUG STATEMENT: ceph_config after client update in extract_zone_info is: %r', ceph_config)
+    ceph_config.update(ctx.ceph[cluster_name].conf.get(client_with_id, {}))
+    log.debug('ALI DEBUG STATEMENT: ceph_config after client_with_id update in extract_zone_info is: %r', ceph_config)
     for key in ['rgw zone', 'rgw region', 'rgw zone root pool']:
         assert key in ceph_config, \
             'ceph conf must contain {key} for {client}'.format(key=key,
