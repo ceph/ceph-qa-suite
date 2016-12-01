@@ -30,9 +30,6 @@ def create_apache_dirs(ctx, config, on_client = None, except_client = None):
     """
     log.info('Creating apache directories...')
     log.debug('client is %r', on_client)
-    cluster_name, daemon_type, client_id = teuthology.split_role(client)
-    # in case client doesn't have cluster_name attached to it
-    client_with_cluster = cluster_name + '.' + daemon_type + '.' client_id
     testdir = teuthology.get_testdir(ctx)
     clients_to_create_as = [on_client]
     if on_client is None:
@@ -40,6 +37,9 @@ def create_apache_dirs(ctx, config, on_client = None, except_client = None):
     for client in clients_to_create_as:
         if client == except_client:
             continue
+    	cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    	# in case client doesn't have cluster_name attached to it
+    	client_with_cluster = cluster_name + '.' + daemon_type + '.' client_id
         ctx.cluster.only(client).run(
             args=[
                 'mkdir',
@@ -107,15 +107,15 @@ def ship_apache_configs(ctx, config, role_endpoints, on_client = None,
     log.info('Shipping apache config and rgw.fcgi...')
     src = os.path.join(os.path.dirname(__file__), 'apache.conf.template')
     clients_to_create_as = [on_client]
-    cluster_name, daemon_type, client_id = teuthology.split_role(client)
-    # in case client doesn't have cluster_name attached to it
-    client_with_id = daemon_type + '.' + client_id
-    client_with_cluster = cluster_name + '.' + client_with_id
     if on_client is None:
         clients_to_create_as = config.keys()
     for client in clients_to_create_as:
         if client == except_client:
             continue
+    	cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    	# in case client doesn't have cluster_name attached to it
+    	client_with_id = daemon_type + '.' + client_id
+    	client_with_cluster = cluster_name + '.' + client_with_id
         (remote,) = ctx.cluster.only(client).remotes.keys()
         system_type = teuthology.get_system_type(remote)
         conf = config.get(client)
