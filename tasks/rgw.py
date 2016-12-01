@@ -39,7 +39,7 @@ def create_apache_dirs(ctx, config, on_client = None, except_client = None):
             continue
     	cluster_name, daemon_type, client_id = teuthology.split_role(client)
     	# in case client doesn't have cluster_name attached to it
-    	client_with_cluster = cluster_name + '.' + daemon_type + '.' client_id
+    	client_with_cluster = cluster_name + '.' + daemon_type + '.' + client_id
         ctx.cluster.only(client).run(
             args=[
                 'mkdir',
