@@ -373,7 +373,7 @@ def start_apache(ctx, config, on_client = None, except_client = None):
         clients_to_run = config.keys()
     for client in clients_to_run:
         cluster_name, daemon_type, client_id = teuthology.split_role(client)
-        client_with_cluster = cluster_name + '.' + daemon_type + '.' client_id
+        client_with_cluster = cluster_name + '.' + daemon_type + '.' + client_id
         if client == except_client:
             continue
         (remote,) = ctx.cluster.only(client).remotes.keys()
