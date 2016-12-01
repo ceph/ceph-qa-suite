@@ -30,6 +30,9 @@ def create_apache_dirs(ctx, config, on_client = None, except_client = None):
     """
     log.info('Creating apache directories...')
     log.debug('client is %r', on_client)
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    # in case client doesn't have cluster_name attached to it
+    client_with_cluster = cluster_name + '.' + daemon_type + '.' client_id
     testdir = teuthology.get_testdir(ctx)
     clients_to_create_as = [on_client]
     if on_client is None:
@@ -41,15 +44,15 @@ def create_apache_dirs(ctx, config, on_client = None, except_client = None):
             args=[
                 'mkdir',
                 '-p',
-                '{tdir}/apache/htdocs.{client}'.format(tdir=testdir,
-                                                       client=client),
-                '{tdir}/apache/tmp.{client}/fastcgi_sock'.format(
+                '{tdir}/apache/htdocs.{client_with_cluster}'.format(tdir=testdir,
+                                                       client_with_cluster=client_with_cluster),
+                '{tdir}/apache/tmp.{client_with_cluster}/fastcgi_sock'.format(
                     tdir=testdir,
-                    client=client),
+                    client_with_cluster=client_with_cluster),
                 run.Raw('&&'),
                 'mkdir',
-                '{tdir}/archive/apache.{client}'.format(tdir=testdir,
-                                                        client=client),
+                '{tdir}/archive/apache.{client_with_cluster}'.format(tdir=testdir,
+                                                        client_with_cluster=client_with_cluster),
                 ],
             )
     try:
@@ -61,12 +64,12 @@ def create_apache_dirs(ctx, config, on_client = None, except_client = None):
                 args=[
                     'rm',
                     '-rf',
-                    '{tdir}/apache/tmp.{client}'.format(tdir=testdir,
-                                                        client=client),
+                    '{tdir}/apache/tmp.{client_with_cluster}'.format(tdir=testdir,
+                                                        client_with_cluster=client_with_cluster),
                     run.Raw('&&'),
                     'rmdir',
-                    '{tdir}/apache/htdocs.{client}'.format(tdir=testdir,
-                                                           client=client),
+                    '{tdir}/apache/htdocs.{client_with_cluster}'.format(tdir=testdir,
+                                                           client_with_cluster=client_with_cluster),
                     ],
                 )
         for client in clients_to_create_as:
@@ -104,6 +107,10 @@ def ship_apache_configs(ctx, config, role_endpoints, on_client = None,
     log.info('Shipping apache config and rgw.fcgi...')
     src = os.path.join(os.path.dirname(__file__), 'apache.conf.template')
     clients_to_create_as = [on_client]
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    # in case client doesn't have cluster_name attached to it
+    client_with_id = daemon_type + '.' + client_id
+    client_with_cluster = cluster_name + '.' + client_with_id
     if on_client is None:
         clients_to_create_as = config.keys()
     for client in clients_to_create_as:
@@ -158,7 +165,7 @@ def ship_apache_configs(ctx, config, role_endpoints, on_client = None,
                 print_continue=print_continue,
                 host=host,
                 port=port,
-                client=client,
+                client_with_cluster=client_with_cluster,
                 idle_timeout=idle_timeout,
                 user=user,
                 group=group,
@@ -166,18 +173,18 @@ def ship_apache_configs(ctx, config, role_endpoints, on_client = None,
                 )
             teuthology.write_file(
                 remote=remote,
-                path='{tdir}/apache/apache.{client}.conf'.format(
+                path='{tdir}/apache/apache.{client_with_cluster}.conf'.format(
                     tdir=testdir,
-                    client=client),
+                    client_with_cluster=client_with_cluster),
                 data=conf,
                 )
         rgw_options = []
         if ctx.rgw.use_fastcgi or _use_uds_with_fcgi(remote):
             rgw_options = [
                 '--rgw-socket-path',
-                '{tdir}/apache/tmp.{client}/fastcgi_sock/rgw_sock'.format(
+                '{tdir}/apache/tmp.{client_with_cluster}/fastcgi_sock/rgw_sock'.format(
                     tdir=testdir,
-                    client=client
+                    client_with_cluster=client_with_cluster
                 ),
                 '--rgw-frontends',
                 'fastcgi',
@@ -192,21 +199,21 @@ def ship_apache_configs(ctx, config, role_endpoints, on_client = None,
 
         teuthology.write_file(
             remote=remote,
-            path='{tdir}/apache/htdocs.{client}/rgw.fcgi'.format(
+            path='{tdir}/apache/htdocs.{client_with_cluster}/rgw.fcgi'.format(
                 tdir=testdir,
-                client=client),
+                client_with_cluster=client_with_cluster),
             data="""#!/bin/sh
 ulimit -c unlimited
-exec radosgw -f -n {client} -k /etc/ceph/{client}.keyring {rgw_options}
+exec radosgw -f -n {client_with_id} --cluster {cluster_name} -k /etc/ceph/{client_with_cluster}.keyring {rgw_options}
 
-""".format(tdir=testdir, client=client, rgw_options=" ".join(rgw_options))
+""".format(tdir=testdir, client_with_cluster=client_with_cluster, cluster_name=cluster_name, rgw_options=" ".join(rgw_options))
             )
         remote.run(
             args=[
                 'chmod',
                 'a=rx',
-                '{tdir}/apache/htdocs.{client}/rgw.fcgi'.format(tdir=testdir,
-                                                                client=client),
+                '{tdir}/apache/htdocs.{client_with_cluster}/rgw.fcgi'.format(tdir=testdir,
+                                                                client_with_cluster=client_with_cluster),
                 ],
             )
     try:
@@ -218,14 +225,14 @@ exec radosgw -f -n {client} -k /etc/ceph/{client}.keyring {rgw_options}
                 args=[
                     'rm',
                     '-f',
-                    '{tdir}/apache/apache.{client}.conf'.format(tdir=testdir,
-                                                                client=client),
+                    '{tdir}/apache/apache.{client_with_cluster}.conf'.format(tdir=testdir,
+                                                                client_with_cluster=client_with_cluster),
                     run.Raw('&&'),
                     'rm',
                     '-f',
-                    '{tdir}/apache/htdocs.{client}/rgw.fcgi'.format(
+                    '{tdir}/apache/htdocs.{client_with_cluster}/rgw.fcgi'.format(
                         tdir=testdir,
-                        client=client),
+                        client_with_cluster=client_with_cluster),
                     ],
                 )
 
@@ -248,6 +255,8 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         (remote,) = ctx.cluster.only(client).remotes.iterkeys()
         cluster_name, daemon_type, client_id = teuthology.split_role(client)
         client_with_id = daemon_type + '.' + client_id
+        # in case client doesn't have cluster_name attached to it
+        client_with_cluster = cluster_name + '.' + client_with_id
         zone = rgw_utils.zone_for_client(ctx, client)
         log.debug('zone %s', zone)
 
@@ -272,9 +281,9 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
             if ctx.rgw.use_fastcgi or _use_uds_with_fcgi(remote):
                 rgw_cmd.extend([
                     '--rgw-socket-path',
-                    '{tdir}/apache/tmp.{client}/fastcgi_sock/rgw_sock'.format(
+                    '{tdir}/apache/tmp.{client_with_cluster}/fastcgi_sock/rgw_sock'.format(
                         tdir=testdir,
-                        client=client,
+                        client_with_cluster=client_with_cluster,
                     ),
                     '--rgw-frontends',
                     'fastcgi',
@@ -301,18 +310,18 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
         rgw_cmd.extend([
             '-n', client_with_id,
             '--cluster', cluster_name,
-            '-k', '/etc/ceph/{client}.keyring'.format(client=client),
+            '-k', '/etc/ceph/{client_with_cluster}.keyring'.format(client_with_cluster=client_with_cluster),
             '--log-file',
-            '/var/log/ceph/rgw.{client}.log'.format(client=client),
+            '/var/log/ceph/rgw.{client_with_cluster}.log'.format(client_with_cluster=client_with_cluster),
             '--rgw_ops_log_socket_path',
-            '{tdir}/rgw.opslog.{client}.sock'.format(tdir=testdir,
-                                                     client=client),
+            '{tdir}/rgw.opslog.{client_with_cluster}.sock'.format(tdir=testdir,
+                                                     client_with_cluster=client_with_cluster),
             '--foreground',
             run.Raw('|'),
             'sudo',
             'tee',
-            '/var/log/ceph/rgw.{client}.stdout'.format(tdir=testdir,
-                                                       client=client),
+            '/var/log/ceph/rgw.{client_with_cluster}.stdout'.format(tdir=testdir,
+                                                       client_with_cluster=client_with_cluster),
             run.Raw('2>&1'),
             ])
 
@@ -345,8 +354,8 @@ def start_rgw(ctx, config, on_client = None, except_client = None):
                 args=[
                     'rm',
                     '-f',
-                    '{tdir}/rgw.opslog.{client}.sock'.format(tdir=testdir,
-                                                             client=client),
+                    '{tdir}/rgw.opslog.{client_with_cluster}.sock'.format(tdir=testdir,
+                                                             client_with_cluster=client_with_cluster),
                     ],
                 )
 
@@ -363,6 +372,8 @@ def start_apache(ctx, config, on_client = None, except_client = None):
     if on_client is None:
         clients_to_run = config.keys()
     for client in clients_to_run:
+        cluster_name, daemon_type, client_id = teuthology.split_role(client)
+        client_with_cluster = cluster_name + '.' + daemon_type + '.' client_id
         if client == except_client:
             continue
         (remote,) = ctx.cluster.only(client).remotes.keys()
@@ -389,14 +400,14 @@ def start_apache(ctx, config, on_client = None, except_client = None):
                 apache_name,
                 '-X',
                 '-f',
-                '{tdir}/apache/apache.{client}.conf'.format(tdir=testdir,
-                                                            client=client),
+                '{tdir}/apache/apache.{client_with_cluster}.conf'.format(tdir=testdir,
+                                                            client_with_cluster=client_with_cluster),
                 ],
             logger=log.getChild(client),
             stdin=run.PIPE,
             wait=False,
             )
-        apaches[client] = proc
+        apaches[client_with_cluster] = proc
 
     try:
         yield
