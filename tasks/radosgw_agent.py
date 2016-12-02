@@ -18,7 +18,8 @@ def run_radosgw_agent(ctx, config):
     return_list = list()
     for (client, cconf) in config.items():
         # don't process entries that are not clients
-        if not client.find('client.'):
+    	log.debug("ALI DEBUG client in run_radosgw_agent is %r", client)
+        if not 'client.' in client:
             log.debug('key {data} does not contain \'client.\', moving on'.format(
                       data=client))
             continue
