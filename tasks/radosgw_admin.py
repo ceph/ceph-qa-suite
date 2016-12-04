@@ -80,6 +80,7 @@ def task(ctx, config):
     log.debug('ALI ADDED, config is: %r', config)
     log.debug('ALI ADDED, regions are: %r', regions)
 
+    multi_region_run = False
     if len(regions) > 1:
         multi_region_run = True
 
