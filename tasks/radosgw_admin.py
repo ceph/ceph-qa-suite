@@ -83,7 +83,7 @@ def task(ctx, config):
     multi_region_run = rgw_utils.multi_region_enabled(ctx)
 
     log.debug('ALI ADDED, multi_region_run is: %r', multi_region_run)
-    gog.debug('ALI ADDED, master_client is: %r', client)
+    log.debug('ALI ADDED, master_client is: %r', client)
 
     # once the client is chosen, pull the host name and  assigned port out of
     # the role_endpoints that were assigned by the rgw task
