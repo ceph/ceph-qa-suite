@@ -70,7 +70,7 @@ def task(ctx, config):
     global log
 
     assert isinstance(config, dict) \
-        "task radosgw-admin only supports a dictionary with a 'master_client' for configuration"
+        "task radosgw-admin only supports a dictionary with a master_client for configuration"
 
     # regions found just like in the rgw task
     regions = ctx.rgw.regions
