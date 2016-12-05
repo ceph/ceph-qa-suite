@@ -69,9 +69,8 @@ def task(ctx, config):
     """
     global log
 
-    assert config is None or isinstance(config, list) \
-        or isinstance(config, dict), \
-        "task s3tests only supports a list or dictionary for configuration"
+    assert isinstance(config, dict) \
+        "task radosgw-admin only supports a dictionary with a 'master_client' for configuration"
 
     # regions found just like in the rgw task
     regions = ctx.rgw.regions
@@ -81,12 +80,10 @@ def task(ctx, config):
 
     client = config["master_client"]
 
-    multi_region_run = False
-    if len(regions) > 1:
-        multi_region_run = True
+    multi_region_run = rgw_utils.multi_region_enabled(ctx)
 
     log.debug('ALI ADDED, multi_region_run is: %r', multi_region_run)
-    log.debug('ALI ADDED, client is: %r', client)
+    gog.debug('ALI ADDED, master_client is: %r', client)
 
     # once the client is chosen, pull the host name and  assigned port out of
     # the role_endpoints that were assigned by the rgw task
