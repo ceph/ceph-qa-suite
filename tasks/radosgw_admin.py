@@ -74,18 +74,21 @@ def task(ctx, config):
         "task s3tests only supports a list or dictionary for configuration"
 
     # regions found just like in the rgw task
-    config = ctx.rgw.config
     regions = ctx.rgw.regions
+    config = ctx.rgw.config
 
-    log.debug('ALI ADDED, config is: %r', config)
     log.debug('ALI ADDED, regions are: %r', regions)
+    log.debug('ALI ADDED, config is: %r', config)
 
+    clients_from_conf = config.keys()
+    # set client to first client from config
+    client = clients_from_conf[0]
     multi_region_run = False
     if len(regions) > 1:
         multi_region_run = True
+        client = rgw_utils.get_config_master_client(ctx, config, regions)
 
-    client = rgw_utils.get_config_master_client(ctx, config, regions)
-    log.debug('ALI ADDED, master_client is: %r', client)
+    log.debug('ALI ADDED, client is: %r', client)
 
     # once the client is chosen, pull the host name and  assigned port out of
     # the role_endpoints that were assigned by the rgw task
