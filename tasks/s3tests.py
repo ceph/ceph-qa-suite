@@ -29,7 +29,7 @@ def extract_sync_client_data(ctx, client_name):
     """
     return_region_name = None
     return_dict = None
-    client = ctx.ceph.conf.get(client_name, None)
+    client = ctx.ceph['ceph'].conf.get(client_name, None)
     if client:
         current_client_zone = client.get('rgw zone', None)
         if current_client_zone:
@@ -124,12 +124,16 @@ def download(ctx, config):
     assert isinstance(config, dict)
     log.info('Downloading s3-tests...')
     testdir = teuthology.get_testdir(ctx)
+    s3_branches = [ 'giant', 'firefly', 'firefly-original', 'hammer' ]
     for (client, cconf) in config.items():
         branch = cconf.get('force-branch', None)
         if not branch:
             ceph_branch = ctx.config.get('branch')
             suite_branch = ctx.config.get('suite_branch', ceph_branch)
-            branch = cconf.get('branch', suite_branch)
+            if suite_branch in s3_branches:
+                branch = cconf.get('branch', suite_branch)
+	    else:
+                branch = cconf.get('branch', 'ceph-' + suite_branch)
         if not branch:
             raise ValueError(
                 "Could not determine what branch to use for s3tests!")
@@ -326,6 +330,9 @@ def run_tests(ctx, config):
     """
     assert isinstance(config, dict)
     testdir = teuthology.get_testdir(ctx)
+    attrs = ["!fails_on_rgw"]
+    if not ctx.rgw.use_fastcgi:
+        attrs.append("!fails_on_mod_proxy_fcgi")
     for client, client_config in config.iteritems():
         args = [
             'S3TEST_CONF={tdir}/archive/s3-tests.{client}.conf'.format(tdir=testdir, client=client),
@@ -334,13 +341,14 @@ def run_tests(ctx, config):
             '-w',
             '{tdir}/s3-tests'.format(tdir=testdir),
             '-v',
-            '-a', '!fails_on_rgw',
+            '-a', ','.join(attrs),
             ]
         if client_config is not None and 'extra_args' in client_config:
             args.extend(client_config['extra_args'])
 
         ctx.cluster.only(client).run(
             args=args,
+            label="s3 tests against rgw"
             )
     yield
 

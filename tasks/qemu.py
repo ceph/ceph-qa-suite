@@ -18,6 +18,42 @@ DEFAULT_NUM_RBD = 1
 DEFAULT_IMAGE_URL = 'http://ceph.com/qa/ubuntu-12.04.qcow2'
 DEFAULT_MEM = 4096 # in megabytes
 
+def create_images(ctx, config, managers):
+    for client, client_config in config.iteritems():
+        num_rbd = client_config.get('num_rbd', 1)
+        clone = client_config.get('clone', False)
+        assert num_rbd > 0, 'at least one rbd device must be used'
+        for i in xrange(num_rbd):
+            create_config = {
+                client: {
+                    'image_name': '{client}.{num}'.format(client=client, num=i),
+                    'image_format': 2 if clone else 1,
+                    }
+                }
+            managers.append(
+                lambda create_config=create_config:
+                rbd.create_image(ctx=ctx, config=create_config)
+                )
+
+def create_clones(ctx, config, managers):
+    for client, client_config in config.iteritems():
+        num_rbd = client_config.get('num_rbd', 1)
+        clone = client_config.get('clone', False)
+        if clone:
+            for i in xrange(num_rbd):
+                create_config = {
+                    client: {
+                        'image_name':
+                        '{client}.{num}-clone'.format(client=client, num=i),
+                        'parent_name':
+                        '{client}.{num}'.format(client=client, num=i),
+                        }
+                    }
+                managers.append(
+                    lambda create_config=create_config:
+                    rbd.clone_image(ctx=ctx, config=create_config)
+                    )
+
 @contextlib.contextmanager
 def create_dirs(ctx, config):
     """
@@ -53,12 +89,18 @@ def generate_iso(ctx, config):
     testdir = teuthology.get_testdir(ctx)
     for client, client_config in config.iteritems():
         assert 'test' in client_config, 'You must specify a test to run'
+        (remote,) = ctx.cluster.only(client).remotes.keys()
         src_dir = os.path.dirname(__file__)
         userdata_path = os.path.join(testdir, 'qemu', 'userdata.' + client)
         metadata_path = os.path.join(testdir, 'qemu', 'metadata.' + client)
 
         with file(os.path.join(src_dir, 'userdata_setup.yaml'), 'rb') as f:
             test_setup = ''.join(f.readlines())
+            # configuring the commands to setup the nfs mount
+            mnt_dir = "/export/{client}".format(client=client)
+            test_setup = test_setup.format(
+                mnt_dir=mnt_dir
+            )
 
         with file(os.path.join(src_dir, 'userdata_teardown.yaml'), 'rb') as f:
             test_teardown = ''.join(f.readlines())
@@ -84,7 +126,6 @@ def generate_iso(ctx, config):
   /mnt/cdrom/test.sh > /mnt/log/test.log 2>&1 && touch /mnt/log/success
 """ + test_teardown
 
-        (remote,) = ctx.cluster.only(client).remotes.keys()
         teuthology.write_file(remote, userdata_path, StringIO(user_data))
 
         with file(os.path.join(src_dir, 'metadata.yaml'), 'rb') as f:
@@ -154,6 +195,80 @@ def download_image(ctx, config):
                     ],
                 )
 
+
+def _setup_nfs_mount(remote, client, mount_dir):
+    """
+    Sets up an nfs mount on the remote that the guest can use to
+    store logs. This nfs mount is also used to touch a file
+    at the end of the test to indiciate if the test was successful
+    or not.
+    """
+    export_dir = "/export/{client}".format(client=client)
+    log.info("Creating the nfs export directory...")
+    remote.run(args=[
+        'sudo', 'mkdir', '-p', export_dir,
+    ])
+    log.info("Mounting the test directory...")
+    remote.run(args=[
+        'sudo', 'mount', '--bind', mount_dir, export_dir,
+    ])
+    log.info("Adding mount to /etc/exports...")
+    export = "{dir} *(rw,no_root_squash,no_subtree_check,insecure)".format(
+        dir=export_dir
+    )
+    remote.run(args=[
+        'sudo', 'sed', '-i', '/^\/export\//d', "/etc/exports",
+    ])
+    remote.run(args=[
+        'echo', export, run.Raw("|"),
+        'sudo', 'tee', '-a', "/etc/exports",
+    ])
+    log.info("Restarting NFS...")
+    if remote.os.package_type == "deb":
+        remote.run(args=['sudo', 'service', 'nfs-kernel-server', 'restart'])
+    else:
+        remote.run(args=['sudo', 'systemctl', 'restart', 'nfs'])
+
+
+def _teardown_nfs_mount(remote, client):
+    """
+    Tears down the nfs mount on the remote used for logging and reporting the
+    status of the tests being ran in the guest.
+    """
+    log.info("Tearing down the nfs mount for {remote}".format(remote=remote))
+    export_dir = "/export/{client}".format(client=client)
+    log.info("Stopping NFS...")
+    if remote.os.package_type == "deb":
+        remote.run(args=[
+            'sudo', 'service', 'nfs-kernel-server', 'stop'
+        ])
+    else:
+        remote.run(args=[
+            'sudo', 'systemctl', 'stop', 'nfs'
+        ])
+    log.info("Unmounting exported directory...")
+    remote.run(args=[
+        'sudo', 'umount', export_dir
+    ])
+    log.info("Deleting exported directory...")
+    remote.run(args=[
+        'sudo', 'rm', '-r', '/export'
+    ])
+    log.info("Deleting export from /etc/exports...")
+    remote.run(args=[
+        'sudo', 'sed', '-i', '$ d', '/etc/exports'
+    ])
+    log.info("Starting NFS...")
+    if remote.os.package_type == "deb":
+        remote.run(args=[
+            'sudo', 'service', 'nfs-kernel-server', 'start'
+        ])
+    else:
+        remote.run(args=[
+            'sudo', 'systemctl', 'start', 'nfs'
+        ])
+
+
 @contextlib.contextmanager
 def run_qemu(ctx, config):
     """Setup kvm environment and start qemu"""
@@ -169,10 +284,21 @@ def run_qemu(ctx, config):
                 ]
             )
 
+        # make an nfs mount to use for logging and to
+        # allow to test to tell teuthology the tests outcome
+        _setup_nfs_mount(remote, client, log_dir)
+
         base_file = '{tdir}/qemu/base.{client}.qcow2'.format(
             tdir=testdir,
             client=client
         )
+        # Hack to make sure /dev/kvm permissions are set correctly
+        # See http://tracker.ceph.com/issues/17977 and
+        # https://bugzilla.redhat.com/show_bug.cgi?id=1333159
+        remote.run(args='sudo udevadm control --reload')
+        remote.run(args='sudo udevadm trigger /dev/kvm')
+        remote.run(args='ls -l /dev/kvm')
+
         qemu_cmd = 'qemu-system-x86_64'
         if remote.os.package_type == "rpm":
             qemu_cmd = "/usr/libexec/qemu-kvm"
@@ -189,28 +315,26 @@ def run_qemu(ctx, config):
             'file={base},format=qcow2,if=virtio'.format(base=base_file),
             # cd holding metadata for cloud-init
             '-cdrom', '{tdir}/qemu/{client}.iso'.format(tdir=testdir, client=client),
-            # virtio 9p fs for logging
-            '-fsdev',
-            'local,id=log,path={log},security_model=none'.format(log=log_dir),
-            '-device',
-            'virtio-9p-pci,fsdev=log,mount_tag=test_log',
             ]
 
         cachemode = 'none'
-        ceph_config = ctx.ceph.conf.get('global', {})
-        ceph_config.update(ctx.ceph.conf.get('client', {}))
-        ceph_config.update(ctx.ceph.conf.get(client, {}))
+        ceph_config = ctx.ceph['ceph'].conf.get('global', {})
+        ceph_config.update(ctx.ceph['ceph'].conf.get('client', {}))
+        ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
         if ceph_config.get('rbd cache'):
             if ceph_config.get('rbd cache max dirty', 1) > 0:
                 cachemode = 'writeback'
             else:
                 cachemode = 'writethrough'
 
+        clone = client_config.get('clone', False)
         for i in xrange(client_config.get('num_rbd', DEFAULT_NUM_RBD)):
+            suffix = '-clone' if clone else ''
             args.extend([
                 '-drive',
                 'file=rbd:rbd/{img}:id={id},format=raw,if=virtio,cache={cachemode}'.format(
-                    img='{client}.{num}'.format(client=client, num=i),
+                    img='{client}.{num}{suffix}'.format(client=client, num=i,
+                                                        suffix=suffix),
                     id=client[len('client.'):],
                     cachemode=cachemode,
                     ),
@@ -235,6 +359,9 @@ def run_qemu(ctx, config):
         log.debug('checking that qemu tests succeeded...')
         for client in config.iterkeys():
             (remote,) = ctx.cluster.only(client).remotes.keys()
+            # teardown nfs mount
+            _teardown_nfs_mount(remote, client)
+            # check for test status
             remote.run(
                 args=[
                     'test', '-f',
@@ -244,6 +371,7 @@ def run_qemu(ctx, config):
                         ),
                     ],
                 )
+
 
 @contextlib.contextmanager
 def task(ctx, config):
@@ -300,6 +428,15 @@ def task(ctx, config):
             client.0:
               test: http://ceph.com/qa/test.sh
               memory: 512 # megabytes
+
+    If you want to run a test against a cloned rbd image, set clone to true::
+
+        tasks:
+        - ceph:
+        - qemu:
+            client.0:
+              test: http://ceph.com/qa/test.sh
+              clone: true
     """
     assert isinstance(config, dict), \
            "task qemu only supports a dictionary for configuration"
@@ -307,27 +444,16 @@ def task(ctx, config):
     config = teuthology.replace_all_with_clients(ctx.cluster, config)
 
     managers = []
-    for client, client_config in config.iteritems():
-        num_rbd = client_config.get('num_rbd', 1)
-        assert num_rbd > 0, 'at least one rbd device must be used'
-        for i in xrange(num_rbd):
-            create_config = {
-                client: {
-                    'image_name':
-                    '{client}.{num}'.format(client=client, num=i),
-                    }
-                }
-            managers.append(
-                lambda create_config=create_config:
-                rbd.create_image(ctx=ctx, config=create_config)
-                )
-
+    create_images(ctx=ctx, config=config, managers=managers)
     managers.extend([
         lambda: create_dirs(ctx=ctx, config=config),
         lambda: generate_iso(ctx=ctx, config=config),
         lambda: download_image(ctx=ctx, config=config),
-        lambda: run_qemu(ctx=ctx, config=config),
         ])
+    create_clones(ctx=ctx, config=config, managers=managers)
+    managers.append(
+        lambda: run_qemu(ctx=ctx, config=config),
+        )
 
     with contextutil.nested(*managers):
         yield

@@ -11,6 +11,7 @@ import copy
 import json
 import logging
 import time
+import datetime
 
 from cStringIO import StringIO
 
@@ -18,21 +19,49 @@ import boto.exception
 import boto.s3.connection
 import boto.s3.acl
 
+import httplib2
+
 import util.rgw as rgw_utils
 
 from teuthology import misc as teuthology
-from util.rgw import rgwadmin
+from util.rgw import rgwadmin, get_user_summary, get_user_successful_ops
 
 log = logging.getLogger(__name__)
 
+def create_presigned_url(conn, method, bucket_name, key_name, expiration):
+    return conn.generate_url(expires_in=expiration,
+        method=method,
+        bucket=bucket_name,
+        key=key_name,
+        query_auth=True,
+    )
 
-def successful_ops(out):
-    """Extract total from the first summary entry (presumed to be only one)"""
-    summary = out['summary']
-    if len(summary) == 0:
-        return 0
-    entry = summary[0]
-    return entry['total']['successful_ops']
+def send_raw_http_request(conn, method, bucket_name, key_name, follow_redirects = False):
+    url = create_presigned_url(conn, method, bucket_name, key_name, 3600)
+    print url
+    h = httplib2.Http()
+    h.follow_redirects = follow_redirects
+    return h.request(url, method)
+
+
+def get_acl(key):
+    """
+    Helper function to get the xml acl from a key, ensuring that the xml
+    version tag is removed from the acl response
+    """
+    raw_acl = key.get_xml_acl()
+
+    def remove_version(string):
+        return string.split(
+            '<?xml version="1.0" encoding="UTF-8"?>'
+        )[-1]
+
+    def remove_newlines(string):
+        return string.strip('\n')
+
+    return remove_version(
+        remove_newlines(raw_acl)
+    )
 
 
 def task(ctx, config):
@@ -61,6 +90,9 @@ def task(ctx, config):
     # the role_endpoints that were assigned by the rgw task
     (remote_host, remote_port) = ctx.rgw.role_endpoints[client]
 
+    realm = ctx.rgw.realm
+    log.debug('radosgw-admin: realm %r', realm)
+    
     ##
     user1='foo'
     user2='fud'
@@ -230,6 +262,8 @@ def task(ctx, config):
             (err2, out2) = rgwadmin(ctx, dest_client,
                 ['metadata', 'get', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
                 check_status=True)
+            log.debug('metadata 1 %r', out1)
+            log.debug('metadata 2 %r', out2)
             assert out1 == out2
 
             # get the bucket.instance info and compare that
@@ -245,8 +279,10 @@ def task(ctx, config):
                 check_status=True)
             del out1['data']['bucket_info']['bucket']['pool']
             del out1['data']['bucket_info']['bucket']['index_pool']
+            del out1['data']['bucket_info']['bucket']['data_extra_pool']
             del out2['data']['bucket_info']['bucket']['pool']
             del out2['data']['bucket_info']['bucket']['index_pool']
+            del out2['data']['bucket_info']['bucket']['data_extra_pool']
             assert out1 == out2
 
         same_region = 0
@@ -266,26 +302,20 @@ def task(ctx, config):
             # Attempt to create a new connection with user1 to the destination RGW
             log.debug('Attempt to create a new connection with user1 to the destination RGW')
             # and use that to attempt a delete (that should fail)
-            exception_encountered = False
-            try:
-                (dest_remote_host, dest_remote_port) = ctx.rgw.role_endpoints[dest_client]
-                connection_dest = boto.s3.connection.S3Connection(
-                    aws_access_key_id=access_key,
-                    aws_secret_access_key=secret_key,
-                    is_secure=False,
-                    port=dest_remote_port,
-                    host=dest_remote_host,
-                    calling_format=boto.s3.connection.OrdinaryCallingFormat(),
-                    )
 
-                # this should fail
-                connection_dest.delete_bucket(bucket_name2)
-            except boto.exception.S3ResponseError as e:
-                assert e.status == 301
-                exception_encountered = True
+            (dest_remote_host, dest_remote_port) = ctx.rgw.role_endpoints[dest_client]
+            connection_dest = boto.s3.connection.S3Connection(
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                is_secure=False,
+                port=dest_remote_port,
+                host=dest_remote_host,
+                calling_format=boto.s3.connection.OrdinaryCallingFormat(),
+                )
 
-            # confirm that the expected exception was seen
-            assert exception_encountered
+            # this should fail
+            r, content = send_raw_http_request(connection_dest, 'DELETE', bucket_name2, '', follow_redirects = False)
+            assert r.status == 301
 
             # now delete the bucket on the source RGW and do another sync
             log.debug('now delete the bucket on the source RGW and do another sync')
@@ -366,7 +396,9 @@ def task(ctx, config):
             # manually edit mtime for this bucket to be 300 seconds in the past
             log.debug('manually edit mtime for this bucket to be 300 seconds in the past')
             new_data = copy.deepcopy(orig_data)
-            new_data['mtime'] =  orig_data['mtime'] - 300
+            mtime = datetime.datetime.strptime(orig_data['mtime'], "%Y-%m-%d %H:%M:%S.%fZ") - datetime.timedelta(300)
+            new_data['mtime'] =  unicode(mtime.strftime("%Y-%m-%d %H:%M:%S.%fZ"))
+            log.debug("new mtime ", mtime)
             assert new_data != orig_data
             (err, out) = rgwadmin(ctx, source_client,
                 ['metadata', 'put', 'bucket:{bucket_name}'.format(bucket_name=bucket_name2)],
@@ -759,7 +791,7 @@ def task(ctx, config):
 
     for obj in out:
         # TESTCASE 'log-show','log','show','after activity','returns expected info'
-        if obj[:4] == 'meta' or obj[:4] == 'data':
+        if obj[:4] == 'meta' or obj[:4] == 'data' or obj[:18] == 'obj_delete_at_hint':
             continue
 
         (err, rgwlog) = rgwadmin(ctx, client, ['log', 'show', '--object', obj],
@@ -788,8 +820,8 @@ def task(ctx, config):
     timestamp = time.time()
     while time.time() - timestamp <= (20 * 60):      # wait up to 20 minutes
         (err, out) = rgwadmin(ctx, client, ['usage', 'show', '--categories', 'delete_obj'])  # last operation we did is delete obj, wait for it to flush
-        if successful_ops(out) > 0:
-            break;
+        if get_user_successful_ops(out, user1) > 0:
+            break
         time.sleep(1)
 
     assert time.time() - timestamp <= (20 * 60)
@@ -798,7 +830,9 @@ def task(ctx, config):
     (err, out) = rgwadmin(ctx, client, ['usage', 'show'], check_status=True)
     assert len(out['entries']) > 0
     assert len(out['summary']) > 0
-    user_summary = out['summary'][0]
+
+    user_summary = get_user_summary(out, user1)
+
     total = user_summary['total']
     assert total['successful_ops'] > 0
 
@@ -907,9 +941,9 @@ def task(ctx, config):
 
     (err, out) = rgwadmin(ctx, client,
         ['policy', '--bucket', bucket.name, '--object', key.key],
-        check_status=True)
+        check_status=True, format='xml')
 
-    acl = key.get_xml_acl()
+    acl = get_acl(key)
 
     assert acl == out.strip('\n')
 
@@ -918,9 +952,10 @@ def task(ctx, config):
 
     (err, out) = rgwadmin(ctx, client,
         ['policy', '--bucket', bucket.name, '--object', key.key],
-        check_status=True)
+        check_status=True, format='xml')
 
-    acl = key.get_xml_acl()
+    acl = get_acl(key)
+
     assert acl == out.strip('\n')
 
     # TESTCASE 'rm-bucket', 'bucket', 'rm', 'bucket with objects', 'succeeds'
@@ -968,7 +1003,10 @@ def task(ctx, config):
     # TESTCASE 'zone-info', 'zone', 'get', 'get zone info', 'succeeds, has default placement rule'
     #
 
-    (err, out) = rgwadmin(ctx, client, ['zone', 'get'])
+    if realm is None:
+        (err, out) = rgwadmin(ctx, client, ['zone', 'get','--rgw-zone','default'])
+    else:
+        (err, out) = rgwadmin(ctx, client, ['zone', 'get'])
     orig_placement_pools = len(out['placement_pools'])
 
     # removed this test, it is not correct to assume that zone has default placement, it really
@@ -988,6 +1026,9 @@ def task(ctx, config):
         stdin=StringIO(json.dumps(out)),
         check_status=True)
 
-    (err, out) = rgwadmin(ctx, client, ['zone', 'get'])
+    if realm is None:
+        (err, out) = rgwadmin(ctx, client, ['zone', 'get','--rgw-zone','default'])
+    else:
+        (err, out) = rgwadmin(ctx, client, ['zone', 'get'])
     assert len(out) > 0
     assert len(out['placement_pools']) == orig_placement_pools + 1

@@ -30,6 +30,9 @@ def task(ctx, config):
           ec_pool: use an ec pool
           erasure_code_profile: profile to use with the erasure coded pool
           pool_snaps: use pool snapshots instead of selfmanaged snapshots
+	  write_fadvise_dontneed: write behavior like with LIBRADOS_OP_FLAG_FADVISE_DONTNEED.
+	                          This mean data don't access in the near future.
+				  Let osd backend don't keep data in cache.
 
     For example::
 
@@ -52,12 +55,16 @@ def task(ctx, config):
               rollback: 2
               snap_remove: 0
             ec_pool: create an ec pool, defaults to False
+            erasure_code_use_hacky_overwrites: use the whitebox
+                                               testing experimental
+                                               overwrites mode
             erasure_code_profile:
               name: teuthologyprofile
               k: 2
               m: 1
               ruleset-failure-domain: osd
             pool_snaps: true
+	    write_fadvise_dontneed: true
             runs: 10
         - interactive:
 
@@ -85,6 +92,38 @@ def task(ctx, config):
             pool_prefix: foo
             ...
 
+    The tests are run asynchronously, they are not complete when the task
+    returns. For instance:
+
+        - rados:
+            clients: [client.0]
+            pools: [ecbase]
+            ops: 4000
+            objects: 500
+            op_weights:
+              read: 100
+              write: 100
+              delete: 50
+              copy_from: 50
+        - print: "**** done rados ec-cache-agent (part 2)"
+
+     will run the print task immediately after the rados tasks begins but
+     not after it completes. To make the rados task a blocking / sequential
+     task, use:
+
+        - sequential:
+          - rados:
+              clients: [client.0]
+              pools: [ecbase]
+              ops: 4000
+              objects: 500
+              op_weights:
+                read: 100
+                write: 100
+                delete: 50
+                copy_from: 50
+        - print: "**** done rados ec-cache-agent (part 2)"
+
     """
     log.info('Beginning rados...')
     assert isinstance(config, dict), \
@@ -99,13 +138,16 @@ def task(ctx, config):
         '{tdir}/archive/coverage'.format(tdir=testdir),
         'ceph_test_rados']
     if config.get('ec_pool', False):
-        args.extend(['--ec-pool'])
+        args.extend(['--no-omap'])
+        if config.get('erasure_code_use_hacky_overwrites', False):
+            args.extend(['--no-sparse'])
+        else:
+            args.extend(['--ec-pool'])
+    if config.get('write_fadvise_dontneed', False):
+        args.extend(['--write-fadvise-dontneed'])
     if config.get('pool_snaps', False):
         args.extend(['--pool-snaps'])
     args.extend([
-        '--op', 'read', str(op_weights.get('read', 100)),
-        '--op', 'write', str(op_weights.get('write', 100)),
-        '--op', 'delete', str(op_weights.get('delete', 10)),
         '--max-ops', str(config.get('ops', 10000)),
         '--objects', str(config.get('objects', 500)),
         '--max-in-flight', str(config.get('max_in_flight', 16)),
@@ -114,6 +156,11 @@ def task(ctx, config):
         '--max-stride-size', str(config.get('max_stride_size', object_size / 5)),
         '--max-seconds', str(config.get('max_seconds', 0))
         ])
+
+    weights = {}
+    weights['read'] = 100
+    weights['write'] = 100
+    weights['delete'] = 10
     # Parallel of the op_types in test/osd/TestRados.cc
     for field in [
         # read handled above
@@ -133,20 +180,37 @@ def task(ctx, config):
         "cache_try_flush",
         "cache_evict",
         "append",
+        "write",
+        "read",
+        "delete"
         ]:
         if field in op_weights:
-            args.extend([
-                    '--op', field, str(op_weights[field]),
-                    ])
+            weights[field] = op_weights[field]
+
+    if config.get('write_append_excl', True):
+        if 'write' in weights:
+            weights['write'] = weights['write'] / 2
+            weights['write_excl'] = weights['write']
+
+        if 'append' in weights:
+            weights['append'] = weights['append'] / 2
+            weights['append_excl'] = weights['append']
+
+    for op, weight in weights.iteritems():
+        args.extend([
+            '--op', op, str(weight)
+        ])
+                
 
     def thread():
         """Thread spawned by gevent"""
         clients = ['client.{id}'.format(id=id_) for id_ in teuthology.all_roles_of_type(ctx.cluster, 'client')]
         log.info('clients are %s' % clients)
+        manager = ctx.managers['ceph']
         if config.get('ec_pool', False):
             profile = config.get('erasure_code_profile', {})
             profile_name = profile.get('name', 'teuthologyprofile')
-            ctx.manager.create_erasure_code_profile(profile_name, profile)
+            manager.create_erasure_code_profile(profile_name, profile)
         else:
             profile_name = None
         for i in range(int(config.get('runs', '1'))):
@@ -164,8 +228,15 @@ def task(ctx, config):
                 if not pool and existing_pools:
                     pool = existing_pools.pop()
                 else:
-                    pool = ctx.manager.create_pool_with_unique_name(erasure_code_profile_name=profile_name)
+                    pool = manager.create_pool_with_unique_name(
+                        erasure_code_profile_name=profile_name,
+                        erasure_code_use_hacky_overwrites=
+                          config.get('erasure_code_use_hacky_overwrites', False)
+                    )
                     created_pools.append(pool)
+                    if config.get('fast_read', False):
+                        manager.raw_cluster_cmd(
+                            'osd', 'pool', 'set', pool, 'fast_read', 'true')
 
                 (remote,) = ctx.cluster.only(role).remotes.iterkeys()
                 proc = remote.run(
@@ -179,7 +250,7 @@ def task(ctx, config):
             run.wait(tests.itervalues())
 
             for pool in created_pools:
-                ctx.manager.remove_pool(pool)
+                manager.remove_pool(pool)
 
     running = gevent.spawn(thread)
 

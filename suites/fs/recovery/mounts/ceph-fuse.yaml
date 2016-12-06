@@ -6,3 +6,7 @@ tasks:
         mounted: false
     client.1:
         mounted: false
+    client.2:
+        mounted: false
+    client.3:
+        mounted: false

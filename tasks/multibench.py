@@ -36,9 +36,12 @@ def task(ctx, config):
         "please list clients to run on"
 
     def run_one(num):
-    """Run test spawn from gevent"""
+        """Run test spawn from gevent"""
         start = time.time()
-        benchcontext = copy.copy(config.get('radosbench'))
+        if not config.get('radosbench'):
+            benchcontext = {}
+        else:
+            benchcontext = copy.copy(config.get('radosbench'))
         iterations = 0
         while time.time() - start < int(config.get('time', 600)):
             log.info("Starting iteration %s of segment %s"%(iterations, num))
@@ -48,7 +51,7 @@ def task(ctx, config):
             iterations += 1
     log.info("Starting %s threads"%(str(config.get('segments', 3)),))
     segments = [
-        gevent.spawn(run_one, i) 
+        gevent.spawn(run_one, i)
         for i in range(0, int(config.get('segments', 3)))]
 
     try:

@@ -4,10 +4,8 @@ Calamari setup task
 import contextlib
 import logging
 import os
-import re
 import requests
 import shutil
-import subprocess
 import webbrowser
 
 from cStringIO import StringIO
@@ -17,7 +15,16 @@ from teuthology import misc
 
 log = logging.getLogger(__name__)
 
-ICE_VERSION_DEFAULT = '1.2.2'
+
+DEFAULTS = {
+    'version': 'v0.80.9',
+    'test_image': None,
+    'start_browser': False,
+    'email': 'x@y.com',
+    'no_epel': True,
+    'calamari_user': 'admin',
+    'calamari_password': 'admin',
+}
 
 
 @contextlib.contextmanager
@@ -27,35 +34,27 @@ def task(ctx, config):
 
     - calamari_setup:
         version: 'v80.1'
-        ice_tool_dir: <directory>
-        iceball_location: <directory>
+        test_image: <path to tarball or iso>
 
-    Options are:
+    Options are (see DEFAULTS above):
 
-    version -- ceph version we are testing against (defaults to 80.1)
-    ice_tool_dir -- optional local directory where ice-tool exists or will
-                    be loaded (defaults to src in home directory)
-    ice_version  -- version of ICE we're testing (with default)
-    iceball_location -- Can be an HTTP URL, in which case fetch from this
-                        location, using 'ice_version' and distro information
-                        to select the right tarball.  Can also be a local
-                        path.  If local path is '.', and iceball is
-                        not already present, then we try to build
-                        an iceball using the ice_tool_dir commands.
-    ice_git_location -- location of ice tool on git
+    version -- ceph version we are testing against
+    test_image -- Can be an HTTP URL, in which case fetch from this
+                  http path; can also be local path
     start_browser -- If True, start a browser.  To be used by runs that will
                      bring up a browser quickly for human use.  Set to False
                      for overnight suites that are testing for problems in
-                     the installation itself (defaults to False).
-    email -- email address for the user (defaults to x@y.com)
+                     the installation itself
+    email -- email address for the user
     no_epel -- indicates if we should remove epel files prior to yum
-               installations.  Defaults to True.
-    calamari_user -- user name to log into gui (defaults to admin)
-    calamari_password -- calamari user password (defaults to admin)
+               installations.
+    calamari_user -- user name to log into gui
+    calamari_password -- calamari user password
     """
+    local_config = DEFAULTS
+    local_config.update(config)
+    config = local_config
     cal_svr = None
-    start_browser = config.get('start_browser', False)
-    no_epel = config.get('no_epel', True)
     for remote_, roles in ctx.cluster.remotes.items():
         if 'client.0' in roles:
             cal_svr = remote_
@@ -63,11 +62,13 @@ def task(ctx, config):
     if not cal_svr:
         raise RuntimeError('client.0 not found in roles')
     with contextutil.nested(
-        lambda: adjust_yum_repos(ctx, cal_svr, no_epel),
+        lambda: adjust_yum_repos(ctx, cal_svr, config['no_epel']),
         lambda: calamari_install(config, cal_svr),
         lambda: ceph_install(ctx, cal_svr),
+        # do it again because ceph-deploy installed epel for centos
+        lambda: remove_epel(ctx, config['no_epel']),
         lambda: calamari_connect(ctx, cal_svr),
-        lambda: browser(start_browser, cal_svr.hostname),
+        lambda: browser(config['start_browser'], cal_svr.hostname),
     ):
         yield
 
@@ -108,6 +109,11 @@ def fix_yum_repos(remote, distro):
     contain a repo file named rhel<version-number>.repo
     """
     if distro.startswith('centos'):
+        # hack alert: detour: install lttng for ceph
+        # this works because epel is preinstalled on the vpms
+        # this is not a generic solution
+        # this is here solely to test the one-off 1.3.0 release for centos6
+        remote.run(args="sudo yum -y install lttng-tools")
         cmds = [
             'sudo mkdir /etc/yum.repos.d.old'.split(),
             ['sudo', 'cp', run.Raw('/etc/yum.repos.d/*'),
@@ -154,23 +160,38 @@ def fix_yum_repos(remote, distro):
     return True
 
 
-def get_iceball_with_http(urlbase, ice_version, ice_distro, destdir):
+@contextlib.contextmanager
+def remove_epel(ctx, no_epel):
+    """
+    just remove epel.  No undo; assumed that it's used after
+    adjust_yum_repos, and relies on its state-save/restore.
+    """
+    if no_epel:
+        for remote in ctx.cluster.remotes:
+            if remote.os.name.startswith('centos'):
+                remote.run(args=[
+                    'sudo', 'rm', '-f', run.Raw('/etc/yum.repos.d/epel*')
+                ])
+    try:
+        yield
+    finally:
+        pass
+
+
+def get_iceball_with_http(url, destdir):
     '''
-    Copy iceball with http to destdir
+    Copy iceball with http to destdir.  Try both .tar.gz and .iso.
     '''
-    url = '/'.join((
-        urlbase,
-        '{ver}/ICE-{ver}-{distro}.tar.gz'.format(
-            ver=ice_version, distro=ice_distro
-        )
-    ))
     # stream=True means we don't download until copyfileobj below,
     # and don't need a temp file
     r = requests.get(url, stream=True)
-    filename = url.split('/')[-1]
+    if not r.ok:
+        raise RuntimeError("Failed to download %s", str(url))
+    filename = os.path.join(destdir, url.split('/')[-1])
     with open(filename, 'w') as f:
         shutil.copyfileobj(r.raw, f)
     log.info('saved %s as %s' % (url, filename))
+    return filename
 
 
 @contextlib.contextmanager
@@ -179,83 +200,95 @@ def calamari_install(config, cal_svr):
     Install calamari
 
     The steps here are:
-        -- Get the iceball, building it if necessary.
-        -- Copy the iceball to the calamari server, and untarring it.
-        -- Running ice-setup.py on the calamari server.
-        -- Running calamari-ctl initialize.
+        -- Get the iceball, locally or from http
+        -- Copy the iceball to the calamari server, and untar/mount it.
+        -- Run ice-setup on the calamari server.
+        -- Run calamari-ctl initialize.
     """
-    ice_distro = str(cal_svr.os)
-    ice_distro = ice_distro.replace(" ", "")
     client_id = str(cal_svr)
     at_loc = client_id.find('@')
     if at_loc > 0:
         client_id = client_id[at_loc + 1:]
-    convert = {'ubuntu12.04': 'precise', 'ubuntu14.04': 'trusty',
-               'rhel7.0': 'rhel7', 'debian7': 'wheezy'}
-    version = config.get('version', 'v0.80.1')
-    email = config.get('email', 'x@x.com')
-    ice_tool_dir = config.get('ice_tool_dir', '%s%s%s' %
-                              (os.environ['HOME'], os.sep, 'src'))
-    calamari_user = config.get('calamari_user', 'admin')
-    calamari_password = config.get('calamari_passwd', 'admin')
-    git_icetool_loc = config.get('ice_git_location',
-                                 'git@github.com:inktankstorage')
-    if ice_distro in convert:
-        ice_distro = convert[ice_distro]
-    log.info('calamari server on %s' % ice_distro)
-    iceball_loc = config.get('iceball_location', '.')
-    ice_version = config.get('ice_version', ICE_VERSION_DEFAULT)
-    if iceball_loc.startswith('http'):
-        get_iceball_with_http(iceball_loc, ice_version, ice_distro, '.')
-        iceball_loc = '.'
-    elif iceball_loc == '.':
-        ice_tool_loc = os.path.join(ice_tool_dir, 'ice-tools')
-        if not os.path.isdir(ice_tool_loc):
-            try:
-                subprocess.check_call(['git', 'clone',
-                                       git_icetool_loc + os.sep + 
-                                       'ice-tools.git',
-                                       ice_tool_loc])
-            except subprocess.CalledProcessError:
-                raise RuntimeError('client.0 not found in roles')
-        exec_ice = os.path.join(ice_tool_loc, 'iceball', 'ice_repo_tgz.py')
-        try:
-            subprocess.check_call([exec_ice, '-b', version, '-o', ice_distro])
-        except subprocess.CalledProcessError:
-            raise RuntimeError('Unable to create %s distro' % ice_distro)
-    gz_file = ''
-    for file_loc in os.listdir(iceball_loc):
-        sfield = '^ICE-.*{0}\.tar\.gz$'.format(ice_distro)
-        if re.search(sfield, file_loc):
-            if file_loc > gz_file:
-                gz_file = file_loc
-    lgz_file = os.path.join(iceball_loc, gz_file)
-    cal_svr.put_file(lgz_file, os.path.join('/tmp/', gz_file))
-    ret = cal_svr.run(args=['gunzip', run.Raw('<'), "/tmp/%s" % gz_file,
-                      run.Raw('|'), 'tar', 'xvf', run.Raw('-')])
+
+    test_image = config['test_image']
+
+    if not test_image:
+        raise RuntimeError('Must supply test image')
+    log.info('calamari test image: %s' % test_image)
+    delete_iceball = False
+
+    if test_image.startswith('http'):
+        iceball_file = get_iceball_with_http(test_image, '/tmp')
+        delete_iceball = True
+    else:
+        iceball_file = test_image
+
+    remote_iceball_file = os.path.join('/tmp', os.path.split(iceball_file)[1])
+    cal_svr.put_file(iceball_file, remote_iceball_file)
+    if iceball_file.endswith('.tar.gz'):   # XXX specify tar/iso in config?
+        icetype = 'tarball'
+    elif iceball_file.endswith('.iso'):
+        icetype = 'iso'
+    else:
+        raise RuntimeError('Can''t handle iceball {0}'.format(iceball_file))
+
+    if icetype == 'tarball':
+        ret = cal_svr.run(args=['gunzip', run.Raw('<'), remote_iceball_file,
+                          run.Raw('|'), 'tar', 'xvf', run.Raw('-')])
+        if ret.exitstatus:
+            raise RuntimeError('remote iceball untar failed')
+    elif icetype == 'iso':
+        mountpoint = '/mnt/'   # XXX create?
+        ret = cal_svr.run(
+            args=['sudo', 'mount', '-o', 'loop', '-r',
+                  remote_iceball_file, mountpoint]
+        )
+
+    # install ice_setup package
+    args = {
+        'deb': 'sudo dpkg -i /mnt/ice-setup*deb',
+        'rpm': 'sudo yum -y localinstall /mnt/ice_setup*rpm'
+    }.get(cal_svr.system_type, None)
+    if not args:
+        raise RuntimeError('{0}: unknown system type'.format(cal_svr))
+    ret = cal_svr.run(args=args)
     if ret.exitstatus:
-        raise RuntimeError('remote tar failed')
-    icesetdata = 'yes\n%s\nhttp\n' % client_id
+        raise RuntimeError('ice_setup package install failed')
+
+    # Run ice_setup
+    icesetdata = 'yes\n\n%s\nhttp\n' % client_id
     ice_in = StringIO(icesetdata)
-    ice_setup_io = StringIO()
-    ret = cal_svr.run(args=['sudo', 'python', 'ice_setup.py'], stdin=ice_in,
-                      stdout=ice_setup_io)
-    log.debug(ice_setup_io.getvalue())
-    # Run Calamari-ceph connect.
+    ice_out = StringIO()
+    if icetype == 'tarball':
+        args = 'sudo python ice_setup.py'
+    else:
+        args = 'sudo ice_setup -d /mnt'
+    ret = cal_svr.run(args=args, stdin=ice_in, stdout=ice_out)
+    log.debug(ice_out.getvalue())
     if ret.exitstatus:
-        raise RuntimeError('ice_setup.py failed')
-    icesetdata = '%s\n%s\n%s\n%s\n' % (calamari_user, email, calamari_password,
-                                       calamari_password)
+        raise RuntimeError('ice_setup failed')
+
+    # Run calamari-ctl initialize.
+    icesetdata = '%s\n%s\n%s\n%s\n' % (
+        config['calamari_user'],
+        config['email'],
+        config['calamari_password'],
+        config['calamari_password'],
+    )
     ice_in = StringIO(icesetdata)
     ret = cal_svr.run(args=['sudo', 'calamari-ctl', 'initialize'],
-                      stdin=ice_in, stdout=ice_setup_io)
-    log.debug(ice_setup_io.getvalue())
+                      stdin=ice_in, stdout=ice_out)
+    log.debug(ice_out.getvalue())
     if ret.exitstatus:
         raise RuntimeError('calamari-ctl initialize failed')
     try:
         yield
     finally:
         log.info('Cleaning up after Calamari installation')
+        if icetype == 'iso':
+            cal_svr.run(args=['sudo', 'umount', mountpoint])
+        if delete_iceball:
+            os.unlink(iceball_file)
 
 
 @contextlib.contextmanager
@@ -286,24 +319,74 @@ def deploy_ceph(ctx, cal_svr):
     """
     osd_to_name = {}
     all_machines = set()
-    mon0 = ''
+    all_mons = set()
+    all_osds = set()
+
+    # collect which remotes are osds and which are mons
     for remote in ctx.cluster.remotes:
         all_machines.add(remote.shortname)
         roles = ctx.cluster.remotes[remote]
-        if 'mon.0' in roles:
-            mon0 = remote.shortname
         for role in roles:
             daemon_type, number = role.split('.')
             if daemon_type == 'osd':
+                all_osds.add(remote.shortname)
                 osd_to_name[number] = remote.shortname
-    first_cmds = [['new', mon0], ['install'] + list(all_machines),
-                  ['mon', 'create-initial', mon0],
-                  ['gatherkeys', mon0]]
-    ret = True
-    for entry in first_cmds:
-        arg_list = ['ceph-deploy'] + entry
-        log.info('Running: %s' % ' '.join(arg_list))
-        ret &= cal_svr.run(args=arg_list).exitstatus
+            if daemon_type == 'mon':
+                all_mons.add(remote.shortname)
+
+    # figure out whether we're in "1.3+" mode: prior to 1.3, there was
+    # only one Ceph repo, and it was all installed on every Ceph host.
+    # with 1.3, we've split that into MON and OSD repos (in order to
+    # be able to separately track subscriptions per-node).  This
+    # requires new switches to ceph-deploy to select which locally-served
+    # repo is connected to which cluster host.
+    #
+    # (TODO: A further issue is that the installation/setup may not have
+    # created local repos at all, but that is the subject of a future
+    # change.)
+
+    r = cal_svr.run(args='/usr/bin/test -d /mnt/MON', check_status=False)
+    use_install_repo = (r.returncode == 0)
+
+    # pre-1.3:
+    # ceph-deploy new <all_mons>
+    # ceph-deploy install <all_machines>
+    # ceph-deploy mon create-initial
+    #
+    # 1.3 and later:
+    # ceph-deploy new <all_mons>
+    # ceph-deploy install --repo --release=ceph-mon <all_mons>
+    # ceph-deploy install <all_mons>
+    # ceph-deploy install --repo --release=ceph-osd <all_osds>
+    # ceph-deploy install <all_osds>
+    # ceph-deploy mon create-initial
+    #
+    # one might think the install <all_mons> and install <all_osds>
+    # commands would need --mon and --osd, but #12147 has not yet
+    # made it into RHCS 1.3.0; since the package split also hasn't
+    # landed, we can avoid using the flag and avoid the bug.
+
+    cmds = ['ceph-deploy new ' + ' '.join(all_mons)]
+
+    if use_install_repo:
+        cmds.append('ceph-deploy repo ceph-mon ' +
+                    ' '.join(all_mons))
+        cmds.append('ceph-deploy install --no-adjust-repos --mon ' +
+                    ' '.join(all_mons))
+        cmds.append('ceph-deploy repo ceph-osd ' +
+                    ' '.join(all_osds))
+        cmds.append('ceph-deploy install --no-adjust-repos --osd ' +
+                    ' '.join(all_osds))
+        # We tell users to use `hostname` in our docs. Do the same here.
+        cmds.append('ceph-deploy install --no-adjust-repos --cli `hostname`')
+    else:
+        cmds.append('ceph-deploy install ' + ' '.join(all_machines))
+
+    cmds.append('ceph-deploy mon create-initial')
+
+    for cmd in cmds:
+        cal_svr.run(args=cmd).exitstatus
+
     disk_labels = '_dcba'
     # NEEDS WORK assumes disks start with vd (need to check this somewhere)
     for cmd_pts in [['disk', 'zap'], ['osd', 'prepare'], ['osd', 'activate']]:
@@ -318,9 +401,7 @@ def deploy_ceph(ctx, cal_svr):
             if 'activate' in cmd_pts:
                 disk_id += '1'
             arg_list.append(disk_id)
-            log.info('Running: %s' % ' '.join(arg_list))
-            ret &= cal_svr.run(args=arg_list).exitstatus
-    return ret
+            cal_svr.run(args=arg_list).exitstatus
 
 
 def undeploy_ceph(ctx, cal_svr):
@@ -330,9 +411,16 @@ def undeploy_ceph(ctx, cal_svr):
     all_machines = []
     ret = True
     for remote in ctx.cluster.remotes:
-        ret &= remote.run(args=['sudo', 'stop', 'ceph-all', run.Raw('||'),
-                                'sudo', 'service', 'ceph', 'stop']
-                         ).exitstatus
+        roles = ctx.cluster.remotes[remote]
+        if (
+            not any('osd' in role for role in roles) and
+            not any('mon' in role for role in roles)
+        ):
+            continue
+        ret &= remote.run(
+            args=['sudo', 'stop', 'ceph-all', run.Raw('||'),
+                  'sudo', 'service', 'ceph', 'stop']
+        ).exitstatus
         all_machines.append(remote.shortname)
     all_machines = set(all_machines)
     cmd1 = ['ceph-deploy', 'uninstall']

@@ -1,6 +1,8 @@
+os_type: centos   # xenial valgrind buggy, see http://tracker.ceph.com/issues/18126
 tasks:
 - install:
     flavor: notcmalloc
+    debuginfo: true
 - ceph:
     conf:
       client.0: 
@@ -25,6 +27,8 @@ tasks:
         rgw log meta: False
 - rgw:
     default_idle_timeout: 300
+    realm:
+      realm0
     regions:
       zero:
         api name: api1
@@ -55,5 +59,11 @@ tasks:
       metadata-only: true
 - s3tests:
     client.0:
+      force-branch: ceph-master
       idle_timeout: 300
       rgw_server: client.0
+overrides:
+  ceph:
+    conf:
+      client:
+        rgw lc debug interval: 10

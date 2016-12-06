@@ -69,7 +69,7 @@ def create_image(ctx, config):
         # omit format option if using the default (format 1)
         # since old versions of don't support it
         if int(fmt) != 1:
-            args += ['--format', str(fmt)]
+            args += ['--image-format', str(fmt)]
         remote.run(args=args)
     try:
         yield
@@ -91,6 +91,79 @@ def create_image(ctx, config):
                     name,
                     ],
                 )
+
+@contextlib.contextmanager
+def clone_image(ctx, config):
+    """
+    Clones a parent imag
+
+    For example::
+
+        tasks:
+        - ceph:
+        - rbd.clone_image:
+            client.0:
+                parent_name: testimage
+                image_name: cloneimage
+    """
+    assert isinstance(config, dict) or isinstance(config, list), \
+        "task clone_image only supports a list or dictionary for configuration"
+
+    if isinstance(config, dict):
+        images = config.items()
+    else:
+        images = [(role, None) for role in config]
+
+    testdir = teuthology.get_testdir(ctx)
+    for role, properties in images:
+        if properties is None:
+            properties = {}
+
+        name = properties.get('image_name', default_image_name(role))
+        parent_name = properties.get('parent_name')
+        assert parent_name is not None, \
+            "parent_name is required"
+        parent_spec = '{name}@{snap}'.format(name=parent_name, snap=name)
+
+        (remote,) = ctx.cluster.only(role).remotes.keys()
+        log.info('Clone image {parent} to {child}'.format(parent=parent_name,
+                                                          child=name))
+        for cmd in [('snap', 'create', parent_spec),
+                    ('snap', 'protect', parent_spec),
+                    ('clone', parent_spec, name)]:
+            args = [
+                    'adjust-ulimits',
+                    'ceph-coverage'.format(tdir=testdir),
+                    '{tdir}/archive/coverage'.format(tdir=testdir),
+                    'rbd', '-p', 'rbd'
+                    ]
+            args.extend(cmd)
+            remote.run(args=args)
+
+    try:
+        yield
+    finally:
+        log.info('Deleting rbd clones...')
+        for role, properties in images:
+            if properties is None:
+                properties = {}
+            name = properties.get('image_name', default_image_name(role))
+            parent_name = properties.get('parent_name')
+            parent_spec = '{name}@{snap}'.format(name=parent_name, snap=name)
+
+            (remote,) = ctx.cluster.only(role).remotes.keys()
+
+            for cmd in [('rm', name),
+                        ('snap', 'unprotect', parent_spec),
+                        ('snap', 'rm', parent_spec)]:
+                args = [
+                        'adjust-ulimits',
+                        'ceph-coverage'.format(tdir=testdir),
+                        '{tdir}/archive/coverage'.format(tdir=testdir),
+                        'rbd', '-p', 'rbd'
+                        ]
+                args.extend(cmd)
+                remote.run(args=args)
 
 @contextlib.contextmanager
 def modprobe(ctx, config):
@@ -289,6 +362,7 @@ def run_xfstests_one_client(ctx, role, properties):
         tests = properties.get('tests')
         randomize = properties.get('randomize')
 
+
         (remote,) = ctx.cluster.only(role).remotes.keys()
 
         # Fetch the test script
@@ -296,13 +370,18 @@ def run_xfstests_one_client(ctx, role, properties):
         test_script = 'run_xfstests_krbd.sh'
         test_path = os.path.join(test_root, test_script)
 
-        git_branch = 'master'
-        test_url = 'https://raw.github.com/ceph/ceph/{branch}/qa/{script}'.format(branch=git_branch, script=test_script)
+        xfstests_url = properties.get('xfstests_url')
+        assert xfstests_url is not None, \
+            "task run_xfstests requires xfstests_url to be defined"
 
-        log.info('Fetching {script} for {role} from {url}'.format(script=test_script,
-                                                                role=role,
-                                                                url=test_url))
-        args = [ 'wget', '-O', test_path, '--', test_url ]
+        xfstests_krbd_url = xfstests_url + '/' + test_script
+
+        log.info('Fetching {script} for {role} from {url}'.format(
+            script=test_script,
+            role=role,
+            url=xfstests_krbd_url))
+
+        args = [ 'wget', '-O', test_path, '--', xfstests_krbd_url ]
         remote.run(args=args)
 
         log.info('Running xfstests on {role}:'.format(role=role))
@@ -319,6 +398,7 @@ def run_xfstests_one_client(ctx, role, properties):
         args = [
             '/usr/bin/sudo',
             'TESTDIR={tdir}'.format(tdir=testdir),
+            'URL_BASE={url}'.format(url=xfstests_url),
             'adjust-ulimits',
             'ceph-coverage',
             '{tdir}/archive/coverage'.format(tdir=testdir),
@@ -366,6 +446,8 @@ def xfstests(ctx, config):
                 fs_type: 'xfs'
                 tests: 'generic/100 xfs/003 xfs/005 xfs/006 generic/015'
                 randomize: true
+                xfstests_branch: master
+                xfstests_url: 'https://raw.github.com/ceph/branch/master/qa'
     """
     if config is None:
         config = { 'all': None }
@@ -398,7 +480,7 @@ def xfstests(ctx, config):
             properties = {}
 
         test_image = properties.get('test_image', 'test_image.{role}'.format(role=role))
-        test_size = properties.get('test_size', 2000) # 2G
+        test_size = properties.get('test_size', 10000) # 10G
         test_fmt = properties.get('test_format', 1)
         scratch_image = properties.get('scratch_image', 'scratch_image.{role}'.format(role=role))
         scratch_size = properties.get('scratch_size', 10000) # 10G
@@ -416,6 +498,9 @@ def xfstests(ctx, config):
             image_format=scratch_fmt,
             )
 
+        xfstests_branch = properties.get('xfstests_branch', 'master')
+        xfstests_url = properties.get('xfstests_url', 'https://raw.github.com/ceph/ceph/{branch}/qa'.format(branch=xfstests_branch))
+
         xfstests_config[role] = dict(
             count=properties.get('count', 1),
             test_dev='/dev/rbd/rbd/{image}'.format(image=test_image),
@@ -423,6 +508,7 @@ def xfstests(ctx, config):
             fs_type=properties.get('fs_type', 'xfs'),
             randomize=properties.get('randomize', False),
             tests=properties.get('tests'),
+            xfstests_url=xfstests_url,
             )
 
         log.info('Setting up xfstests using RBD images:')

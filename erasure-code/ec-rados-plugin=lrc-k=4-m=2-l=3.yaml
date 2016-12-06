@@ -1,9 +1,10 @@
 tasks:
 - rados:
     clients: [client.0]
-    ops: 4000
+    ops: 400
     objects: 50
     ec_pool: true
+    write_append_excl: false
     erasure_code_profile:
       name: lrcprofile
       plugin: lrc

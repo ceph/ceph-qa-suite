@@ -1,5 +1,6 @@
 roles:
-- [mon.a, osd.0, osd.1, osd.2, osd.3, client.0, client.1]
+- [mon.a, osd.0, client.0]
+- [osd.1, osd.2, osd.3, client.1]
 tasks:
 - install:
 - ceph:
@@ -32,6 +33,8 @@ tasks:
         rgw log data: False
         rgw log meta: False
 - rgw:
+    realm:
+      realm0
     regions:
       region0:
         api name: api1
@@ -53,4 +56,6 @@ tasks:
       max-entries: 10
       src: client.0
       dest: client.1
+- sleep:
+    duration: 30
 - radosgw-admin:

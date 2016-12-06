@@ -5,6 +5,10 @@ roles:
   - osd.0
   - osd.1
   - osd.2
+openstack:
+  - volumes: # attached to each instance
+      count: 3
+      size: 10 # GB
 tasks:
 - install:
 - ceph:
@@ -13,4 +17,5 @@ tasks:
     conf:
       osd:
         osd min pg log entries: 5
+        osd_fast_fail_on_connection_refused: false
 - osd_recovery:

@@ -6,7 +6,6 @@ import contextlib
 import logging
 
 from teuthology import misc as teuthology
-from teuthology.orchestra import run
 from cephfs.fuse_mount import FuseMount
 
 log = logging.getLogger(__name__)
@@ -14,8 +13,8 @@ log = logging.getLogger(__name__)
 
 def get_client_configs(ctx, config):
     """
-    Get a map of the configuration for each FUSE client in the configuration
-    by combining the configuration of the current task with any global overrides.
+    Get a map of the configuration for each FUSE client in the configuration by
+    combining the configuration of the current task with any global overrides.
 
     :param ctx: Context instance
     :param config: configuration for this task
@@ -80,6 +79,16 @@ def task(ctx, config):
                     mounted: false
             - ... do something that requires the FS unmounted ...
 
+    Example that adds more generous wait time for mount (for virtual machines):
+
+        tasks:
+        - ceph:
+        - ceph-fuse:
+            client.0:
+              mount_wait: 60 # default is 0, do not wait before checking /sys/
+              mount_timeout: 120 # default is 30, give up if /sys/ is not populated
+        - interactive:
+
     :param ctx: Context
     :param config: Configuration
     """
@@ -110,6 +119,8 @@ def task(ctx, config):
         if client_config.get('mounted', True):
             mounted_by_me[id_] = all_mounts[id_]
 
+    ctx.mounts = all_mounts
+
     # Mount any clients we have been asked to (default to mount all)
     for mount in mounted_by_me.values():
         mount.mount()
@@ -123,7 +134,6 @@ def task(ctx, config):
         if mount.is_mounted():
             mount.umount_wait()
 
-    ctx.mounts = all_mounts
     try:
         yield all_mounts
     finally:
