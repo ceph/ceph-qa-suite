@@ -10,7 +10,6 @@ from teuthology import misc as teuthology
 
 log = logging.getLogger(__name__)
 
-# simple test to indicate if multi-region testing should occur
 def multi_region_enabled(ctx):
     # this is populated by the radosgw-agent task, seems reasonable to
     # use that as an indicator that we're testing multi-region sync
@@ -20,6 +19,8 @@ def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
              format='json'):
     log.info('rgwadmin: {client} : {cmd}'.format(client=client,cmd=cmd))
     testdir = teuthology.get_testdir(ctx)
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    client_with_id = daemon_type + '.' + client_id
     pre = [
         'adjust-ulimits',
         'ceph-coverage'.format(tdir=testdir),
@@ -27,7 +28,8 @@ def rgwadmin(ctx, client, cmd, stdin=StringIO(), check_status=False,
         'radosgw-admin'.format(tdir=testdir),
         '--log-to-stderr',
         '--format', format,
-        '-n',  client,
+        '-n',  client_with_id,
+        '--cluster', cluster_name,
         ]
     pre.extend(cmd)
     log.info('rgwadmin: cmd=%s' % pre)
@@ -71,7 +73,7 @@ def get_user_successful_ops(out, user):
 
 def get_zone_host_and_port(ctx, client, zone):
     _, region_map = rgwadmin(ctx, client, check_status=True,
-                             cmd=['-n', client, 'region-map', 'get'])
+                             cmd=['region-map', 'get'])
     regions = region_map['zonegroups']
     for region in regions:
         for zone_info in region['val']['zones']:
@@ -85,7 +87,7 @@ def get_zone_host_and_port(ctx, client, zone):
 
 def get_master_zone(ctx, client):
     _, region_map = rgwadmin(ctx, client, check_status=True,
-                             cmd=['-n', client, 'region-map', 'get'])
+                             cmd=['region-map', 'get'])
     regions = region_map['zonegroups']
     for region in regions:
         is_master = (region['val']['is_master'] == "true")
@@ -114,27 +116,29 @@ def get_master_client(ctx, clients):
 
 def get_zone_system_keys(ctx, client, zone):
     _, zone_info = rgwadmin(ctx, client, check_status=True,
-                            cmd=['-n', client,
-                                 'zone', 'get', '--rgw-zone', zone])
+                            cmd=['zone', 'get', '--rgw-zone', zone])
     system_key = zone_info['system_key']
     return system_key['access_key'], system_key['secret_key']
 
 def zone_for_client(ctx, client):
-    ceph_config = ctx.ceph['ceph'].conf.get('global', {})
-    ceph_config.update(ctx.ceph['ceph'].conf.get('client', {}))
-    ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
+    ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
+    ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
     return ceph_config.get('rgw zone')
 
 def region_for_client(ctx, client):
-    ceph_config = ctx.ceph['ceph'].conf.get('global', {})
-    ceph_config.update(ctx.ceph['ceph'].conf.get('client', {}))
-    ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
+    ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
+    ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
     return ceph_config.get('rgw region')
 
 def radosgw_data_log_window(ctx, client):
-    ceph_config = ctx.ceph['ceph'].conf.get('global', {})
-    ceph_config.update(ctx.ceph['ceph'].conf.get('client', {}))
-    ceph_config.update(ctx.ceph['ceph'].conf.get(client, {}))
+    cluster_name, daemon_type, client_id = teuthology.split_role(client)
+    ceph_config = ctx.ceph[cluster_name].conf.get('global', {})
+    ceph_config.update(ctx.ceph[cluster_name].conf.get('client', {}))
+    ceph_config.update(ctx.ceph[cluster_name].conf.get(client, {}))
     return ceph_config.get('rgw data log window', 30)
 
 def radosgw_agent_sync_data(ctx, agent_host, agent_port, full=False):
