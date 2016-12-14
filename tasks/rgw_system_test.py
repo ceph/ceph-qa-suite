@@ -256,8 +256,7 @@ def task(ctx, config):
             'git',
             'clone',
             'http://gitlab.osas.lab.eng.rdu2.redhat.com/ceph/ceph-qe-scripts.git',
-            '-b',
-            'wip_rgw'])
+            ])
 
     clients[0].run(args=['virtualenv', 'venv'])
     clients[0].run(
