@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 class Test(object):
 
-    def __init__(self, script_name, configuration, port_number = None):
+    def __init__(self, script_name, configuration, port_number=None):
         self.script_fname = script_name + ".py"
         self.yaml_fname = script_name + ".yaml"
         self.configuration = configuration
@@ -25,8 +25,7 @@ class Test(object):
 
         if os.path.exists('/tmp/rgwtmp'):
             shutil.rmtree('/tmp/rgwtmp')
-
-        if not os.path.exists('/tmp/rgwtmp'):
+        else:
             os.makedirs('/tmp/rgwtmp')
 
         log.info('created tmp dir in local machine')
@@ -35,26 +34,24 @@ class Test(object):
 
         log.info('creating yaml from the config: %s' % data)
 
-        with open('/tmp/rgwtmp/%s' % self.yaml_fname,  'w' ) as outfile:
+        with open('/tmp/rgwtmp/%s' % self.yaml_fname,  'w') as outfile:
             outfile.write(yaml.dump(data, default_flow_style=False))
 
         log.info('copying yaml to the client node')
 
-        # local_file = '/tmp/rgwtmp/test_Mbuckets.yaml'
-        # destination_location = '/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/'
-
-        # clients[0].put_file(local_file,  destination_location)
-
-        scp_cmd = 'scp /tmp/rgwtmp/%s %s:~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/' \
-                  % (self.yaml_fname, clients[0].hostname)
-
-        os.system(scp_cmd)
-
+        local_file = '/tmp/rgwtmp/' + self.yaml_fname
+        destination_location = \
+            'rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/' + self.yaml_fname
+        clients[0].put_file(local_file,  destination_location)
+        clients[0].run(args=['ls', '-lt',
+                             'rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/'])
+        clients[0].run(args=['cat',
+                             'rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/' + self.yaml_fname])
         clients[0].run(
             args=[
                 run.Raw(
-                    'sudo venv/bin/python2.7 ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/%s '
-                    '-c ~/rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/%s ' % (self.script_fname, self.yaml_fname))])
+                    'sudo venv/bin/python2.7 rgw-tests/ceph-qe-scripts/rgw/tests/s3/%s '
+                    '-c rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/%s ' % (self.script_fname, self.yaml_fname))])
 
         if os.path.exists('/tmp/rgwtmp'):
             shutil.rmtree('/tmp/rgwtmp')
@@ -240,13 +237,6 @@ def task(ctx, config):
     log.info('cloning the repo to client.0 machines')
 
     clients[0].run(args=['sudo', 'rm', '-rf', 'rgw-tests'], check_status=False)
-    clients[0].run(
-        args=[
-            'sudo',
-            'rm',
-            '-rf',
-            run.Raw('/tmp/apilog*')],
-        check_status=False)
     clients[0].run(args=['mkdir', 'rgw-tests'])
     clients[0].run(
         args=[
