@@ -1,6 +1,4 @@
 import yaml
-import os
-import shutil
 import contextlib
 import logging
 from teuthology import misc as teuthology
@@ -22,24 +20,16 @@ class Test(object):
 
         if self.configuration is None:
             assert isinstance(self.configuration, dict), "configuration not given"
-
-        if os.path.exists('/tmp/rgwtmp'):
-            shutil.rmtree('/tmp/rgwtmp')
-        else:
-            os.makedirs('/tmp/rgwtmp')
-
-        log.info('created tmp dir in local machine')
-
+        clients[0].run(args=['sudo', 'rm', '-f', run.Raw('/tmp/*')],
+                       check_status=False)
         data = self.configuration
 
         log.info('creating yaml from the config: %s' % data)
-
-        with open('/tmp/rgwtmp/%s' % self.yaml_fname,  'w') as outfile:
+        local_file = '/tmp/' + self.yaml_fname
+        with open(local_file,  'w') as outfile:
             outfile.write(yaml.dump(data, default_flow_style=False))
 
         log.info('copying yaml to the client node')
-
-        local_file = '/tmp/rgwtmp/' + self.yaml_fname
         destination_location = \
             'rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/' + self.yaml_fname
         clients[0].put_file(local_file,  destination_location)
@@ -52,9 +42,6 @@ class Test(object):
                 run.Raw(
                     'sudo venv/bin/python2.7 rgw-tests/ceph-qe-scripts/rgw/tests/s3/%s '
                     '-c rgw-tests/ceph-qe-scripts/rgw/tests/s3/yamls/%s ' % (self.script_fname, self.yaml_fname))])
-
-        if os.path.exists('/tmp/rgwtmp'):
-            shutil.rmtree('/tmp/rgwtmp')
 
 
 def test_exec(config, data, clients):
