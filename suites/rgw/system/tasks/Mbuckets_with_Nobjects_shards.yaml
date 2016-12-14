@@ -2,10 +2,10 @@ tasks:
 - ssh-keys: null
 - ceph-ansible: null
 - rgw-system-test:
-    test-name: test_Mbuckets_with_Nobjects
+    test-name: test_Mbuckets_with_Nobjects_shards
     config:
-      shards:
-      max_objcts:
+      shards: 100
+      max_objects: 100000   # max objects per bucket.
       user_count: 100
       bucket_count: 500
       objects_count: 100
